@@ -1,0 +1,57 @@
+═══════════════════════════════════════════════════════════════
+  INVENTORY NOT SHOWING? START HERE!
+═══════════════════════════════════════════════════════════════
+
+I've added a DEBUG PANEL to the inventory page that will show
+exactly what's happening.
+
+QUICK START:
+───────────────────────────────────────────────────────────────
+
+1. Make sure backend is running:
+   cd backend
+   php artisan serve
+
+2. Make sure frontend is running:
+   cd frontend
+   npm run dev
+
+3. Go to: http://localhost:5173/login
+
+4. Login:
+   Username: benjie.trozo
+   Password: p@ssw0rd
+
+5. Click "Inventory" in sidebar
+
+6. LOOK AT THE TOP OF THE PAGE
+   You'll see a gray box with debug info:
+   
+   🔍 Debug Info:
+   Loading: Yes/No
+   Items Count: (number)
+   Error: (message)
+   Search: (term)
+   Category: (filter)
+
+7. ALSO PRESS F12
+   Open browser console and look for logs
+
+═══════════════════════════════════════════════════════════════
+
+WHAT TO TELL ME:
+───────────────────────────────────────────────────────────────
+
+Please report what you see in the debug panel:
+
+□ Loading: ___________
+□ Items Count: ___________
+□ Error: ___________
+
+And any console logs or errors.
+
+═══════════════════════════════════════════════════════════════
+
+This will help me identify the exact issue!
+
+═══════════════════════════════════════════════════════════════

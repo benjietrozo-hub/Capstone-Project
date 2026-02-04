@@ -1,0 +1,25 @@
+# Composer
+/vendor/
+composer.lock
+
+# WebSocket queue files
+/websocket/queue/*.json
+
+# Logs
+*.log
+/logs/*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (if sensitive)
+# config/config.php
+

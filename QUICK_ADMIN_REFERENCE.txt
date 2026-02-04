@@ -1,0 +1,45 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                  ROOT ADMIN QUICK REFERENCE                   ║
+╠═══════════════════════════════════════════════════════════════╣
+║                                                               ║
+║  📧 EMAIL:    benjie.trozo@csucc.edu.ph                      ║
+║  👤 USERNAME: benjie.trozo                                    ║
+║  🔑 PASSWORD: p@ssw0rd                                        ║
+║  ✅ STATUS:   Active                                          ║
+║                                                               ║
+╠═══════════════════════════════════════════════════════════════╣
+║  LOGIN STEPS:                                                 ║
+║  1. Open: http://localhost:5173                              ║
+║  2. Enter: benjie.trozo@csucc.edu.ph (or benjie.trozo)      ║
+║  3. Password: p@ssw0rd                                        ║
+║  4. Click Login → Auto-redirect to Admin Dashboard           ║
+║                                                               ║
+╠═══════════════════════════════════════════════════════════════╣
+║  START SERVERS:                                               ║
+║                                                               ║
+║  Backend:  cd backend && php artisan serve                   ║
+║  Frontend: cd frontend && npm run dev                         ║
+║                                                               ║
+╠═══════════════════════════════════════════════════════════════╣
+║  USEFUL COMMANDS:                                             ║
+║                                                               ║
+║  Create Admin:  cd backend && php create-root-admin.php      ║
+║  Test Login:    cd backend && php test-root-admin-login.php  ║
+║  View Admins:   cd backend && php artisan tinker             ║
+║                 App\Models\Admin::all();                     ║
+║                                                               ║
+╠═══════════════════════════════════════════════════════════════╣
+║  ⚠️  SECURITY REMINDER:                                       ║
+║  • Change password after first login                          ║
+║  • Don't share credentials                                    ║
+║  • Delete this file after noting credentials                  ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Database: backend/database/database.sqlite
+Admin ID: 2
+Created: 2026-02-02
+Last Login: 2026-02-02 12:48:43
+
+All tests passed ✅
+Ready to use! 🚀

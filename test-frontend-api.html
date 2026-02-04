@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Frontend API Connection</title>
+</head>
+<body>
+    <h1>Testing Frontend API Connection</h1>
+    <div id="results"></div>
+
+    <script>
+        const API_URL = 'http://localhost/OlineIMS/backend/public/api';
+        const resultsDiv = document.getElementById('results');
+
+        async function testAPI() {
+            resultsDiv.innerHTML = '<p>Testing API connection...</p>';
+
+            try {
+                // Test 1: Login
+                resultsDiv.innerHTML += '<h2>Test 1: Login</h2>';
+                const loginResponse = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'benjie.trozo',
+                        password: 'p@ssw0rd',
+                    }),
+                });
+
+                const loginData = await loginResponse.json();
+                resultsDiv.innerHTML += `<p>Login Status: ${loginResponse.status}</p>`;
+                resultsDiv.innerHTML += `<pre>${JSON.stringify(loginData, null, 2)}</pre>`;
+
+                if (loginResponse.ok && loginData.token) {
+                    const token = loginData.token;
+                    resultsDiv.innerHTML += '<p>✅ Login successful!</p>';
+
+                    // Test 2: Fetch Inventory
+                    resultsDiv.innerHTML += '<h2>Test 2: Fetch Inventory</h2>';
+                    const inventoryResponse = await fetch(`${API_URL}/admin/inventory?per_page=50`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Accept': 'application/json',
+                        },
+                    });
+
+                    const inventoryData = await inventoryResponse.json();
+                    resultsDiv.innerHTML += `<p>Inventory Status: ${inventoryResponse.status}</p>`;
+                    resultsDiv.innerHTML += `<p>Total Items: ${inventoryData.total || 0}</p>`;
+                    resultsDiv.innerHTML += `<p>Items on Page: ${inventoryData.data?.length || 0}</p>`;
+                    resultsDiv.innerHTML += `<pre>${JSON.stringify(inventoryData, null, 2)}</pre>`;
+
+                    if (inventoryResponse.ok) {
+                        resultsDiv.innerHTML += '<p>✅ Inventory fetch successful!</p>';
+                    } else {
+                        resultsDiv.innerHTML += '<p>❌ Inventory fetch failed!</p>';
+                    }
+                } else {
+                    resultsDiv.innerHTML += '<p>❌ Login failed!</p>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+                console.error('Error:', error);
+            }
+        }
+
+        testAPI();
+    </script>
+</body>
+</html>
