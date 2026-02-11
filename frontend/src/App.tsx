@@ -10,6 +10,8 @@ import { AppSidebar } from '@/components/AppSidebar';
 // Auth Pages
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { NotFoundPage, UnauthorizedPage } from './pages/ErrorPages';
 
 // Admin Pages
@@ -66,6 +68,8 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           {/* Admin Routes */}

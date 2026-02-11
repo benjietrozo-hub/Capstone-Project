@@ -6,9 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Models\Teacher;
 use App\Models\SystemLog;
+use App\Models\LoginAttempt;
+use App\Mail\PasswordResetMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 
 class UnifiedAuthController extends Controller
 {
@@ -19,6 +25,35 @@ class UnifiedAuthController extends Controller
             'password' => 'required|string',
         ]);
 
+        $ipAddress = $request->ip();
+        $identifier = $request->username;
+
+        // Get or create login attempt record
+        $loginAttempt = LoginAttempt::getOrCreate($identifier, $ipAddress);
+
+        // Check if account is locked
+        if ($loginAttempt->isLocked()) {
+            $remainingTime = $loginAttempt->getRemainingLockTime();
+            
+            SystemLog::logActivity(
+                'auth',
+                'login_blocked',
+                'Login attempt blocked due to account lock: ' . $identifier,
+                null,
+                null,
+                $identifier,
+                'warning'
+            );
+
+            return response()->json([
+                'message' => $loginAttempt->getLockoutMessage(),
+                'locked' => true,
+                'locked_until' => $loginAttempt->locked_until,
+                'remaining_seconds' => $remainingTime,
+                'batch' => $loginAttempt->batch,
+            ], 429);
+        }
+
         // Try to find user in admin table first
         $admin = Admin::where('username', $request->username)
                      ->orWhere('email', $request->username)
@@ -26,7 +61,6 @@ class UnifiedAuthController extends Controller
 
         if ($admin && Hash::check($request->password, $admin->password)) {
             if ($admin->status !== 'active') {
-                // Log failed login attempt
                 SystemLog::logActivity(
                     'auth',
                     'login_failed',
@@ -42,10 +76,12 @@ class UnifiedAuthController extends Controller
                 ]);
             }
 
+            // Successful login - reset attempts
+            $loginAttempt->resetAttempts();
+
             $admin->update(['last_login' => now()]);
             $token = $admin->createToken('admin-token')->plainTextToken;
 
-            // Log successful login
             SystemLog::logActivity(
                 'auth',
                 'login',
@@ -71,7 +107,6 @@ class UnifiedAuthController extends Controller
 
         if ($teacher && Hash::check($request->password, $teacher->password)) {
             if ($teacher->status !== 'active') {
-                // Log failed login attempt
                 SystemLog::logActivity(
                     'auth',
                     'login_failed',
@@ -87,10 +122,12 @@ class UnifiedAuthController extends Controller
                 ]);
             }
 
+            // Successful login - reset attempts
+            $loginAttempt->resetAttempts();
+
             $teacher->update(['last_login' => now()]);
             $token = $teacher->createToken('teacher-token')->plainTextToken;
 
-            // Log successful login
             SystemLog::logActivity(
                 'auth',
                 'login',
@@ -108,20 +145,41 @@ class UnifiedAuthController extends Controller
             ]);
         }
 
-        // Log failed login attempt
+        // Failed login - record attempt
+        $loginAttempt->recordFailedAttempt();
+        $remainingAttempts = $loginAttempt->getRemainingAttempts();
+
         SystemLog::logActivity(
             'auth',
             'login_failed',
-            'Invalid credentials for username: ' . $request->username,
+            'Invalid credentials for username: ' . $request->username . ' (Batch: ' . $loginAttempt->batch . ', Remaining: ' . $remainingAttempts . ')',
             null,
             null,
             $request->username,
             'warning'
         );
 
-        // If no user found or password incorrect
+        // Check if just got locked
+        if ($loginAttempt->isLocked()) {
+            $remainingTime = $loginAttempt->getRemainingLockTime();
+            
+            return response()->json([
+                'message' => $loginAttempt->getLockoutMessage(),
+                'locked' => true,
+                'locked_until' => $loginAttempt->locked_until,
+                'remaining_seconds' => $remainingTime,
+                'batch' => $loginAttempt->batch,
+            ], 429);
+        }
+
+        // Return error with remaining attempts
+        $message = 'The provided credentials are incorrect.';
+        if ($remainingAttempts > 0) {
+            $message .= " You have {$remainingAttempts} attempt(s) remaining.";
+        }
+
         throw ValidationException::withMessages([
-            'username' => ['The provided credentials are incorrect.'],
+            'username' => [$message],
         ]);
     }
 
@@ -146,5 +204,144 @@ class UnifiedAuthController extends Controller
         
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logged out successfully']);
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        // Try to find user in admin table first
+        $admin = Admin::where('email', $request->email)->first();
+        $user = $admin;
+        $userType = 'admin';
+
+        // If not found in admin, try teacher table
+        if (!$admin) {
+            $teacher = Teacher::where('email', $request->email)->first();
+            $user = $teacher;
+            $userType = 'teacher';
+        }
+
+        // Always return success message for security (don't reveal if email exists)
+        if (!$user) {
+            return response()->json([
+                'message' => 'If an account exists with this email, you will receive a password reset link.'
+            ]);
+        }
+
+        // Generate reset token
+        $token = Str::random(64);
+
+        // Delete any existing tokens for this email
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        // Store the token
+        DB::table('password_reset_tokens')->insert([
+            'email' => $request->email,
+            'token' => Hash::make($token),
+            'user_type' => $userType,
+            'created_at' => Carbon::now()
+        ]);
+
+        // Generate reset URL
+        $resetUrl = env('FRONTEND_URL', 'http://localhost:5173') . '/reset-password?token=' . $token . '&email=' . urlencode($request->email);
+
+        // Send email
+        try {
+            Mail::to($request->email)->send(new PasswordResetMail(
+                $resetUrl,
+                $user->first_name . ' ' . $user->last_name
+            ));
+
+            // Log password reset request
+            SystemLog::logActivity(
+                'auth',
+                'password_reset_requested',
+                'Password reset email sent',
+                $user->id,
+                $userType,
+                $user->first_name . ' ' . $user->last_name,
+                'info'
+            );
+        } catch (\Exception $e) {
+            // Log error but don't reveal to user
+            \Log::error('Password reset email failed: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'If an account exists with this email, you will receive a password reset link.'
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'token' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Find the token record
+        $resetRecord = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
+
+        if (!$resetRecord) {
+            throw ValidationException::withMessages([
+                'email' => ['Invalid or expired reset token.'],
+            ]);
+        }
+
+        // Check if token is expired (60 minutes)
+        if (Carbon::parse($resetRecord->created_at)->addMinutes(60)->isPast()) {
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            throw ValidationException::withMessages([
+                'email' => ['This password reset link has expired.'],
+            ]);
+        }
+
+        // Verify token
+        if (!Hash::check($request->token, $resetRecord->token)) {
+            throw ValidationException::withMessages([
+                'email' => ['Invalid reset token.'],
+            ]);
+        }
+
+        // Find and update user
+        if ($resetRecord->user_type === 'admin') {
+            $user = Admin::where('email', $request->email)->first();
+        } else {
+            $user = Teacher::where('email', $request->email)->first();
+        }
+
+        if (!$user) {
+            throw ValidationException::withMessages([
+                'email' => ['User not found.'],
+            ]);
+        }
+
+        // Update password
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        // Delete the token
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        // Log password reset
+        SystemLog::logActivity(
+            'auth',
+            'password_reset',
+            'Password was reset successfully',
+            $user->id,
+            $resetRecord->user_type,
+            $user->first_name . ' ' . $user->last_name,
+            'info'
+        );
+
+        return response()->json([
+            'message' => 'Password has been reset successfully. You can now login with your new password.'
+        ]);
     }
 }

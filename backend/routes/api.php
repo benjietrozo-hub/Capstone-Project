@@ -30,6 +30,10 @@ Route::prefix('auth')->group(function () {
     // Unified login endpoint
     Route::post('/login', [UnifiedAuthController::class, 'login']);
     
+    // Password reset endpoints
+    Route::post('/forgot-password', [UnifiedAuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [UnifiedAuthController::class, 'resetPassword']);
+    
     // Teacher registration
     Route::post('/teacher/register', [TeacherAuthController::class, 'register']);
     
