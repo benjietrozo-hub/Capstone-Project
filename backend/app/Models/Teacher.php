@@ -63,6 +63,17 @@ class Teacher extends Authenticatable
         return $this->hasMany(Notification::class);
     }
 
+    public function distributionGroups()
+    {
+        return $this->belongsToMany(DistributionGroup::class, 'distribution_group_members', 'teacher_id', 'group_id')
+                    ->withTimestamps();
+    }
+
+    public function createdDistributionGroups()
+    {
+        return $this->hasMany(DistributionGroup::class, 'created_by');
+    }
+
     // Scopes
     public function scopeActive($query)
     {

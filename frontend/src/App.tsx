@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -19,6 +20,10 @@ import { ReservationsPage } from './pages/admin/ReservationsPage';
 import { TeachersPage } from './pages/admin/TeachersPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { LogsPage } from './pages/admin/LogsPage';
+import PurchaseOrdersPage from './pages/admin/PurchaseOrdersPage';
+import SuppliersPage from './pages/admin/SuppliersPage';
+import DistributionListPage from './pages/admin/DistributionListPage';
+import TrashPage from './pages/admin/TrashPage';
 
 // Teacher Pages
 import { TeacherDashboard } from './pages/teacher/Dashboard';
@@ -26,6 +31,8 @@ import { BrowseInventoryPage } from './pages/teacher/BrowseInventoryPage';
 import { MyRequestsPage } from './pages/teacher/MyRequestsPage';
 import { MyReservationsPage } from './pages/teacher/MyReservationsPage';
 import { ActivityLogsPage } from './pages/teacher/ActivityLogsPage';
+import DistributionGroupsPage from './pages/teacher/DistributionGroupsPage';
+import DistributionRequestsPage from './pages/teacher/DistributionRequestsPage';
 
 // Common Components
 import { ProtectedRoute } from './components/common/ProtectedRoute';
@@ -52,9 +59,10 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <Routes>
+        <NotificationProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -135,6 +143,46 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="purchase-orders"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <ProtectedLayout>
+                        <PurchaseOrdersPage />
+                      </ProtectedLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="suppliers"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <ProtectedLayout>
+                        <SuppliersPage />
+                      </ProtectedLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="distribution"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <ProtectedLayout>
+                        <DistributionListPage />
+                      </ProtectedLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="trash"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <ProtectedLayout>
+                        <TrashPage />
+                      </ProtectedLayout>
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="*" element={<Navigate to="/admin/dashboard" />} />
               </Routes>
             }
@@ -186,6 +234,26 @@ function App() {
                   }
                 />
                 <Route
+                  path="distribution-groups"
+                  element={
+                    <ProtectedRoute requiredRole="teacher">
+                      <ProtectedLayout>
+                        <DistributionGroupsPage />
+                      </ProtectedLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="distribution-requests"
+                  element={
+                    <ProtectedRoute requiredRole="teacher">
+                      <ProtectedLayout>
+                        <DistributionRequestsPage />
+                      </ProtectedLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="my-requests"
                   element={
                     <ProtectedRoute requiredRole="teacher">
@@ -204,6 +272,7 @@ function App() {
           <Route path="/" element={<RoleBasedRedirect />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>
   );

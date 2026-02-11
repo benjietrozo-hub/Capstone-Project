@@ -3,8 +3,8 @@ import { teacherAPI } from '../../api';
 import { toast } from '@/hooks/use-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
-import { Card } from '../../components/common/Card';
-import { Badge } from '../../components/common/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { PageLoader } from '../../components/common/Loader';
 import { formatDate } from '../../utils/formatters';
 import { 
@@ -293,7 +293,7 @@ export function ActivityLogsPage() {
                           Request Code: <span className="font-mono font-semibold text-blue-600">{activity.request_code}</span>
                         </p>
                       </div>
-                      <Badge label={activity.status} status={activity.status} />
+                      <StatusBadge label={activity.status} status={activity.status} />
                     </div>
 
                     {/* Activity Details */}
@@ -360,3 +360,4 @@ export function ActivityLogsPage() {
     </div>
   );
 }
+

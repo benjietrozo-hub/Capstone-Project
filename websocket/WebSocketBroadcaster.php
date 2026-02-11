@@ -132,6 +132,23 @@ class WebSocketBroadcaster {
     }
 
     /**
+     * Generic broadcast method for custom message types
+     * 
+     * @param array $message Message with 'type', 'target', and 'data' keys
+     * @return bool Success status
+     */
+    public static function broadcast($message) {
+        self::init();
+
+        // Ensure timestamp is set
+        if (!isset($message['timestamp'])) {
+            $message['timestamp'] = time();
+        }
+
+        return self::queueMessage($message);
+    }
+
+    /**
      * Queue a message for the WebSocket server to process
      */
     private static function queueMessage($message) {

@@ -213,6 +213,16 @@ class WebSocketHandler implements MessageComponentInterface {
                             ]);
                         }
                         break;
+
+                    case 'log_update':
+                        // Broadcast log updates to all admin users
+                        $sent = $this->broadcastToUserType('admin', [
+                            'type' => 'log_update',
+                            'log' => $data,
+                            'timestamp' => time()
+                        ]);
+                        echo "[" . date('Y-m-d H:i:s') . "] Broadcasted log update to {$sent} admin user(s)\n";
+                        break;
                 }
             }
         } catch (\Exception $e) {

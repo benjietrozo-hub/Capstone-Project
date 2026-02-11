@@ -29,6 +29,7 @@ class ToolEquipment extends Model
         'supplier', // Legacy column
         'notes',
         'status',
+        'deleted_by',
     ];
 
     // Map condition to condition_status for backward compatibility
@@ -90,5 +91,10 @@ class ToolEquipment extends Model
         
         $this->quantity_available = $this->quantity_total - $this->quantity_borrowed;
         $this->save();
+    }
+
+    public function deletedByAdmin()
+    {
+        return $this->belongsTo(Admin::class, 'deleted_by');
     }
 }

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../components/common/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { Table } from '../../components/common/Table';
 import { Button, FormField, Alert } from '../../components/common/FormElements';
-import { Badge } from '../../components/common/Badge';
 import { PageLoader } from '../../components/common/Loader';
 import { Modal } from '../../components/common/Modal';
 import { adminAPI } from '../../api';
@@ -241,7 +241,7 @@ export function TeachersPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (value: string) => <Badge label={value} status={value} />,
+      render: (value: string) => <StatusBadge label={value} status={value} />,
     },
     {
       key: 'actions',
@@ -435,3 +435,4 @@ export function TeachersPage() {
     </div>
   );
 }
+

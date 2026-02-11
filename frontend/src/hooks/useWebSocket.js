@@ -11,6 +11,7 @@ export const useWebSocket = (userId, userType) => {
         stats_update: [],
         inventory_update: [],
         request_update: [],
+        log_update: [],
         connected: [],
         disconnected: []
     });
@@ -96,6 +97,9 @@ export const useWebSocket = (userId, userType) => {
                 break;
             case 'request_update':
                 triggerCallbacks('request_update', data.request);
+                break;
+            case 'log_update':
+                triggerCallbacks('log_update', data.log);
                 break;
             default:
                 console.log('Unknown message type:', data.type);

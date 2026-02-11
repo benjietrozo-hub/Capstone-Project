@@ -16,7 +16,7 @@ interface BorrowRequest {
   };
   quantity_requested: number;
   status: string;
-  date_requested: string;
+  created_at: string;
 }
 
 interface ApprovalForm {
@@ -198,7 +198,7 @@ export function BorrowRequestsPage() {
                       </span>
                     </td>
                     <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px' }}>
-                      {new Date(req.date_requested).toLocaleDateString()}
+                      {formatDate(req.created_at)}
                     </td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>

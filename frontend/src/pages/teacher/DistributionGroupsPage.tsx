@@ -1,0 +1,273 @@
+import React, { useState, useEffect } from 'react';
+import { Plus, Users, Lock, Globe, Trash2, UserPlus } from 'lucide-react';
+import { teacherAPI } from '@/api';
+import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { useToast } from '../../hooks/use-toast';
+import CreateDistributionGroupModal from '../../components/teacher/CreateDistributionGroupModal';
+import ManageGroupMembersModal from '../../components/teacher/ManageGroupMembersModal';
+
+interface DistributionGroup {
+  id: number;
+  group_name: string;
+  group_type: string;
+  list_type: string;
+  visibility: string;
+  department: string | null;
+  description: string;
+  is_active: boolean;
+  created_by: number | null;
+  teachers: any[];
+  creator: any;
+  created_at: string;
+}
+
+const DistributionGroupsPage: React.FC = () => {
+  const [groups, setGroups] = useState<DistributionGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'system' | 'user'>('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<DistributionGroup | null>(null);
+  const [showMembersModal, setShowMembersModal] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchGroups();
+  }, [filter]);
+
+  const fetchGroups = async () => {
+    try {
+      setLoading(true);
+      const params = filter !== 'all' ? { list_type: filter } : {};
+      console.log('Fetching distribution groups with params:', params);
+      const response = await teacherAPI.getDistributionGroups(params);
+      console.log('Distribution groups response:', response.data);
+      console.log('Number of groups:', response.data.data?.length);
+      setGroups(response.data.data || []);
+    } catch (error: any) {
+      console.error('Error fetching distribution groups:', error);
+      console.error('Error response:', error.response);
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to fetch distribution groups',
+        variant: 'destructive',
+      });
+      setGroups([]); // Set empty array on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (groupId: number) => {
+    if (!confirm('Are you sure you want to delete this distribution group?')) return;
+
+    try {
+      await teacherAPI.deleteDistributionGroup(groupId);
+      toast({
+        title: 'Success',
+        description: 'Distribution group deleted successfully',
+      });
+      fetchGroups();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to delete distribution group',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const getGroupTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      all_users: 'All Users',
+      role: 'Role-Based',
+      department: 'Department',
+      custom: 'Custom',
+    };
+    return labels[type] || type;
+  };
+
+  const getGroupTypeBadge = (type: string) => {
+    const colors: Record<string, string> = {
+      all_users: 'bg-blue-100 text-blue-800',
+      role: 'bg-purple-100 text-purple-800',
+      department: 'bg-green-100 text-green-800',
+      custom: 'bg-gray-100 text-gray-800',
+    };
+    return colors[type] || 'bg-gray-100 text-gray-800';
+  };
+
+  const systemGroups = groups.filter(g => g.list_type === 'system');
+  const userGroups = groups.filter(g => g.list_type === 'user');
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Distribution Groups</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Manage notification distribution lists for efficient communication
+          </p>
+        </div>
+        <Button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Create Group
+        </Button>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex gap-2 border-b">
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-4 py-2 font-medium transition-colors ${
+            filter === 'all'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          All Groups ({groups.length})
+        </button>
+        <button
+          onClick={() => setFilter('system')}
+          className={`px-4 py-2 font-medium transition-colors ${
+            filter === 'system'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          System Groups ({systemGroups.length})
+        </button>
+        <button
+          onClick={() => setFilter('user')}
+          className={`px-4 py-2 font-medium transition-colors ${
+            filter === 'user'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          My Groups ({userGroups.length})
+        </button>
+      </div>
+
+      {/* Groups Grid */}
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Loading distribution groups...</p>
+        </div>
+      ) : groups.length === 0 ? (
+        <Card className="p-12 text-center">
+          <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Distribution Groups</h3>
+          <p className="text-gray-600 mb-4">
+            {filter === 'user'
+              ? 'Create your first custom distribution group to organize notifications.'
+              : 'No distribution groups available.'}
+          </p>
+          {filter === 'user' && (
+            <Button onClick={() => setShowCreateModal(true)}>Create Group</Button>
+          )}
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {groups.map((group) => (
+            <Card key={group.id} className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Users className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{group.group_name}</h3>
+                    <p className="text-sm text-gray-600">{group.teachers.length} members</p>
+                  </div>
+                </div>
+                {group.visibility === 'private' ? (
+                  <Lock className="w-4 h-4 text-gray-400" />
+                ) : (
+                  <Globe className="w-4 h-4 text-gray-400" />
+                )}
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4 line-clamp-2">{group.description}</p>
+
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Badge className={getGroupTypeBadge(group.group_type)}>
+                  {getGroupTypeLabel(group.group_type)}
+                </Badge>
+                <Badge variant={group.list_type === 'system' ? 'default' : 'secondary'}>
+                  {group.list_type === 'system' ? 'System' : 'Custom'}
+                </Badge>
+                {group.department && (
+                  <Badge variant="outline">{group.department}</Badge>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    setSelectedGroup(group);
+                    setShowMembersModal(true);
+                  }}
+                >
+                  <UserPlus className="w-4 h-4 mr-1" />
+                  Manage
+                </Button>
+                {group.list_type === 'user' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(group.id)}
+                  >
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Info Section */}
+      <Card className="p-6 bg-blue-50 border-blue-200">
+        <h3 className="font-semibold text-blue-900 mb-2">About Distribution Groups</h3>
+        <p className="text-sm text-blue-800">
+          Distribution groups allow teachers to efficiently receive inventory-related notifications
+          based on their role, department, and responsibility. This minimizes irrelevant
+          notifications and improves coordination in managing tools and equipment.
+        </p>
+      </Card>
+
+      {/* Modals */}
+      {showCreateModal && (
+        <CreateDistributionGroupModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            fetchGroups();
+          }}
+        />
+      )}
+
+      {showMembersModal && selectedGroup && (
+        <ManageGroupMembersModal
+          group={selectedGroup}
+          onClose={() => {
+            setShowMembersModal(false);
+            setSelectedGroup(null);
+          }}
+          onSuccess={() => {
+            fetchGroups();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default DistributionGroupsPage;

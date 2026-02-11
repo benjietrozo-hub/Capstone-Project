@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { FormField, Button, Alert } from '../components/common/FormElements';
 import { validateEmail, validatePassword, validateUsername } from '../utils/validators';
 import toast from 'react-hot-toast';
+import { Footer } from '../components/common/Footer';
+import AuthHeader from '../components/common/AuthHeader';
 
 interface FormData {
   employee_id: string;
@@ -96,14 +98,21 @@ export function RegisterPage() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#ffffff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px'
-    }}>
+    <>
+      <AuthHeader 
+        title="Online Inventory Management System" 
+        subtitle="Create your teacher account to get started"
+      />
+
+      <div style={{
+        minHeight: 'calc(100vh - 70px - 60px)',
+        background: '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        overflow: 'auto'
+      }}>
       <div style={{
         background: '#1C2536',
         borderRadius: '15px',
@@ -112,7 +121,8 @@ export function RegisterPage() {
         width: '100%',
         padding: '0',
         border: 'none',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        zoom: 0.67
       }}>
         <div style={{
           background: 'linear-gradient(90deg, #5B8DEF 0%, #0063F7 100%)',
@@ -138,6 +148,7 @@ export function RegisterPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px' }}>
               <FormField
                 label="Employee ID"
+                name="employee_id"
                 value={formData.employee_id}
                 onChange={(e) => handleChange(e as React.ChangeEvent<HTMLInputElement>)}
                 placeholder="Enter employee ID"
@@ -147,6 +158,7 @@ export function RegisterPage() {
 
               <FormField
                 label="Username"
+                name="username"
                 value={formData.username}
                 onChange={(e) => handleChange(e as React.ChangeEvent<HTMLInputElement>)}
                 placeholder="Choose a username"
@@ -156,6 +168,7 @@ export function RegisterPage() {
 
               <FormField
                 label="Email"
+                name="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleChange(e as React.ChangeEvent<HTMLInputElement>)}
@@ -168,6 +181,7 @@ export function RegisterPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px' }}>
               <FormField
                 label="First Name"
+                name="first_name"
                 value={formData.first_name}
                 onChange={(e) => handleChange(e as React.ChangeEvent<HTMLInputElement>)}
                 placeholder="First name"
@@ -175,6 +189,7 @@ export function RegisterPage() {
 
               <FormField
                 label="M.I."
+                name="middle_initial"
                 value={formData.middle_initial}
                 onChange={(e) => handleChange(e as React.ChangeEvent<HTMLInputElement>)}
                 placeholder="M"
@@ -182,6 +197,7 @@ export function RegisterPage() {
 
               <FormField
                 label="Last Name"
+                name="last_name"
                 value={formData.last_name}
                 onChange={(e) => handleChange(e as React.ChangeEvent<HTMLInputElement>)}
                 placeholder="Last name"
@@ -191,6 +207,7 @@ export function RegisterPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px' }}>
               <FormField
                 label="Password"
+                name="password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => handleChange(e as React.ChangeEvent<HTMLInputElement>)}
@@ -201,6 +218,7 @@ export function RegisterPage() {
 
               <FormField
                 label="Confirm Password"
+                name="password_confirmation"
                 type="password"
                 value={formData.password_confirmation}
                 onChange={(e) => handleChange(e as React.ChangeEvent<HTMLInputElement>)}
@@ -211,6 +229,7 @@ export function RegisterPage() {
 
               <FormField
                 label="Department"
+                name="department"
                 value={formData.department}
                 onChange={(e) => handleChange(e as React.ChangeEvent<HTMLInputElement>)}
                 placeholder="Department (optional)"
@@ -219,6 +238,7 @@ export function RegisterPage() {
 
             <FormField
               label="Phone"
+              name="phone"
               value={formData.phone}
               onChange={(e) => handleChange(e as React.ChangeEvent<HTMLInputElement>)}
               placeholder="Enter your phone number (optional)"
@@ -258,5 +278,7 @@ export function RegisterPage() {
         </div>
       </div>
     </div>
+    <Footer />
+    </>
   );
 }

@@ -15,7 +15,10 @@ import {
   List,
   FileText,
   ScrollText,
-  Activity
+  Activity,
+  Truck,
+  Trash2,
+  Send
 } from "lucide-react";
 
 import {
@@ -43,15 +46,19 @@ const adminItems: MenuItem[] = [
   { title: "Inventory", url: "/admin/inventory", icon: Boxes },
   { title: "Reservations", url: "/admin/reservations", icon: Calendar },
   { title: "Purchase Orders", url: "/admin/purchase-orders", icon: ShoppingCart },
+  { title: "Suppliers", url: "/admin/suppliers", icon: Truck },
   { title: "Distribution List", url: "/admin/distribution", icon: List },
   { title: "User Management", url: "/admin/teachers", icon: Users },
   { title: "Activity Logs", url: "/admin/logs", icon: Activity },
   { title: "Reports", url: "/admin/reports", icon: FileText },
+  { title: "Trash", url: "/admin/trash", icon: Trash2 },
 ];
 
 const teacherItems: MenuItem[] = [
   { title: "Browse Inventory", url: "/teacher/inventory", icon: Boxes },
   { title: "My Reservations", url: "/teacher/reservations", icon: Calendar },
+  { title: "Distribution Requests", url: "/teacher/distribution-requests", icon: Send },
+  { title: "Distribution Groups", url: "/teacher/distribution-groups", icon: Users },
   { title: "Activity Logs", url: "/teacher/activity-logs", icon: Activity },
 ];
 

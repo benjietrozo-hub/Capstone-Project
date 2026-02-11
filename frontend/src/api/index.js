@@ -109,6 +109,85 @@ export const adminAPI = {
 
   getLogsStatistics: () =>
     axiosInstance.get('/admin/logs/statistics'),
+
+  // Suppliers
+  getSuppliers: (params) =>
+    axiosInstance.get('/admin/suppliers', { params }),
+
+  createSupplier: (data) =>
+    axiosInstance.post('/admin/suppliers', data),
+
+  getSupplier: (id) =>
+    axiosInstance.get(`/admin/suppliers/${id}`),
+
+  updateSupplier: (id, data) =>
+    axiosInstance.put(`/admin/suppliers/${id}`, data),
+
+  deleteSupplier: (id) =>
+    axiosInstance.delete(`/admin/suppliers/${id}`),
+
+  getSuppliersList: () =>
+    axiosInstance.get('/admin/suppliers/list'),
+
+  // Purchase Orders
+  getPurchaseOrders: (params) =>
+    axiosInstance.get('/admin/purchase-orders', { params }),
+
+  createPurchaseOrder: (data) =>
+    axiosInstance.post('/admin/purchase-orders', data),
+
+  getPurchaseOrder: (id) =>
+    axiosInstance.get(`/admin/purchase-orders/${id}`),
+
+  updatePurchaseOrder: (id, data) =>
+    axiosInstance.put(`/admin/purchase-orders/${id}`, data),
+
+  deletePurchaseOrder: (id) =>
+    axiosInstance.delete(`/admin/purchase-orders/${id}`),
+
+  approvePurchaseOrder: (id) =>
+    axiosInstance.post(`/admin/purchase-orders/${id}/approve`),
+
+  cancelPurchaseOrder: (id) =>
+    axiosInstance.post(`/admin/purchase-orders/${id}/cancel`),
+
+  receivePurchaseOrderItems: (id, data) =>
+    axiosInstance.post(`/admin/purchase-orders/${id}/receive`, data),
+
+  getPurchaseOrderStats: () =>
+    axiosInstance.get('/admin/purchase-orders/statistics'),
+
+  // Distribution Requests (Admin)
+  getDistributionRequests: (params) =>
+    axiosInstance.get('/admin/distribution-requests', { params }),
+
+  getDistributionRequest: (id) =>
+    axiosInstance.get(`/admin/distribution-requests/${id}`),
+
+  approveDistributionRequest: (id, data) =>
+    axiosInstance.post(`/admin/distribution-requests/${id}/approve`, data),
+
+  rejectDistributionRequest: (id, data) =>
+    axiosInstance.post(`/admin/distribution-requests/${id}/reject`, data),
+
+  getDistributionRequestStats: () =>
+    axiosInstance.get('/admin/distribution-requests/statistics'),
+
+  // Trash Management
+  getTrash: (params) =>
+    axiosInstance.get('/admin/trash', { params }),
+
+  getTrashStats: () =>
+    axiosInstance.get('/admin/trash/stats'),
+
+  restoreFromTrash: (type, id) =>
+    axiosInstance.post(`/admin/trash/${type}/${id}/restore`),
+
+  deleteFromTrash: (type, id) =>
+    axiosInstance.delete(`/admin/trash/${type}/${id}`),
+
+  emptyTrash: (type) =>
+    axiosInstance.delete('/admin/trash/empty', { params: { type } }),
 };
 
 export const teacherAPI = {
@@ -163,4 +242,49 @@ export const teacherAPI = {
 
   getBorrowRequestsStats: () =>
     axiosInstance.get('/teacher/requests/statistics'),
+
+  // Distribution Groups
+  getDistributionGroups: (params) =>
+    axiosInstance.get('/teacher/distribution-groups', { params }),
+
+  createDistributionGroup: (data) =>
+    axiosInstance.post('/teacher/distribution-groups', data),
+
+  getDistributionGroup: (id) =>
+    axiosInstance.get(`/teacher/distribution-groups/${id}`),
+
+  updateDistributionGroup: (id, data) =>
+    axiosInstance.put(`/teacher/distribution-groups/${id}`, data),
+
+  deleteDistributionGroup: (id) =>
+    axiosInstance.delete(`/teacher/distribution-groups/${id}`),
+
+  addTeachersToGroup: (id, data) =>
+    axiosInstance.post(`/teacher/distribution-groups/${id}/add-teachers`, data),
+
+  removeTeachersFromGroup: (id, data) =>
+    axiosInstance.post(`/teacher/distribution-groups/${id}/remove-teachers`, data),
+
+  // Distribution Requests
+  getTeacherDistributionRequests: (params) =>
+    axiosInstance.get('/teacher/distribution-requests', { params }),
+
+  createDistributionRequest: (data) =>
+    axiosInstance.post('/teacher/distribution-requests', data),
+
+  getDistributionRequestStats: () =>
+    axiosInstance.get('/teacher/distribution-requests/statistics'),
+
+  getAvailableItems: () =>
+    axiosInstance.get('/teacher/distribution-requests/available-items'),
+
+  cancelDistributionRequest: (id) =>
+    axiosInstance.delete(`/teacher/distribution-requests/${id}`),
+
+  // Activity Logs
+  getActivityLogs: (params) =>
+    axiosInstance.get('/teacher/activity-logs', { params }),
+
+  getActivityLogStats: () =>
+    axiosInstance.get('/teacher/activity-logs/statistics'),
 };

@@ -4,11 +4,13 @@ namespace App\Http\Controllers\API\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Teacher;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class TeacherManagementController extends Controller
 {
+    use LogsActivity;
     public function index(Request $request)
     {
         $q = Teacher::query();
@@ -39,7 +41,16 @@ class TeacherManagementController extends Controller
         ]);
         $v['password'] = Hash::make($v['password']);
         $v['status'] = 'active';
-        return response()->json(Teacher::create($v), 201);
+        $teacher = Teacher::create($v);
+        
+        // Log activity
+        $this->logActivity(
+            'teacher_created',
+            "Created new teacher account: {$teacher->first_name} {$teacher->last_name} ({$teacher->employee_id})",
+            'info'
+        );
+        
+        return response()->json($teacher, 201);
     }
 
     public function show(string $id)
@@ -62,12 +73,32 @@ class TeacherManagementController extends Controller
         ]);
         if (isset($v['password'])) $v['password'] = Hash::make($v['password']);
         $t->update($v);
+        
+        // Log activity
+        $this->logActivity(
+            'teacher_updated',
+            "Updated teacher account: {$t->first_name} {$t->last_name} ({$t->employee_id})",
+            'info'
+        );
+        
         return response()->json($t);
     }
 
     public function destroy(string $id)
     {
-        Teacher::findOrFail($id)->delete();
+        $teacher = Teacher::findOrFail($id);
+        $teacherName = $teacher->first_name . ' ' . $teacher->last_name;
+        $employeeId = $teacher->employee_id;
+        
+        $teacher->delete();
+        
+        // Log activity
+        $this->logActivity(
+            'teacher_deleted',
+            "Deleted teacher account: {$teacherName} ({$employeeId})",
+            'warning'
+        );
+        
         return response()->json(null, 204);
     }
 

@@ -17,6 +17,11 @@ class SystemLogController extends Controller
             $query->where('log_type', $request->log_type);
         }
 
+        // Filter by action
+        if ($request->has('action') && $request->action) {
+            $query->where('action', $request->action);
+        }
+
         // Filter by user type
         if ($request->has('user_type') && $request->user_type) {
             $query->where('user_type', $request->user_type);
@@ -42,7 +47,8 @@ class SystemLogController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('action', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('user_name', 'like', "%{$search}%");
+                  ->orWhere('user_name', 'like', "%{$search}%")
+                  ->orWhere('ip_address', 'like', "%{$search}%");
             });
         }
 
@@ -57,12 +63,22 @@ class SystemLogController extends Controller
         $stats = [
             'total_logs' => SystemLog::count(),
             'today_logs' => SystemLog::whereDate('created_at', today())->count(),
-            'login_attempts' => SystemLog::where('log_type', 'login')->count(),
-            'failed_logins' => SystemLog::where('log_type', 'failed_login')->count(),
+            'login_attempts' => SystemLog::where('log_type', 'auth')
+                ->where('action', 'login')
+                ->count(),
+            'failed_logins' => SystemLog::where('log_type', 'auth')
+                ->where('action', 'login_failed')
+                ->count(),
             'by_type' => SystemLog::selectRaw('log_type, COUNT(*) as count')
                 ->groupBy('log_type')
                 ->get()
                 ->pluck('count', 'log_type'),
+            'by_action' => SystemLog::selectRaw('action, COUNT(*) as count')
+                ->groupBy('action')
+                ->orderByDesc('count')
+                ->limit(10)
+                ->get()
+                ->pluck('count', 'action'),
             'by_severity' => SystemLog::selectRaw('severity, COUNT(*) as count')
                 ->groupBy('severity')
                 ->get()
@@ -70,6 +86,10 @@ class SystemLogController extends Controller
             'recent_critical' => SystemLog::where('severity', 'critical')
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
+                ->get(),
+            'recent_failed_logins' => SystemLog::where('action', 'login_failed')
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
                 ->get(),
         ];
 

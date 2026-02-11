@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../components/common/Card';
-import { Badge } from '../../components/common/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { Button, FormField } from '../../components/common/FormElements';
 import { adminAPI } from '../../api';
 import toast from 'react-hot-toast';
@@ -336,7 +336,7 @@ export function InventoryPage() {
                       <h3 className="font-semibold text-lg text-gray-900">{item.item_name}</h3>
                       <p className="text-sm text-primary font-medium">{item.item_code}</p>
                     </div>
-                    <Badge label={item.status} status={item.status} />
+                    <StatusBadge label={item.status} status={item.status} />
                   </div>
                   
                   <div className="space-y-2 mb-4">
@@ -352,7 +352,7 @@ export function InventoryPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Condition:</span>
-                      <Badge label={item.condition} status={item.condition} />
+                      <StatusBadge label={item.condition} status={item.condition} />
                     </div>
                     {item.location && (
                       <div className="flex justify-between text-sm">
@@ -622,3 +622,4 @@ export function InventoryPage() {
     </div>
   );
 }
+

@@ -7,6 +7,7 @@ interface SelectOption {
 
 interface FormFieldProps {
   label: string;
+  name?: string;
   type?: 'text' | 'email' | 'password' | 'number' | 'date' | 'select' | 'textarea';
   value: string | number;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
@@ -20,6 +21,7 @@ interface FormFieldProps {
 
 export function FormField({
   label,
+  name,
   type = 'text',
   value,
   onChange,
@@ -37,6 +39,7 @@ export function FormField({
           {label} {required && <span className="text-red-600">*</span>}
         </label>
         <select
+          name={name}
           value={value}
           onChange={onChange}
           disabled={disabled}
@@ -73,6 +76,7 @@ export function FormField({
           {label} {required && <span className="text-red-600">*</span>}
         </label>
         <textarea
+          name={name}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
@@ -104,6 +108,7 @@ export function FormField({
       </label>
       <input
         type={type}
+        name={name}
         value={value}
         onChange={onChange}
         placeholder={placeholder}

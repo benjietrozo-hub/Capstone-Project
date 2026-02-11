@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../components/common/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { Table } from '../../components/common/Table';
 import { Button, FormField } from '../../components/common/FormElements';
-import { Badge } from '../../components/common/Badge';
 import { PageLoader } from '../../components/common/Loader';
 import { Modal } from '../../components/common/Modal';
 import { teacherAPI } from '../../api';
@@ -129,7 +129,7 @@ export function BrowseInventoryPage() {
     {
       key: 'condition',
       label: 'Condition',
-      render: (value: string) => <Badge label={value} status={value} />,
+      render: (value: string) => <StatusBadge label={value} status={value} />,
     },
     {
       key: 'actions',
@@ -252,7 +252,7 @@ export function BrowseInventoryPage() {
                     <h3 className="font-semibold text-lg text-gray-900">{item.item_name}</h3>
                     <p className="text-sm text-primary font-medium">{item.item_code}</p>
                   </div>
-                  <Badge label={item.condition} status={item.condition} />
+                  <StatusBadge label={item.condition} status={item.condition} />
                 </div>
                 
                 <div className="space-y-2 mb-4">
@@ -352,7 +352,7 @@ export function BrowseInventoryPage() {
               </div>
               <div>
                 <label className="font-semibold text-gray-700">Condition</label>
-                <Badge label={selectedItem.condition} status={selectedItem.condition} />
+                <StatusBadge label={selectedItem.condition} status={selectedItem.condition} />
               </div>
             </div>
             <div>
@@ -411,3 +411,4 @@ export function BrowseInventoryPage() {
     </div>
   );
 }
+

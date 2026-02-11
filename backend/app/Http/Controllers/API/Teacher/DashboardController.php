@@ -20,6 +20,12 @@ class DashboardController extends Controller
         $returnedItems = BorrowRequest::where('teacher_id', $tid)->where('status', 'returned')->count();
         $rejectedRequests = BorrowRequest::where('teacher_id', $tid)->where('status', 'rejected')->count();
         
+        // Get overdue items count
+        $overdueItems = BorrowRequest::where('teacher_id', $tid)
+            ->where('status', 'borrowed')
+            ->whereDate('expected_return_date', '<=', now()->toDateString())
+            ->count();
+        
         // Get available items count (items with quantity_available > 0)
         $availableItems = \App\Models\ToolEquipment::where('quantity_available', '>', 0)
             ->where('status', 'active')
@@ -32,6 +38,7 @@ class DashboardController extends Controller
             'borrowed_items' => $borrowedItems,
             'returned_items' => $returnedItems,
             'rejected_requests' => $rejectedRequests,
+            'overdue_items' => $overdueItems,
             'available_items' => $availableItems,
             'recent_requests' => BorrowRequest::with(['item'])->where('teacher_id', $tid)->latest()->limit(5)->get(),
         ]);

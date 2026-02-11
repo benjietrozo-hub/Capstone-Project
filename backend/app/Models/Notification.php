@@ -10,54 +10,49 @@ class Notification extends Model
     use HasFactory;
 
     protected $fillable = [
-        'teacher_id',
-        'admin_id',
+        'user_id',
+        'user_type',
         'type',
         'title',
         'message',
-        'reference_type',
-        'reference_id',
-        'read',
+        'related_id',
+        'related_type',
+        'is_read',
         'read_at',
     ];
 
     protected $casts = [
         'read_at' => 'datetime',
-        'read' => 'boolean',
+        'is_read' => 'boolean',
     ];
 
     // Relationships
-    public function teacher()
+    public function user()
     {
-        return $this->belongsTo(Teacher::class);
-    }
-
-    public function admin()
-    {
-        return $this->belongsTo(Admin::class);
+        if ($this->user_type === 'teacher') {
+            return $this->belongsTo(Teacher::class, 'user_id');
+        } elseif ($this->user_type === 'admin') {
+            return $this->belongsTo(Admin::class, 'user_id');
+        }
+        return null;
     }
 
     // Scopes
     public function scopeUnread($query)
     {
-        return $query->where('read', false);
+        return $query->where('is_read', false);
     }
 
-    public function scopeForTeacher($query, $teacherId)
+    public function scopeForUser($query, $userId, $userType)
     {
-        return $query->where('teacher_id', $teacherId);
-    }
-
-    public function scopeForAdmin($query, $adminId)
-    {
-        return $query->where('admin_id', $adminId);
+        return $query->where('user_id', $userId)->where('user_type', $userType);
     }
 
     // Methods
     public function markAsRead()
     {
         $this->update([
-            'read' => true,
+            'is_read' => true,
             'read_at' => now(),
         ]);
     }

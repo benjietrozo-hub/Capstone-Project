@@ -53,6 +53,7 @@ export function Layout({ children, title = '' }: LayoutProps) {
           flex: 1,
           overflowY: 'auto',
           padding: '20px',
+          paddingBottom: '70px',
           backgroundColor: '#ffffff'
         }}>
           <div style={{
@@ -63,14 +64,8 @@ export function Layout({ children, title = '' }: LayoutProps) {
           </div>
         </main>
 
-        {/* Footer */}
-        <div style={{
-          backgroundColor: '#1a1a1a',
-          borderTop: '1px solid #333',
-          boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)'
-        }}>
-          <Footer />
-        </div>
+        {/* Footer - Fixed to bottom */}
+        <Footer />
       </div>
     </div>
   );

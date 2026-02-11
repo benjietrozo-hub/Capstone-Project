@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from './Badge';
+import { StatusBadge } from './StatusBadge';
 
 interface InventoryItem {
   id?: number;
@@ -85,9 +85,7 @@ export function InventoryCard({ item, onEdit, onDelete }: InventoryCardProps) {
           }}>
             {item.item_name || item.name}
           </h5>
-          <Badge type={getCategoryColor(item.category)}>
-            {item.category}
-          </Badge>
+          <StatusBadge label={item.category} status={item.category} />
         </div>
 
         {/* Description */}
@@ -115,9 +113,7 @@ export function InventoryCard({ item, onEdit, onDelete }: InventoryCardProps) {
             <small style={{ color: '#6c757d', display: 'block', marginBottom: '5px' }}>
               Condition:
             </small>
-            <Badge type={getConditionColor(item.condition_status || item.condition || '')}>
-              {item.condition_status || item.condition}
-            </Badge>
+            <StatusBadge label={item.condition_status || item.condition || ''} condition={item.condition_status || item.condition || ''} />
           </div>
           <div>
             <small style={{ color: '#6c757d', display: 'block', marginBottom: '5px' }}>
@@ -237,3 +233,5 @@ export function InventoryCard({ item, onEdit, onDelete }: InventoryCardProps) {
     </div>
   );
 }
+
+

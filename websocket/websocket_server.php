@@ -10,9 +10,14 @@
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Suppress deprecation warnings from Ratchet library (PHP 8.2+ dynamic properties)
+error_reporting(E_ALL & ~E_DEPRECATED);
 
-require __DIR__ . '/../online-ims-backend/vendor/autoload.php';
+require __DIR__ . '/vendor/autoload.php';
+
+// Manually require WebSocket classes
+require_once __DIR__ . '/WebSocketHandler.php';
+require_once __DIR__ . '/WebSocketBroadcaster.php';
 
 use Ratchet\Server\IoServer;
 use Ratchet\Http\HttpServer;

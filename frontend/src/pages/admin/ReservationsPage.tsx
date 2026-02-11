@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Package, ClipboardList } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 interface BorrowRequest {
   id: number;
@@ -30,6 +31,8 @@ interface BorrowRequest {
 }
 
 interface ApprovalForm {
+  quantity_approved: number;
+  expected_return_date: string;
   admin_notes: string;
 }
 
@@ -38,7 +41,9 @@ interface RejectionForm {
 }
 
 export function ReservationsPage() {
-  const [activeTab, setActiveTab] = useState('borrowed');
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'borrowed');
   const [borrowedItems, setBorrowedItems] = useState<BorrowRequest[]>([]);
   const [requests, setRequests] = useState<BorrowRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +51,8 @@ export function ReservationsPage() {
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
   const [approvalForm, setApprovalForm] = useState<ApprovalForm>({
+    quantity_approved: 0,
+    expected_return_date: '',
     admin_notes: '',
   });
   const [rejectionForm, setRejectionForm] = useState<RejectionForm>({
@@ -54,6 +61,13 @@ export function ReservationsPage() {
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
+
+  // Update active tab when URL parameter changes
+  useEffect(() => {
+    if (tabFromUrl && (tabFromUrl === 'borrowed' || tabFromUrl === 'requests')) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
 
   useEffect(() => {
     fetchData();
@@ -99,7 +113,7 @@ export function ReservationsPage() {
         description: 'Request approved successfully',
       });
       setShowApprovalModal(false);
-      setApprovalForm({ expected_return_date: '', admin_notes: '' });
+      setApprovalForm({ quantity_approved: 0, expected_return_date: '', admin_notes: '' });
       fetchData();
     } catch (error) {
       toast({
@@ -266,11 +280,36 @@ export function ReservationsPage() {
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px' }}>
                             {item.expected_return_date ? (
-                              <span style={{
-                                color: new Date(item.expected_return_date) < new Date() ? '#ff6b6b' : '#40c057'
-                              }}>
-                                {new Date(item.expected_return_date).toLocaleDateString()}
-                              </span>
+                              (() => {
+                                const returnDate = new Date(item.expected_return_date);
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                returnDate.setHours(0, 0, 0, 0);
+                                const isOverdue = returnDate < today;
+                                const isDueToday = returnDate.getTime() === today.getTime();
+                                
+                                return (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '4px 12px',
+                                    borderRadius: '6px',
+                                    fontWeight: '600',
+                                    fontSize: '12px',
+                                    backgroundColor: isOverdue ? '#ffe0e0' : isDueToday ? '#fff3cd' : '#d4edda',
+                                    color: isOverdue ? '#dc3545' : isDueToday ? '#856404' : '#155724',
+                                    border: `2px solid ${isOverdue ? '#dc3545' : isDueToday ? '#ffc107' : '#28a745'}`
+                                  }}>
+                                    {isOverdue && '🔴'}
+                                    {isDueToday && '⚠️'}
+                                    {!isOverdue && !isDueToday && '✓'}
+                                    {new Date(item.expected_return_date).toLocaleDateString()}
+                                    {isOverdue && ' (OVERDUE)'}
+                                    {isDueToday && ' (DUE TODAY)'}
+                                  </span>
+                                );
+                              })()
                             ) : 'N/A'}
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -373,6 +412,8 @@ export function ReservationsPage() {
                                 onClick={() => {
                                   setSelectedRequest(req);
                                   setApprovalForm({
+                                    quantity_approved: req.quantity_requested,
+                                    expected_return_date: '',
                                     admin_notes: '',
                                   });
                                   setShowApprovalModal(true);
@@ -456,11 +497,9 @@ export function ReservationsPage() {
                     </p>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-gray-600">Expected Return Date:</span>
-                    <p className="font-semibold text-green-600">
-                      {selectedRequest.expected_return_date 
-                        ? new Date(selectedRequest.expected_return_date).toLocaleDateString()
-                        : 'Not specified'}
+                    <span className="text-gray-600">Requested Borrow Date:</span>
+                    <p className="font-semibold text-gray-900">
+                      {new Date(selectedRequest.borrow_date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -475,6 +514,36 @@ export function ReservationsPage() {
 
             <form onSubmit={handleApprove}>
               <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="quantity-approved">Quantity to Approve *</Label>
+                  <Input
+                    id="quantity-approved"
+                    type="number"
+                    min="1"
+                    max={selectedRequest?.quantity_requested}
+                    value={approvalForm.quantity_approved}
+                    onChange={(e) =>
+                      setApprovalForm({ ...approvalForm, quantity_approved: parseInt(e.target.value) || 0 })
+                    }
+                    required
+                  />
+                  <p className="text-xs text-gray-500">
+                    Maximum: {selectedRequest?.quantity_requested}
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="expected-return-date">Expected Return Date *</Label>
+                  <Input
+                    id="expected-return-date"
+                    type="date"
+                    value={approvalForm.expected_return_date}
+                    onChange={(e) =>
+                      setApprovalForm({ ...approvalForm, expected_return_date: e.target.value })
+                    }
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="admin-notes">Admin Notes (Optional)</Label>
                   <Textarea

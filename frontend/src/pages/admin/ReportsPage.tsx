@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../components/common/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { Table } from '../../components/common/Table';
 import { Button, FormField } from '../../components/common/FormElements';
-import { Badge } from '../../components/common/Badge';
 import { PageLoader } from '../../components/common/Loader';
 import { Modal } from '../../components/common/Modal';
 import { adminAPI } from '../../api';
@@ -88,7 +88,7 @@ export function ReportsPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (value: string) => <Badge label={value} status={value} />,
+      render: (value: string) => <StatusBadge label={value} status={value} />,
     },
     { key: 'date_reported', label: 'Date', render: (value: string) => formatDate(value) },
     {
@@ -190,7 +190,7 @@ export function ReportsPage() {
             </div>
             <div>
               <label className="font-semibold text-gray-700">Status</label>
-              <Badge label={selectedReport.status} status={selectedReport.status} />
+              <StatusBadge label={selectedReport.status} status={selectedReport.status} />
             </div>
             <div>
               <label className="font-semibold text-gray-700">Date Reported</label>
@@ -238,3 +238,4 @@ export function ReportsPage() {
     </div>
   );
 }
+

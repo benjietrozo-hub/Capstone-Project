@@ -5,11 +5,14 @@ namespace App\Http\Controllers\API\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ToolEquipment;
 use App\Models\InventoryLog;
+use App\Models\SystemLog;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class InventoryController extends Controller
 {
+    use LogsActivity;
     /**
      * Display a listing of the resource.
      */
@@ -112,6 +115,13 @@ class InventoryController extends Controller
             'details' => 'Item created',
         ]);
 
+        // Log to system logs
+        $this->logActivity(
+            'inventory_create',
+            "Created new inventory item: {$item->item_name} ({$item->item_code})",
+            'info'
+        );
+
         return response()->json($item, 201);
     }
 
@@ -166,6 +176,13 @@ class InventoryController extends Controller
             'details' => 'Item updated',
         ]);
 
+        // Log to system logs
+        $this->logActivity(
+            'inventory_update',
+            "Updated inventory item: {$item->item_name} ({$item->item_code})",
+            'info'
+        );
+
         return response()->json($item);
     }
 
@@ -186,13 +203,21 @@ class InventoryController extends Controller
             ], 422);
         }
 
-        if ($item->image) {
-            Storage::disk('public')->delete($item->image);
-        }
-
+        // Set deleted_by before soft deleting
+        $item->deleted_by = auth()->id();
+        $item->save();
         $item->delete();
 
-        return response()->json(null, 204);
+        // Log to system logs
+        $this->logActivity(
+            'inventory_delete',
+            "Moved inventory item to trash: {$item->item_name} ({$item->item_code})",
+            'warning'
+        );
+
+        return response()->json([
+            'message' => 'Item moved to trash successfully'
+        ], 200);
     }
 
     public function categories()

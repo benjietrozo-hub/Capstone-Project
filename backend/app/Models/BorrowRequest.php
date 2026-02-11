@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BorrowRequest extends Model
 {
-    use HasFactory; // Removed SoftDeletes since table doesn't have deleted_at column
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'teacher_id',
@@ -22,6 +22,7 @@ class BorrowRequest extends Model
         'admin_notes',
         'condition_before',
         'condition_after',
+        'deleted_by',
     ];
 
     protected $casts = [
@@ -78,5 +79,10 @@ class BorrowRequest extends Model
             return 0;
         }
         return now()->diffInDays($this->expected_return_date);
+    }
+
+    public function deletedByAdmin()
+    {
+        return $this->belongsTo(Admin::class, 'deleted_by');
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
 use App\Models\ToolEquipment;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class BorrowRequestController extends Controller
@@ -46,7 +47,13 @@ class BorrowRequestController extends Controller
             'status' => 'pending'
         ]);
         
-        return response()->json($br->load(['item', 'teacher']), 201);
+        // Load relationships for notification
+        $br->load(['item', 'teacher']);
+        
+        // Notify all admins about new borrow request
+        NotificationService::notifyBorrowRequestCreated($br);
+        
+        return response()->json($br, 201);
     }
 
     public function show($id)

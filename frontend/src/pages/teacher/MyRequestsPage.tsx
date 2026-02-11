@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../components/common/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { Table } from '../../components/common/Table';
 import { FormField } from '../../components/common/FormElements';
-import { Badge } from '../../components/common/Badge';
 import { PageLoader } from '../../components/common/Loader';
 import { Modal } from '../../components/common/Modal';
 import { teacherAPI } from '../../api';
@@ -44,7 +44,12 @@ export function MyRequestsPage() {
         status: status || undefined,
         per_page: 50,
       });
-      setRequests(response.data.data);
+      
+      // Filter out borrowed items - they should be in "My Reservations" page
+      const filteredRequests = response.data.data.filter(
+        (req: BorrowRequest) => req.status !== 'borrowed'
+      );
+      setRequests(filteredRequests);
     } catch (error) {
       toast.error('Failed to load requests');
     } finally {
@@ -71,7 +76,7 @@ export function MyRequestsPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (value: string) => <Badge label={value} status={value} />,
+      render: (value: string) => <StatusBadge label={value} status={value} />,
     },
     { key: 'date_requested', label: 'Date Requested', render: (value: string) => formatDate(value) },
     {
@@ -140,11 +145,13 @@ export function MyRequestsPage() {
               { value: '', label: 'All Requests' },
               { value: 'pending', label: 'Pending' },
               { value: 'approved', label: 'Approved' },
-              { value: 'borrowed', label: 'Borrowed' },
               { value: 'returned', label: 'Returned' },
               { value: 'rejected', label: 'Rejected' },
             ]}
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Note: Borrowed items are shown in "My Reservations" page
+          </p>
         </div>
 
         <Table columns={columns} data={requests} loading={loading} />
@@ -182,7 +189,7 @@ export function MyRequestsPage() {
             </div>
             <div>
               <label className="font-semibold text-gray-700">Status</label>
-              <Badge label={selectedRequest.status} status={selectedRequest.status} />
+              <StatusBadge label={selectedRequest.status} status={selectedRequest.status} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -209,3 +216,4 @@ export function MyRequestsPage() {
     </div>
   );
 }
+

@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { adminAPI } from '../../api';
 import { toast } from '@/hooks/use-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
-import { Card } from '../../components/common/Card';
-import { Badge } from '../../components/common/Badge';
+import { Card } from '@/components/ui/card';
 import { PageLoader } from '../../components/common/Loader';
 import { formatDate } from '../../utils/formatters';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { 
   Activity,
   LogIn,
@@ -63,6 +63,7 @@ export function LogsPage() {
   
   const [filters, setFilters] = useState({
     log_type: '',
+    action: '',
     user_type: '',
     severity: '',
     search: '',
@@ -70,11 +71,55 @@ export function LogsPage() {
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
+  const role = localStorage.getItem('role') || 'admin';
+
+  // Initialize WebSocket for real-time log updates
+  const { addListener, removeListener } = useWebSocket(currentUser?.id, role);
 
   useEffect(() => {
     fetchLogs();
     fetchStatistics();
   }, [filters]);
+
+  // Listen for real-time log updates
+  useEffect(() => {
+    const handleLogUpdate = (newLog: SystemLog) => {
+      console.log('Received new log:', newLog);
+      
+      // Add new log to the top of the list
+      setLogs(prevLogs => [newLog, ...prevLogs]);
+      
+      // Update statistics
+      setStats(prevStats => ({
+        ...prevStats,
+        total_logs: prevStats.total_logs + 1,
+        today_logs: prevStats.today_logs + 1,
+        login_attempts: newLog.action === 'login' ? prevStats.login_attempts + 1 : prevStats.login_attempts,
+        failed_logins: newLog.action === 'login_failed' ? prevStats.failed_logins + 1 : prevStats.failed_logins,
+      }));
+
+      // Show toast for critical logs or failed logins
+      if (newLog.severity === 'critical' || newLog.severity === 'error') {
+        toast({
+          title: `${newLog.severity.toUpperCase()}: ${newLog.action}`,
+          description: newLog.description || 'New system log entry',
+          variant: newLog.severity === 'critical' ? 'destructive' : 'default',
+        });
+      } else if (newLog.action === 'login_failed') {
+        toast({
+          title: 'Failed Login Attempt',
+          description: newLog.description || `Failed login attempt from ${newLog.ip_address}`,
+          variant: 'default',
+        });
+      }
+    };
+
+    addListener('log_update', handleLogUpdate);
+
+    return () => {
+      removeListener('log_update', handleLogUpdate);
+    };
+  }, [addListener, removeListener]);
 
   const fetchLogs = async () => {
     try {
@@ -104,22 +149,26 @@ export function LogsPage() {
     }
   };
 
-  const getLogIcon = (logType: string) => {
-    switch (logType) {
+  const getLogIcon = (action: string) => {
+    switch (action) {
       case 'login':
         return <LogIn className="w-5 h-5 text-green-500" />;
       case 'logout':
         return <LogOut className="w-5 h-5 text-blue-500" />;
-      case 'failed_login':
+      case 'login_failed':
         return <XCircle className="w-5 h-5 text-red-500" />;
+      case 'inventory_create':
       case 'inventory_update':
+      case 'inventory_delete':
         return <Package className="w-5 h-5 text-purple-500" />;
-      case 'request_action':
+      case 'borrow_request_approved':
+      case 'borrow_request_rejected':
+      case 'item_returned':
         return <FileText className="w-5 h-5 text-indigo-500" />;
-      case 'user_management':
+      case 'teacher_created':
+      case 'teacher_updated':
+      case 'teacher_deleted':
         return <Users className="w-5 h-5 text-teal-500" />;
-      case 'system':
-        return <Settings className="w-5 h-5 text-gray-500" />;
       default:
         return <Activity className="w-5 h-5 text-gray-500" />;
     }
@@ -165,13 +214,7 @@ export function LogsPage() {
         showBackButton={true}
         showHomeButton={true}
       >
-        <NotificationProfile 
-          notifications={[]}
-          unreadCount={0}
-          currentUser={currentUser}
-          onMarkAsRead={() => {}}
-          onMarkAllAsRead={() => {}}
-        />
+        <NotificationProfile currentUser={currentUser} />
       </NavHeader>
       
       <div className="p-6">
@@ -220,7 +263,7 @@ export function LogsPage() {
 
         {/* Filters Section */}
         <Card className="mb-6 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Filter className="w-4 h-4 inline mr-1" />
@@ -232,13 +275,42 @@ export function LogsPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Types</option>
-                <option value="login">Login</option>
-                <option value="logout">Logout</option>
-                <option value="failed_login">Failed Login</option>
-                <option value="inventory_update">Inventory Update</option>
-                <option value="request_action">Request Action</option>
-                <option value="user_management">User Management</option>
+                <option value="auth">Authentication</option>
+                <option value="transaction">Transactions</option>
                 <option value="system">System</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Action
+              </label>
+              <select
+                value={filters.action}
+                onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Actions</option>
+                <optgroup label="Authentication">
+                  <option value="login">Login</option>
+                  <option value="logout">Logout</option>
+                  <option value="login_failed">Failed Login</option>
+                </optgroup>
+                <optgroup label="Inventory">
+                  <option value="inventory_create">Inventory Created</option>
+                  <option value="inventory_update">Inventory Updated</option>
+                  <option value="inventory_delete">Inventory Deleted</option>
+                </optgroup>
+                <optgroup label="Borrow Requests">
+                  <option value="borrow_request_approved">Request Approved</option>
+                  <option value="borrow_request_rejected">Request Rejected</option>
+                  <option value="item_returned">Item Returned</option>
+                </optgroup>
+                <optgroup label="User Management">
+                  <option value="teacher_created">Teacher Created</option>
+                  <option value="teacher_updated">Teacher Updated</option>
+                  <option value="teacher_deleted">Teacher Deleted</option>
+                </optgroup>
               </select>
             </div>
 
@@ -317,7 +389,7 @@ export function LogsPage() {
                   >
                     {/* Icon */}
                     <div className="absolute -left-3 top-0 bg-white rounded-full p-1">
-                      {getLogIcon(log.log_type)}
+                      {getLogIcon(log.action)}
                     </div>
 
                     {/* Log Header */}

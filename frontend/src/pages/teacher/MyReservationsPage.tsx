@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../components/common/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { Table } from '../../components/common/Table';
 import { FormField } from '../../components/common/FormElements';
-import { Badge } from '../../components/common/Badge';
 import { PageLoader } from '../../components/common/Loader';
 import { Modal } from '../../components/common/Modal';
 import { teacherAPI } from '../../api';
@@ -23,6 +23,7 @@ interface BorrowRequest {
   purpose?: string;
   status: string;
   date_requested: string;
+  borrow_date?: string;
   expected_return_date?: string;
   actual_return_date?: string;
   admin_notes?: string;
@@ -45,19 +46,24 @@ export function MyReservationsPage() {
     try {
       setLoading(true);
       
-      // Fetch all requests
-      const requestsResponse = await teacherAPI.getBorrowRequests({
-        status: requestStatus || undefined,
-        per_page: 50,
-      });
-      setRequests(requestsResponse.data.data);
-
       // Fetch borrowed items (status: borrowed)
       const borrowedResponse = await teacherAPI.getBorrowRequests({
         status: 'borrowed',
         per_page: 50,
       });
       setBorrowedItems(borrowedResponse.data.data);
+
+      // Fetch all requests EXCEPT borrowed ones (they're in the borrowed tab)
+      const requestsResponse = await teacherAPI.getBorrowRequests({
+        status: requestStatus || undefined,
+        per_page: 50,
+      });
+      
+      // Filter out borrowed items from requests list
+      const filteredRequests = requestsResponse.data.data.filter(
+        (req: BorrowRequest) => req.status !== 'borrowed'
+      );
+      setRequests(filteredRequests);
     } catch (error) {
       toast({
         title: 'Error',
@@ -91,17 +97,59 @@ export function MyReservationsPage() {
   const borrowedColumns = [
     { key: 'id', label: 'Request ID', render: (value: number) => `#${value}` },
     { key: 'item.item_name', label: 'Item', render: (_: any, row: BorrowRequest) => row.item?.item_name },
-    { key: 'quantity_approved', label: 'Quantity', render: (value: number) => value || '—' },
-    { key: 'date_requested', label: 'Borrowed Date', render: (value: string) => formatDate(value) },
+    { 
+      key: 'quantity_requested', 
+      label: 'Quantity', 
+      render: (_: any, row: BorrowRequest) => row.quantity_approved || row.quantity_requested || '—' 
+    },
+    { 
+      key: 'borrow_date', 
+      label: 'Borrowed Date', 
+      render: (_: any, row: BorrowRequest) => {
+        const date = row.borrow_date || row.date_requested;
+        return date ? formatDate(date) : '—';
+      }
+    },
     {
       key: 'expected_return_date',
       label: 'Expected Return',
-      render: (value: string) => value ? formatDate(value) : '—',
+      render: (value: string, row: BorrowRequest) => {
+        if (!value) return '—';
+        
+        const returnDate = new Date(value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        returnDate.setHours(0, 0, 0, 0);
+        const isOverdue = returnDate < today;
+        const isDueToday = returnDate.getTime() === today.getTime();
+        
+        return (
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 12px',
+            borderRadius: '6px',
+            fontWeight: '600',
+            fontSize: '12px',
+            backgroundColor: isOverdue ? '#ffe0e0' : isDueToday ? '#fff3cd' : '#d4edda',
+            color: isOverdue ? '#dc3545' : isDueToday ? '#856404' : '#155724',
+            border: `2px solid ${isOverdue ? '#dc3545' : isDueToday ? '#ffc107' : '#28a745'}`
+          }}>
+            {isOverdue && '🔴'}
+            {isDueToday && '⚠️'}
+            {!isOverdue && !isDueToday && '✓'}
+            {formatDate(value)}
+            {isOverdue && ' (OVERDUE)'}
+            {isDueToday && ' (DUE TODAY)'}
+          </span>
+        );
+      },
     },
     {
       key: 'status',
       label: 'Status',
-      render: (value: string) => <Badge label={value} status={value} />,
+      render: (value: string) => <StatusBadge label={value} status={value} />,
     },
     {
       key: 'actions',
@@ -127,7 +175,7 @@ export function MyReservationsPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (value: string) => <Badge label={value} status={value} />,
+      render: (value: string) => <StatusBadge label={value} status={value} />,
     },
     { key: 'date_requested', label: 'Date Requested', render: (value: string) => formatDate(value) },
     {
@@ -231,11 +279,13 @@ export function MyReservationsPage() {
                     { value: '', label: 'All Requests' },
                     { value: 'pending', label: 'Pending' },
                     { value: 'approved', label: 'Approved' },
-                    { value: 'borrowed', label: 'Borrowed' },
                     { value: 'returned', label: 'Returned' },
                     { value: 'rejected', label: 'Rejected' },
                   ]}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Note: Borrowed items are shown in the "My Borrowed Items" tab
+                </p>
               </div>
 
               {requests.length === 0 ? (
@@ -282,18 +332,53 @@ export function MyReservationsPage() {
               </div>
               <div>
                 <label className="font-semibold text-gray-700">Status</label>
-                <Badge label={selectedRequest.status} status={selectedRequest.status} />
+                <StatusBadge label={selectedRequest.status} status={selectedRequest.status} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="font-semibold text-gray-700">Date Requested</label>
                   <p className="text-gray-600">{formatDate(selectedRequest.date_requested)}</p>
                 </div>
+                {selectedRequest.borrow_date && (
+                  <div>
+                    <label className="font-semibold text-gray-700">Borrowed Date</label>
+                    <p className="text-gray-600">{formatDate(selectedRequest.borrow_date)}</p>
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="font-semibold text-gray-700">Expected Return</label>
-                  <p className="text-gray-600">
-                    {selectedRequest.expected_return_date ? formatDate(selectedRequest.expected_return_date) : '—'}
-                  </p>
+                  {selectedRequest.expected_return_date ? (() => {
+                    const returnDate = new Date(selectedRequest.expected_return_date);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    returnDate.setHours(0, 0, 0, 0);
+                    const isOverdue = returnDate < today;
+                    const isDueToday = returnDate.getTime() === today.getTime();
+                    
+                    return (
+                      <p style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        fontWeight: '600',
+                        fontSize: '12px',
+                        backgroundColor: isOverdue ? '#ffe0e0' : isDueToday ? '#fff3cd' : '#d4edda',
+                        color: isOverdue ? '#dc3545' : isDueToday ? '#856404' : '#155724',
+                        border: `2px solid ${isOverdue ? '#dc3545' : isDueToday ? '#ffc107' : '#28a745'}`
+                      }}>
+                        {isOverdue && '🔴'}
+                        {isDueToday && '⚠️'}
+                        {!isOverdue && !isDueToday && '✓'}
+                        {formatDate(selectedRequest.expected_return_date)}
+                        {isOverdue && ' (OVERDUE)'}
+                        {isDueToday && ' (DUE TODAY)'}
+                      </p>
+                    );
+                  })() : <p className="text-gray-600">—</p>}
                 </div>
               </div>
               {selectedRequest.actual_return_date && (
@@ -315,3 +400,4 @@ export function MyReservationsPage() {
     </div>
   );
 }
+

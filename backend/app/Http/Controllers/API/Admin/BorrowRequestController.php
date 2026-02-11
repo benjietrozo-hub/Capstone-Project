@@ -4,10 +4,13 @@ namespace App\Http\Controllers\API\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
+use App\Services\NotificationService;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 
 class BorrowRequestController extends Controller
 {
+    use LogsActivity;
     public function index(Request $request)
     {
         $query = BorrowRequest::with(['teacher', 'item']);
@@ -42,15 +45,40 @@ class BorrowRequestController extends Controller
         ]);
         
         $br->item->updateQuantities();
+        
+        // Log activity
+        $this->logActivity(
+            'borrow_request_approved',
+            "Approved borrow request for {$br->item->item_name} by {$br->teacher->first_name} {$br->teacher->last_name}",
+            'info'
+        );
+        
+        // Send notification to teacher
+        NotificationService::notifyBorrowRequestApproved($br);
+        
+        // Broadcast inventory update
+        NotificationService::broadcastInventoryUpdate($br->item);
+        
         return response()->json($br->load(['item', 'teacher']));
     }
 
     public function reject(Request $request, $id)
     {
-        $br = BorrowRequest::findOrFail($id);
+        $br = BorrowRequest::with(['item', 'teacher'])->findOrFail($id);
         if ($br->status !== 'pending') return response()->json(['message' => 'Only pending requests can be rejected'], 422);
         $v = $request->validate(['admin_notes' => 'required']);
         $br->update(['status' => 'rejected', 'admin_notes' => $v['admin_notes']]);
+        
+        // Log activity
+        $this->logActivity(
+            'borrow_request_rejected',
+            "Rejected borrow request for {$br->item->item_name} by {$br->teacher->first_name} {$br->teacher->last_name}",
+            'warning'
+        );
+        
+        // Send notification to teacher
+        NotificationService::notifyBorrowRequestRejected($br);
+        
         return response()->json($br->load(['item', 'teacher']));
     }
 
@@ -64,16 +92,41 @@ class BorrowRequestController extends Controller
 
     public function return(Request $request, $id)
     {
-        $br = BorrowRequest::findOrFail($id);
-        if ($br->status !== 'borrowed') return response()->json(['message' => 'Only borrowed items can be returned'], 422);
-        $v = $request->validate(['return_notes' => 'nullable']);
+        $br = BorrowRequest::with(['item', 'teacher'])->findOrFail($id);
+        if ($br->status !== 'borrowed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only borrowed items can be returned',
+                'current_status' => $br->status
+            ], 422);
+        }
+        
+        $v = $request->validate(['return_notes' => 'nullable|string']);
+        
         $br->update([
             'status' => 'returned',
             'actual_return_date' => now()->toDateString(),
             'admin_notes' => $v['return_notes'] ?? $br->admin_notes
         ]);
         $br->item->updateQuantities();
-        return response()->json($br->load(['item', 'teacher']));
+        
+        // Log activity
+        $this->logActivity(
+            'item_returned',
+            "Item returned: {$br->item->item_name} by {$br->teacher->first_name} {$br->teacher->last_name}",
+            'info'
+        );
+        
+        // Send notification to teacher
+        NotificationService::notifyItemReturned($br);
+        
+        // Broadcast inventory update
+        NotificationService::broadcastInventoryUpdate($br->item);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $br->load(['item', 'teacher'])
+        ]);
     }
 
     public function statistics()
