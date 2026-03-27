@@ -51,6 +51,7 @@ Route::prefix('auth')->group(function () {
 Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuthAttempt::class])->group(function () {
     Route::post('/logout', [AdminAuthController::class, 'logout']);
     Route::get('/me', [AdminAuthController::class, 'me']);
+    Route::post('/refresh-token', [AdminAuthController::class, 'refreshToken']); // Add refresh endpoint
     
     Route::get('/dashboard', [AdminDashboardController::class, 'index']);
     Route::get('/dashboard/statistics', [AdminDashboardController::class, 'statistics']);
@@ -140,6 +141,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
 Route::prefix('teacher')->middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [TeacherAuthController::class, 'logout']);
     Route::get('/me', [TeacherAuthController::class, 'me']);
+    Route::post('/refresh-token', [TeacherAuthController::class, 'refreshToken']); // Add refresh endpoint
     
     Route::get('/dashboard', [TeacherDashboardController::class, 'index']);
     

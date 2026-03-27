@@ -86,6 +86,28 @@ class TeacherAuthController extends Controller
         return response()->json(['message' => 'Logged out successfully']);
     }
 
+    /**
+     * Refresh authentication token
+     */
+    public function refreshToken(Request $request)
+    {
+        $user = $request->user();
+        
+        // Revoke old token
+        $request->user()->currentAccessToken()->delete();
+        
+        // Create new token with expiration
+        $newToken = $user->createToken('teacher-token', [
+            'expires_at' => now()->addHour(), // 1 hour expiration
+        ])->plainTextToken;
+        
+        return response()->json([
+            'token' => $newToken,
+            'user' => $user,
+            'role' => 'teacher',
+        ]);
+    }
+
     public function me(Request $request)
     {
         return response()->json($request->user());

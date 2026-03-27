@@ -95,16 +95,18 @@ export function MyReservationsPage() {
   };
 
   const borrowedColumns = [
-    { key: 'id', label: 'Request ID', render: (value: number) => `#${value}` },
-    { key: 'item.item_name', label: 'Item', render: (_: any, row: BorrowRequest) => row.item?.item_name },
+    { key: 'id', label: 'Request ID', width: '100px', render: (value: number) => `#${value}` },
+    { key: 'item.item_name', label: 'Item', width: '150px', render: (_: any, row: BorrowRequest) => row.item?.item_name },
     { 
       key: 'quantity_requested', 
-      label: 'Quantity', 
+      label: 'Quantity',
+      width: '100px',
       render: (_: any, row: BorrowRequest) => row.quantity_approved || row.quantity_requested || '—' 
     },
     { 
       key: 'borrow_date', 
-      label: 'Borrowed Date', 
+      label: 'Borrowed Date',
+      width: '130px',
       render: (_: any, row: BorrowRequest) => {
         const date = row.borrow_date || row.date_requested;
         return date ? formatDate(date) : '—';
@@ -113,6 +115,7 @@ export function MyReservationsPage() {
     {
       key: 'expected_return_date',
       label: 'Expected Return',
+      width: '200px',
       render: (value: string, row: BorrowRequest) => {
         if (!value) return '—';
         
@@ -127,14 +130,15 @@ export function MyReservationsPage() {
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '4px 12px',
+            gap: '4px',
+            padding: '4px 8px',
             borderRadius: '6px',
             fontWeight: '600',
-            fontSize: '12px',
+            fontSize: '11px',
             backgroundColor: isOverdue ? '#ffe0e0' : isDueToday ? '#fff3cd' : '#d4edda',
             color: isOverdue ? '#dc3545' : isDueToday ? '#856404' : '#155724',
-            border: `2px solid ${isOverdue ? '#dc3545' : isDueToday ? '#ffc107' : '#28a745'}`
+            border: `2px solid ${isOverdue ? '#dc3545' : isDueToday ? '#ffc107' : '#28a745'}`,
+            whiteSpace: 'nowrap'
           }}>
             {isOverdue && '🔴'}
             {isDueToday && '⚠️'}
@@ -149,18 +153,20 @@ export function MyReservationsPage() {
     {
       key: 'status',
       label: 'Status',
+      width: '120px',
       render: (value: string) => <StatusBadge label={value} status={value} />,
     },
     {
       key: 'actions',
       label: 'Actions',
+      width: '130px',
       render: (_: any, row: BorrowRequest) => (
         <button
           onClick={() => {
             setSelectedRequest(row);
             setShowDetailModal(true);
           }}
-          className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
+          className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors whitespace-nowrap"
         >
           View Details
         </button>
@@ -222,27 +228,32 @@ export function MyReservationsPage() {
         subtitle="Manage your borrowed items and track your requests"
         showBackButton={true}
         showHomeButton={true}
+        showMenuButton={true}
       >
         <NotificationProfile 
-          notifications={[]}
-          unreadCount={0}
           currentUser={currentUser}
-          onMarkAsRead={() => {}}
-          onMarkAllAsRead={() => {}}
         />
       </NavHeader>
       
-      <div className="p-6">
+      {/* Mobile Subtitle */}
+      <div className="sm:hidden bg-white border-b px-4 py-3">
+        <h1 className="text-lg font-bold text-gray-900 mb-1">My Reservations</h1>
+        <p className="text-sm text-gray-600">Manage your borrowed items and track your requests</p>
+      </div>
+      
+      <div className="p-3 sm:p-6 pt-4">
         <Card>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="borrowed" className="flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                My Borrowed Items
+            <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6">
+              <TabsTrigger value="borrowed" className="flex items-center gap-2 text-xs sm:text-sm">
+                <Package className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">My Borrowed Items</span>
+                <span className="sm:hidden">Borrowed</span>
               </TabsTrigger>
-              <TabsTrigger value="requests" className="flex items-center gap-2">
-                <ClipboardList className="w-4 h-4" />
-                My Borrow Requests
+              <TabsTrigger value="requests" className="flex items-center gap-2 text-xs sm:text-sm">
+                <ClipboardList className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">My Borrow Requests</span>
+                <span className="sm:hidden">Requests</span>
               </TabsTrigger>
             </TabsList>
 

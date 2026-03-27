@@ -1,0 +1,193 @@
+/* Mobile-specific optimizations */
+
+/* Touch-friendly tap targets */
+@media (max-width: 768px) {
+  /* Minimum touch target size (44x44px recommended by Apple/Google) */
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"],
+  .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text selection on double-tap */
+  * {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    -webkit-touch-callout: none;
+  }
+
+  /* Allow text selection in inputs and content areas */
+  input,
+  textarea,
+  [contenteditable],
+  .selectable {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Optimize scrolling */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+
+  /* Card layouts - single column on mobile */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Responsive padding */
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Responsive text sizes */
+  h1 {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+
+  h2 {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+  }
+
+  h3 {
+    font-size: 1.125rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  /* Table responsiveness */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 800px;
+    border-spacing: 0;
+  }
+
+  table th {
+    white-space: nowrap;
+    padding: 12px 8px !important;
+  }
+
+  table td {
+    white-space: nowrap;
+    padding: 12px 8px !important;
+  }
+
+  /* Ensure status badges don't break */
+  table td > span {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  /* Modal adjustments */
+  .modal,
+  .dialog {
+    max-width: 95vw !important;
+    margin: 1rem !important;
+  }
+
+  /* Form inputs */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+
+  /* Sidebar adjustments */
+  [data-sidebar="sidebar"] {
+    width: 280px !important;
+  }
+
+  /* Hide desktop-only elements */
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Show mobile-only elements */
+  .mobile-only {
+    display: block !important;
+  }
+
+  /* Spacing adjustments */
+  .space-y-6 {
+    gap: 1rem !important;
+  }
+
+  .gap-6 {
+    gap: 0.75rem !important;
+  }
+
+  /* Button groups */
+  .button-group {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .button-group > * {
+    width: 100% !important;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .grid-cols-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Reduce header height in landscape */
+  .nav-header {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 375px) {
+  .container {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  h1 {
+    font-size: 1.25rem !important;
+  }
+
+  button {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+/* Desktop - show desktop elements */
+@media (min-width: 1024px) {
+  .mobile-only {
+    display: none !important;
+  }
+
+  .desktop-only {
+    display: block !important;
+  }
+}

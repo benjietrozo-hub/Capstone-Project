@@ -125,6 +125,7 @@ export function AdminDashboard() {
         subtitle="Complete System Control - Manage your inventory system"
         showBackButton={false}
         showHomeButton={false}
+        showMenuButton={true}
       >
         <NotificationProfile 
           notifications={[]}
@@ -135,9 +136,15 @@ export function AdminDashboard() {
         />
       </NavHeader>
       
-      <div className="container mx-auto p-6">
+      {/* Mobile Subtitle */}
+      <div className="sm:hidden bg-white border-b px-4 py-3">
+        <h1 className="text-lg font-bold text-gray-900 mb-1">Admin Dashboard</h1>
+        <p className="text-sm text-gray-600">Complete System Control - Manage your inventory system</p>
+      </div>
+      
+      <div className="container mx-auto p-3 sm:p-6">
         {/* Stats Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-3 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {dashboardStats.map((stat) => (
             <Card
               key={stat.title}
@@ -145,14 +152,14 @@ export function AdminDashboard() {
               style={{ borderLeftColor: `hsl(var(--primary))` }}
               onClick={() => navigate(stat.url)}
             >
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2 sm:pb-3">
                 <div className="flex items-center justify-between">
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
-                    <stat.icon className="w-6 h-6 text-white" />
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
+                    <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
                   <div className="flex items-center gap-1">
                     {getTrendIcon(stat.trend)}
-                    <span className={`text-sm font-medium ${getTrendColor(stat.trend)}`}>
+                    <span className={`text-xs sm:text-sm font-medium ${getTrendColor(stat.trend)}`}>
                       {stat.change}
                     </span>
                   </div>
@@ -160,8 +167,8 @@ export function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-1">
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-sm font-medium text-gray-900">{stat.title}</p>
+                  <p className="text-xl sm:text-2xl font-bold">{stat.value}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-900">{stat.title}</p>
                   <p className="text-xs text-gray-500">{stat.description}</p>
                 </div>
               </CardContent>

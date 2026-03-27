@@ -209,6 +209,7 @@ export function InventoryPage() {
         subtitle="Manage all equipment and tools in the system"
         showBackButton={true}
         showHomeButton={true}
+        showMenuButton={true}
       >
         <NotificationProfile 
           notifications={[]}
@@ -218,6 +219,12 @@ export function InventoryPage() {
           onMarkAllAsRead={() => {}}
         />
       </NavHeader>
+      
+      {/* Mobile Subtitle */}
+      <div className="sm:hidden bg-white border-b px-4 py-3">
+        <h1 className="text-lg font-bold text-gray-900 mb-1">Inventory Management</h1>
+        <p className="text-sm text-gray-600">Manage all equipment and tools in the system</p>
+      </div>
       
       <div className="p-6">
         {/* Debug Panel */}
@@ -458,101 +465,125 @@ export function InventoryPage() {
         </Card>
 
       {showModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div className="card" style={{
-            maxWidth: '500px',
-            width: '90%',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <div className="card-header" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <h5 style={{ margin: 0 }}>{editingId ? '✏️ Edit Item' : '➕ Add New Item'}</h5>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-[#5B8DEF] to-[#0063F7] text-white px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                {editingId ? (
+                  <>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit Item
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add New Item
+                  </>
+                )}
+              </h2>
               <button
                 onClick={() => setShowModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#666'
-                }}
+                className="text-white hover:bg-white/20 rounded-full p-1 transition-colors"
               >
-                ✕
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
-            <div className="card-body">
-              <form onSubmit={handleSaveItem} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+              <form onSubmit={handleSaveItem} className="space-y-5">
+                {/* Item Code */}
                 <div>
-                  <label className="form-label">Item Code</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Item Code <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    className="form-control"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                     value={formData.item_code}
                     onChange={(e) => setFormData({ ...formData, item_code: e.target.value })}
                     placeholder="e.g., TOOL-001"
                     required
                     disabled={!!editingId}
                   />
+                  {editingId && (
+                    <p className="text-xs text-gray-500 mt-1">Item code cannot be changed</p>
+                  )}
                 </div>
+
+                {/* Item Name */}
                 <div>
-                  <label className="form-label">Item Name</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Item Name <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    className="form-control"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     value={formData.item_name}
                     onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
+                    placeholder="Enter item name"
                     required
                   />
                 </div>
+
+                {/* Description */}
                 <div>
-                  <label className="form-label">Description</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Description
+                  </label>
                   <textarea
-                    className="form-control"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
+                    placeholder="Enter item description"
                   />
                 </div>
+
+                {/* Category */}
                 <div>
-                  <label className="form-label">Category</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Category <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    className="form-control"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    placeholder="e.g., Tools, Equipment, Supplies"
                     required
                   />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+
+                {/* Quantity and Condition */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="form-label">Quantity</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Quantity <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="number"
-                      className="form-control"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       value={formData.quantity_total}
                       onChange={(e) => setFormData({ ...formData, quantity_total: e.target.value })}
+                      placeholder="0"
+                      min="0"
                       required
                     />
                   </div>
                   <div>
-                    <label className="form-label">Condition</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Condition
+                    </label>
                     <select
-                      className="form-control"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
                       value={formData.condition}
                       onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
                     >
@@ -564,56 +595,71 @@ export function InventoryPage() {
                     </select>
                   </div>
                 </div>
+
+                {/* Location */}
                 <div>
-                  <label className="form-label">Location</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Location
+                  </label>
                   <input
                     type="text"
-                    className="form-control"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="e.g., Room 101, Storage A"
                   />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+
+                {/* Unit Price and Acquisition Date */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="form-label">Unit Price</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={formData.unit_price}
-                      onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
-                    />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Unit Price
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">₱</span>
+                      <input
+                        type="number"
+                        className="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        value={formData.unit_price}
+                        onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="form-label">Acquisition Date</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Acquisition Date
+                    </label>
                     <input
                       type="date"
-                      className="form-control"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       value={formData.acquisition_date}
                       onChange={(e) => setFormData({ ...formData, acquisition_date: e.target.value })}
                     />
                   </div>
                 </div>
-                <div style={{
-                  display: 'flex',
-                  gap: '12px',
-                  marginTop: '20px',
-                  justifyContent: 'flex-end'
-                }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setShowModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                  >
-                    Save Item
-                  </button>
-                </div>
               </form>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                onClick={handleSaveItem}
+                className="px-6 py-2.5 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7] text-white rounded-lg hover:shadow-lg transition-all font-medium"
+              >
+                {editingId ? 'Update Item' : 'Save Item'}
+              </button>
             </div>
           </div>
         </div>

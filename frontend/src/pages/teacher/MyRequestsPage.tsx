@@ -123,6 +123,7 @@ export function MyRequestsPage() {
         subtitle="Track and manage your equipment requests"
         showBackButton={true}
         showHomeButton={true}
+        showMenuButton={true}
       >
         <NotificationProfile 
           notifications={[]}
@@ -132,6 +133,12 @@ export function MyRequestsPage() {
           onMarkAllAsRead={() => {}}
         />
       </NavHeader>
+      
+      {/* Mobile Subtitle */}
+      <div className="sm:hidden bg-white border-b px-4 py-3">
+        <h1 className="text-lg font-bold text-gray-900 mb-1">My Borrow Requests</h1>
+        <p className="text-sm text-gray-600">Track and manage your equipment requests</p>
+      </div>
       
       <div className="p-6">
         <Card>

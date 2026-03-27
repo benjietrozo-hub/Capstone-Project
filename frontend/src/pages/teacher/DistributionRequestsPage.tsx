@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import RequestDistributionModal from '@/components/teacher/RequestDistributionModal';
+import NavHeader from '@/components/NavHeader';
+import NotificationProfile from '@/components/NotificationProfile';
 
 interface DistributionRequest {
   id: number;
@@ -49,10 +51,23 @@ export default function DistributionRequestsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     fetchData();
+    fetchCurrentUser();
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/teacher/profile`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setCurrentUser(response.data.data);
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -124,10 +139,33 @@ export default function DistributionRequestsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div>
+      <NavHeader 
+        title="Distribution Requests" 
+        subtitle="Request items you need for your teaching"
+        showBackButton={true}
+        showHomeButton={true}
+        showMenuButton={true}
+      >
+        <NotificationProfile 
+          notifications={[]}
+          unreadCount={0}
+          currentUser={currentUser}
+          onMarkAsRead={() => {}}
+          onMarkAllAsRead={() => {}}
+        />
+      </NavHeader>
+      
+      {/* Mobile Subtitle */}
+      <div className="sm:hidden bg-white border-b px-4 py-3">
+        <h1 className="text-lg font-bold text-gray-900 mb-1">Distribution Requests</h1>
+        <p className="text-sm text-gray-600">Request items you need for your teaching</p>
+      </div>
+      
+      <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="hidden sm:block">
           <h1 className="text-3xl font-bold text-gray-900">Distribution Requests</h1>
           <p className="text-gray-600 mt-1">Request items you need for your teaching</p>
         </div>
@@ -337,6 +375,7 @@ export default function DistributionRequestsPage() {
           }}
         />
       )}
+      </div>
     </div>
   );
 }

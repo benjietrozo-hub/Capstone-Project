@@ -176,6 +176,7 @@ export function BrowseInventoryPage() {
         subtitle="View and request available equipment"
         showBackButton={true}
         showHomeButton={true}
+        showMenuButton={true}
       >
         <NotificationProfile 
           notifications={[]}
@@ -185,6 +186,12 @@ export function BrowseInventoryPage() {
           onMarkAllAsRead={() => {}}
         />
       </NavHeader>
+      
+      {/* Mobile Subtitle */}
+      <div className="sm:hidden bg-white border-b px-4 py-3">
+        <h1 className="text-lg font-bold text-gray-900 mb-1">Browse Inventory</h1>
+        <p className="text-sm text-gray-600">View and request available equipment</p>
+      </div>
       
       <div className="p-6">
         <Card>

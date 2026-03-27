@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useWebSocket } from '@/hooks/useWebSocket';
 import axiosInstance from '@/api/axios';
 import { toast } from 'sonner';
+import emailService from '@/services/emailService';
 
 interface Notification {
   id: string | number;
@@ -23,6 +24,7 @@ interface NotificationContextType {
   markAsRead: (id: string | number) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: string | number) => Promise<void>;
+  sendEmailNotification: (notification: any) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -156,6 +158,28 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
   }, [token, role, fetchUnreadCount]);
 
+  // Send email notification
+  const sendEmailNotification = useCallback(async (notification: any) => {
+    if (!token) return;
+
+    try {
+      const emailData = {
+        recipient_email: notification.recipient_email || user?.email,
+        subject: notification.title,
+        message: notification.message,
+        type: notification.type || 'notification',
+        related_id: notification.related_id,
+        related_type: notification.related_type,
+      };
+
+      await emailService.sendEmail(emailData);
+      toast.success('Email notification sent successfully');
+    } catch (error) {
+      console.error('Failed to send email notification:', error);
+      toast.error('Failed to send email notification');
+    }
+  }, [token, user?.email]);
+
   // Handle incoming WebSocket notifications
   useEffect(() => {
     const handleNotification = (data: any) => {
@@ -234,6 +258,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    sendEmailNotification,
   };
 
   return (

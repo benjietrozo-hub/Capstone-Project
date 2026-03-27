@@ -43,6 +43,28 @@ class AdminAuthController extends Controller
         ]);
     }
 
+    /**
+     * Refresh authentication token
+     */
+    public function refreshToken(Request $request)
+    {
+        $user = $request->user();
+        
+        // Revoke old token
+        $request->user()->currentAccessToken()->delete();
+        
+        // Create new token with expiration
+        $newToken = $user->createToken('admin-token', [
+            'expires_at' => now()->addHour(), // 1 hour expiration
+        ])->plainTextToken;
+        
+        return response()->json([
+            'token' => $newToken,
+            'user' => $user,
+            'role' => 'admin',
+        ]);
+    }
+
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();

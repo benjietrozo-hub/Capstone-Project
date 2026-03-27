@@ -155,6 +155,7 @@ export function TeacherDashboard() {
         subtitle="Lab Management - Access your resources and track your requests"
         showBackButton={false}
         showHomeButton={false}
+        showMenuButton={true}
       >
         <NotificationProfile 
           notifications={[]}
@@ -164,6 +165,12 @@ export function TeacherDashboard() {
           onMarkAllAsRead={() => {}}
         />
       </NavHeader>
+      
+      {/* Mobile Subtitle */}
+      <div className="sm:hidden bg-white border-b px-4 py-3">
+        <h1 className="text-lg font-bold text-gray-900 mb-1">Teacher Dashboard</h1>
+        <p className="text-sm text-gray-600">Lab Management - Access your resources and track your requests</p>
+      </div>
       
       <div className="container mx-auto p-6">
         {/* Welcome Card */}

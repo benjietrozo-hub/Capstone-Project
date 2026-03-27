@@ -13,6 +13,8 @@ class LoginAttempt extends Model
         'batch',
         'attempts_in_batch',
         'locked_until',
+        'total_attempts_today', // Track daily attempts
+        'last_attempt_at',     // Track last attempt time
     ];
 
     protected $casts = [
@@ -73,15 +75,22 @@ class LoginAttempt extends Model
     }
 
     /**
-     * Record failed attempt
+     * Record failed attempt with enhanced security
      */
     public function recordFailedAttempt()
     {
         $this->attempts_in_batch++;
+        $this->total_attempts_today = ($this->total_attempts_today ?? 0) + 1;
+        $this->last_attempt_at = now();
         
         // Check if batch limit reached (3 attempts per batch)
         if ($this->attempts_in_batch >= 3) {
             $this->applyLockout();
+        }
+        
+        // Check daily limit (50 attempts per day)
+        if ($this->total_attempts_today >= 50) {
+            $this->applyDailyLockout();
         }
         
         $this->save();
@@ -119,6 +128,29 @@ class LoginAttempt extends Model
     }
 
     /**
+     * Apply daily lockout for excessive attempts
+     */
+    private function applyDailyLockout()
+    {
+        // Lock for 24 hours if daily limit exceeded
+        $this->locked_until = Carbon::now()->addDay();
+        $this->batch = 1;
+        $this->attempts_in_batch = 0;
+        $this->total_attempts_today = 0; // Reset for next day
+    }
+
+    /**
+     * Reset daily attempts at midnight or after successful login
+     */
+    public function resetDailyAttempts()
+    {
+        // Only reset if it's a new day
+        if (!$this->last_attempt_at || Carbon::now()->diffInDays($this->last_attempt_at) >= 1) {
+            $this->total_attempts_today = 0;
+        }
+    }
+
+    /**
      * Reset attempts after successful login
      */
     public function resetAttempts()
@@ -126,6 +158,7 @@ class LoginAttempt extends Model
         $this->batch = 1;
         $this->attempts_in_batch = 0;
         $this->locked_until = null;
+        $this->total_attempts_today = 0; // Reset daily attempts
         $this->save();
     }
 
@@ -138,22 +171,31 @@ class LoginAttempt extends Model
     }
 
     /**
-     * Get lockout message based on batch
+     * Get lockout message based on batch and daily limits
      */
     public function getLockoutMessage()
     {
         if ($this->batch == 4 && $this->locked_until) {
             return 'Your account is temporarily locked for your account safety. Please contact administrator or wait 15 minutes.';
         }
+        
+        if ($this->locked_until && Carbon::now()->greaterThanOrEqualTo($this->locked_until)) {
+            $remaining = $this->getRemainingLockTime();
+            $minutes = floor($remaining / 60);
+            $seconds = $remaining % 60;
+            
+            // Check if it's a daily lockout
+            if ($this->total_attempts_today >= 50) {
+                return 'Daily attempt limit exceeded. Please wait 24 hours before trying again.';
+            }
 
-        $remaining = $this->getRemainingLockTime();
-        $minutes = floor($remaining / 60);
-        $seconds = $remaining % 60;
+            if ($minutes > 0) {
+                return "Too many failed attempts. Please wait {$minutes} minute(s) and {$seconds} second(s) before trying again.";
+            }
 
-        if ($minutes > 0) {
-            return "Too many failed attempts. Please wait {$minutes} minute(s) and {$seconds} second(s) before trying again.";
+            return "Too many failed attempts. Please wait {$seconds} second(s) before trying again.";
         }
 
-        return "Too many failed attempts. Please wait {$seconds} second(s) before trying again.";
+        return null;
     }
 }

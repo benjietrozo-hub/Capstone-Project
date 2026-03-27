@@ -5,7 +5,7 @@ echo ========================================
 echo.
 
 echo [1/4] Starting Laravel Backend...
-start "Laravel Backend" cmd /k "cd backend && php artisan serve"
+start "Laravel Backend" cmd /k "cd backend && php artisan serve --host=0.0.0.0 --port=8000"
 timeout /t 3 /nobreak > nul
 
 echo [2/4] Starting WebSocket Server...
@@ -17,7 +17,7 @@ start "Task Scheduler" cmd /k "cd backend && php artisan schedule:work"
 timeout /t 2 /nobreak > nul
 
 echo [4/4] Starting Frontend Development Server...
-start "Frontend Dev Server" cmd /k "cd frontend && npm run dev"
+start "Frontend Dev Server" cmd /k "cd frontend && npm run dev -- --host 0.0.0.0"
 timeout /t 3 /nobreak > nul
 
 echo.
@@ -25,10 +25,13 @@ echo ========================================
 echo All services started!
 echo ========================================
 echo.
-echo Backend:    http://localhost:8000
-echo Frontend:   http://localhost:5173
-echo WebSocket:  ws://localhost:8080
+echo Backend:    http://YOUR_IP_ADDRESS:8000 (also http://localhost:8000)
+echo Frontend:   http://YOUR_IP_ADDRESS:5173 (also http://localhost:5173)
+echo WebSocket:  ws://YOUR_IP_ADDRESS:8080 (also ws://localhost:8080)
 echo Scheduler:  Running (return reminders & overdue notifications)
+echo.
+echo NOTE: Replace YOUR_IP_ADDRESS with your actual IP from 'ipconfig'
+echo Access from phone: http://YOUR_IP_ADDRESS:5173
 echo.
 echo Press any key to stop all services...
 pause > nul

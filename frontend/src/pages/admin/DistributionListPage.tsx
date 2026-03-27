@@ -243,39 +243,130 @@ export default function DistributionListPage() {
   const handleExport = async () => {
     try {
       const token = localStorage.getItem("token");
-      const params = new URLSearchParams();
       
-      if (selectedDepartment !== "all") params.append("department", selectedDepartment);
-      if (selectedStatus !== "all") params.append("status", selectedStatus);
-      if (selectedGroup) params.append("group_id", selectedGroup.toString());
-
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/admin/distribution/export?${params}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // Convert to CSV
-      const data = response.data.data;
-      if (data.length === 0) {
+      // Determine what data to export based on filters
+      let dataToExport = filteredTeachers;
+      
+      if (dataToExport.length === 0) {
         toast.error("No data to export");
         return;
       }
 
-      const headers = Object.keys(data[0]);
-      const csv = [
-        headers.join(","),
-        ...data.map((row: any) => headers.map(h => `"${row[h]}"`).join(","))
-      ].join("\n");
+      // Create professional CSV with proper formatting
+      const timestamp = new Date().toLocaleString();
+      const filterInfo = [];
+      
+      if (selectedDepartment !== "all") filterInfo.push(`Department: ${selectedDepartment}`);
+      if (selectedStatus !== "all") filterInfo.push(`Status: ${selectedStatus}`);
+      if (selectedGroup) {
+        const group = groups.find(g => g.id === selectedGroup);
+        if (group) filterInfo.push(`Group: ${group.group_name}`);
+      }
 
-      // Download
-      const blob = new Blob([csv], { type: "text/csv" });
+      // Build CSV with header section
+      const csvLines = [];
+      
+      // Title and metadata
+      csvLines.push("DISTRIBUTION LIST EXPORT");
+      csvLines.push(`Generated: ${timestamp}`);
+      csvLines.push(`Total Records: ${dataToExport.length}`);
+      if (filterInfo.length > 0) {
+        csvLines.push(`Filters Applied: ${filterInfo.join(", ")}`);
+      }
+      csvLines.push(""); // Empty line
+      csvLines.push(""); // Empty line
+      
+      // Column headers
+      const headers = [
+        "No.",
+        "Employee ID",
+        "Full Name",
+        "First Name",
+        "Middle Initial",
+        "Last Name",
+        "Email Address",
+        "Phone Number",
+        "Department",
+        "Status",
+        "Active Borrows",
+        "Last Login",
+        "Account Created"
+      ];
+      csvLines.push(headers.join(","));
+      
+      // Data rows
+      dataToExport.forEach((teacher, index) => {
+        const row = [
+          index + 1,
+          `"${teacher.employee_id || 'N/A'}"`,
+          `"${teacher.full_name || 'N/A'}"`,
+          `"${teacher.first_name || 'N/A'}"`,
+          `"${teacher.middle_initial || 'N/A'}"`,
+          `"${teacher.last_name || 'N/A'}"`,
+          `"${teacher.email || 'N/A'}"`,
+          `"${teacher.phone || 'N/A'}"`,
+          `"${teacher.department || 'N/A'}"`,
+          `"${teacher.status || 'N/A'}"`,
+          teacher.active_borrows_count || 0,
+          `"${teacher.last_login ? new Date(teacher.last_login).toLocaleString() : 'Never'}"`,
+          `"${new Date().toLocaleDateString()}"` // You can replace with actual created_at if available
+        ];
+        csvLines.push(row.join(","));
+      });
+      
+      // Add footer section
+      csvLines.push(""); // Empty line
+      csvLines.push(""); // Empty line
+      csvLines.push("SUMMARY");
+      csvLines.push(`Total Teachers: ${dataToExport.length}`);
+      csvLines.push(`Active: ${dataToExport.filter(t => t.status === 'active').length}`);
+      csvLines.push(`Inactive: ${dataToExport.filter(t => t.status === 'inactive').length}`);
+      
+      // Department breakdown
+      const deptCounts: Record<string, number> = {};
+      dataToExport.forEach(t => {
+        deptCounts[t.department] = (deptCounts[t.department] || 0) + 1;
+      });
+      csvLines.push(""); // Empty line
+      csvLines.push("DEPARTMENT BREAKDOWN");
+      Object.entries(deptCounts).forEach(([dept, count]) => {
+        csvLines.push(`"${dept}",${count}`);
+      });
+      
+      // Add notes section
+      csvLines.push(""); // Empty line
+      csvLines.push(""); // Empty line
+      csvLines.push("NOTES");
+      csvLines.push("This distribution list was generated from the Online Inventory Management System");
+      csvLines.push("For questions or updates, please contact the system administrator");
+      csvLines.push(`Export Date: ${new Date().toLocaleDateString()}`);
+      csvLines.push(`Export Time: ${new Date().toLocaleTimeString()}`);
+      
+      const csv = csvLines.join("\n");
+
+      // Create and download file with BOM for Excel compatibility
+      const BOM = "\uFEFF";
+      const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `distribution-list-${new Date().toISOString().split("T")[0]}.csv`;
-      a.click();
       
-      toast.success("Distribution list exported successfully");
+      // Generate filename with filters
+      let filename = "Distribution_List";
+      if (selectedDepartment !== "all") filename += `_${selectedDepartment}`;
+      if (selectedGroup) {
+        const group = groups.find(g => g.id === selectedGroup);
+        if (group) filename += `_${group.group_name.replace(/\s+/g, "_")}`;
+      }
+      filename += `_${new Date().toISOString().split("T")[0]}.csv`;
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`Distribution list exported successfully (${dataToExport.length} records)`);
     } catch (error: any) {
       console.error("Error exporting:", error);
       toast.error("Failed to export distribution list");

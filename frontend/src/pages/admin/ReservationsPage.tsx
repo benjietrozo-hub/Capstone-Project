@@ -183,6 +183,7 @@ export function ReservationsPage() {
         subtitle="Manage borrowed items and borrow requests"
         showBackButton={true}
         showHomeButton={true}
+        showMenuButton={true}
       >
         <NotificationProfile 
           notifications={[]}
@@ -192,6 +193,12 @@ export function ReservationsPage() {
           onMarkAllAsRead={() => {}}
         />
       </NavHeader>
+      
+      {/* Mobile Subtitle */}
+      <div className="sm:hidden bg-white border-b px-4 py-3">
+        <h1 className="text-lg font-bold text-gray-900 mb-1">Reservations Management</h1>
+        <p className="text-sm text-gray-600">Manage borrowed items and borrow requests</p>
+      </div>
       
       <div className="p-6">
         <div className="card">

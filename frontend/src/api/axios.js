@@ -27,13 +27,51 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle token expiration
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    
+    // Handle token expiration (403)
+    if (error.response?.status === 403) {
+      console.log('Token expired, attempting refresh...');
+      // Try to refresh token
+      refreshToken().then(() => {
+        // Retry original request with new token
+        return axiosInstance(error.config);
+      }).catch(() => {
+        // Refresh failed, redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      });
+    }
+    
     return Promise.reject(error);
   }
 );
+
+// Refresh token function
+async function refreshToken() {
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  try {
+    const response = await axiosInstance.post('/api/auth/refresh-token', {
+      refresh_token: refreshToken
+    });
+    
+    const { token } = response.data;
+    localStorage.setItem('token', token);
+    return token;
+  } catch (error) {
+    console.error('Token refresh failed:', error);
+    throw error;
+  }
+}
 
 export default axiosInstance;

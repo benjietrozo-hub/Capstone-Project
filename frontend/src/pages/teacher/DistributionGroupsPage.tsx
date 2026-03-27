@@ -7,6 +7,9 @@ import { Badge } from '../../components/ui/badge';
 import { useToast } from '../../hooks/use-toast';
 import CreateDistributionGroupModal from '../../components/teacher/CreateDistributionGroupModal';
 import ManageGroupMembersModal from '../../components/teacher/ManageGroupMembersModal';
+import NavHeader from '@/components/NavHeader';
+import NotificationProfile from '@/components/NotificationProfile';
+import axios from 'axios';
 
 interface DistributionGroup {
   id: number;
@@ -30,11 +33,24 @@ const DistributionGroupsPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<DistributionGroup | null>(null);
   const [showMembersModal, setShowMembersModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchGroups();
+    fetchCurrentUser();
   }, [filter]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/teacher/profile`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setCurrentUser(response.data.data);
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
 
   const fetchGroups = async () => {
     try {
@@ -102,10 +118,33 @@ const DistributionGroupsPage: React.FC = () => {
   const userGroups = groups.filter(g => g.list_type === 'user');
 
   return (
-    <div className="p-6 space-y-6">
+    <div>
+      <NavHeader 
+        title="Distribution Groups" 
+        subtitle="Manage notification distribution lists for efficient communication"
+        showBackButton={true}
+        showHomeButton={true}
+        showMenuButton={true}
+      >
+        <NotificationProfile 
+          notifications={[]}
+          unreadCount={0}
+          currentUser={currentUser}
+          onMarkAsRead={() => {}}
+          onMarkAllAsRead={() => {}}
+        />
+      </NavHeader>
+      
+      {/* Mobile Subtitle */}
+      <div className="sm:hidden bg-white border-b px-4 py-3">
+        <h1 className="text-lg font-bold text-gray-900 mb-1">Distribution Groups</h1>
+        <p className="text-sm text-gray-600">Manage notification distribution lists for efficient communication</p>
+      </div>
+      
+      <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
+        <div className="hidden sm:block">
           <h1 className="text-2xl font-bold text-gray-900">Distribution Groups</h1>
           <p className="text-sm text-gray-600 mt-1">
             Manage notification distribution lists for efficient communication
@@ -266,6 +305,7 @@ const DistributionGroupsPage: React.FC = () => {
           }}
         />
       )}
+      </div>
     </div>
   );
 };

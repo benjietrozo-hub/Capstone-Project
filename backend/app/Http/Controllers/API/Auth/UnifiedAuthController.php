@@ -79,8 +79,18 @@ class UnifiedAuthController extends Controller
             // Successful login - reset attempts
             $loginAttempt->resetAttempts();
 
+            // Create token with expiration
+            $token = $admin->createToken('admin-token', [
+                'expires_at' => now()->addHour(), // 1 hour expiration
+                'abilities' => ['*'], // Grant all abilities
+            ])->plainTextToken;
+
+            // Create refresh token (longer expiration)
+            $refreshToken = $admin->createToken('admin-refresh', [
+                'expires_at' => now()->addDays(7), // 7 days for refresh
+            ])->plainTextToken;
+
             $admin->update(['last_login' => now()]);
-            $token = $admin->createToken('admin-token')->plainTextToken;
 
             SystemLog::logActivity(
                 'auth',
@@ -95,6 +105,7 @@ class UnifiedAuthController extends Controller
             return response()->json([
                 'user' => $admin,
                 'token' => $token,
+                'refresh_token' => $refreshToken,
                 'role' => 'admin',
             ]);
         }
@@ -125,8 +136,18 @@ class UnifiedAuthController extends Controller
             // Successful login - reset attempts
             $loginAttempt->resetAttempts();
 
+            // Create token with expiration
+            $token = $teacher->createToken('teacher-token', [
+                'expires_at' => now()->addHour(), // 1 hour expiration
+                'abilities' => ['*'], // Grant all abilities
+            ])->plainTextToken;
+
+            // Create refresh token (longer expiration)
+            $refreshToken = $teacher->createToken('teacher-refresh', [
+                'expires_at' => now()->addDays(7), // 7 days for refresh
+            ])->plainTextToken;
+
             $teacher->update(['last_login' => now()]);
-            $token = $teacher->createToken('teacher-token')->plainTextToken;
 
             SystemLog::logActivity(
                 'auth',
@@ -141,8 +162,9 @@ class UnifiedAuthController extends Controller
             return response()->json([
                 'user' => $teacher,
                 'token' => $token,
+                'refresh_token' => $refreshToken,
                 'role' => 'teacher',
-            ]);
+            ], 201);
         }
 
         // Failed login - record attempt

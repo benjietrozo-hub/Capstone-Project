@@ -6,6 +6,7 @@ import NotificationProfile from '@/components/NotificationProfile';
 import { Card } from '@/components/ui/card';
 import { PageLoader } from '../../components/common/Loader';
 import { formatDate } from '../../utils/formatters';
+import { parseUserAgent, getDeviceDisplay } from '../../utils/deviceDetection';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { 
   Activity,
@@ -213,9 +214,16 @@ export function LogsPage() {
         subtitle="Monitor all system activities and security events"
         showBackButton={true}
         showHomeButton={true}
+        showMenuButton={true}
       >
         <NotificationProfile currentUser={currentUser} />
       </NavHeader>
+      
+      {/* Mobile Subtitle */}
+      <div className="sm:hidden bg-white border-b px-4 py-3">
+        <h1 className="text-lg font-bold text-gray-900 mb-1">System Logs</h1>
+        <p className="text-sm text-gray-600">Monitor all system activities and security events</p>
+      </div>
       
       <div className="p-6">
         {/* Statistics Cards */}
@@ -442,10 +450,10 @@ export function LogsPage() {
                       </div>
                     )}
 
-                    {/* User Agent */}
+                    {/* User Agent / Device Info */}
                     {log.user_agent && (
-                      <div className="text-xs text-gray-500 font-mono truncate">
-                        {log.user_agent}
+                      <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+                        <span>{getDeviceDisplay(log.user_agent)}</span>
                       </div>
                     )}
                   </div>
