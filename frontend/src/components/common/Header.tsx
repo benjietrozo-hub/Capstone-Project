@@ -38,6 +38,29 @@ export function Header({ title = '', onMenuClick }: HeaderProps) {
         alignItems: 'center',
         gap: '15px'
       }}>
+        {/* Logo */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '70px',
+          height: '70px',
+          borderRadius: '50%',
+          overflow: 'hidden',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+        }}>
+          <img 
+            src="/Logo_n.jpg" 
+            alt="Online IMS Logo" 
+            style={{
+              width: '70px',
+              height: '70px',
+              objectFit: 'cover',
+              borderRadius: '50%'
+            }}
+          />
+        </div>
+        
         {onMenuClick && (
           <button
             onClick={onMenuClick}

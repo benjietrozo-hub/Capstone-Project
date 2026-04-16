@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Package, ClipboardList } from 'lucide-react';
+import { Package, ClipboardList, CheckCircle, XCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
 interface BorrowRequest {
@@ -28,7 +28,9 @@ interface BorrowRequest {
   expected_return_date?: string;
   actual_return_date?: string;
   admin_notes?: string;
+  purpose?: string;
 }
+
 
 interface ApprovalForm {
   quantity_approved: number;
@@ -115,10 +117,26 @@ export function ReservationsPage() {
       setShowApprovalModal(false);
       setApprovalForm({ quantity_approved: 0, expected_return_date: '', admin_notes: '' });
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Approval error:', error);
+
+      let errorMessage = 'Failed to approve request';
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+
+        // Show detailed information if available
+        if (error.response.data.details) {
+          const details = error.response.data.details;
+          if (details.quantity_available !== undefined) {
+            errorMessage += ` (Available: ${details.quantity_available}, Requested: ${details.quantity_requested})`;
+          }
+        }
+      }
+
       toast({
         title: 'Error',
-        description: 'Failed to approve request',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
@@ -426,9 +444,10 @@ export function ReservationsPage() {
                                   setShowApprovalModal(true);
                                 }}
                                 className="btn btn-success"
-                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
                               >
-                                ✓ Approve
+                                <CheckCircle className="w-4 h-4" />
+                                Approve
                               </button>
                               <button
                                 onClick={() => {
@@ -436,9 +455,10 @@ export function ReservationsPage() {
                                   setShowRejectionModal(true);
                                 }}
                                 className="btn btn-danger"
-                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
                               >
-                                ✕ Reject
+                                <XCircle className="w-4 h-4" />
+                                Reject
                               </button>
                             </div>
                           </td>
@@ -460,119 +480,131 @@ export function ReservationsPage() {
           </Tabs>
         </div>
 
+        
         {/* Approval Modal */}
         <Dialog open={showApprovalModal} onOpenChange={setShowApprovalModal}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-                <span className="text-green-600">✓</span> Approve Borrow Request
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                Approve Borrow Request
               </DialogTitle>
               <DialogDescription>
-                Review the request details and add any notes for the teacher.
+                Review the request details and approve the borrow request.
               </DialogDescription>
             </DialogHeader>
             
-            {/* Request Details */}
-            {selectedRequest && (
-              <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
-                <h3 className="font-semibold text-sm text-gray-700 mb-2">Request Details</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-gray-600">Request ID:</span>
-                    <p className="font-semibold text-gray-900">#{selectedRequest.id}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Teacher:</span>
-                    <p className="font-semibold text-gray-900">{selectedRequest.teacher?.full_name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Item:</span>
-                    <p className="font-semibold text-gray-900">{selectedRequest.item?.item_name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Item Code:</span>
-                    <p className="font-semibold text-gray-900">{selectedRequest.item?.item_code || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Quantity Requested:</span>
-                    <p className="font-semibold text-gray-900">{selectedRequest.quantity_requested}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Date Requested:</span>
-                    <p className="font-semibold text-gray-900">
-                      {new Date(selectedRequest.borrow_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-gray-600">Requested Borrow Date:</span>
-                    <p className="font-semibold text-gray-900">
-                      {new Date(selectedRequest.borrow_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                {selectedRequest.purpose && (
-                  <div className="pt-2 border-t">
-                    <span className="text-gray-600 text-sm">Purpose:</span>
-                    <p className="text-gray-900 text-sm mt-1">{selectedRequest.purpose}</p>
+            <form onSubmit={handleApprove}>
+              <div className="space-y-4">
+                {/* Request Details */}
+                {selectedRequest && (
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                    <h3 className="font-semibold text-sm text-gray-700">Request Details</h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-600">Request ID:</span>
+                        <p className="font-semibold text-gray-900">#{selectedRequest.id}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Teacher:</span>
+                        <p className="font-semibold text-gray-900">{selectedRequest.teacher?.full_name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Item:</span>
+                        <p className="font-semibold text-gray-900">{selectedRequest.item?.item_name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Item Code:</span>
+                        <p className="font-semibold text-gray-900">{selectedRequest.item?.item_code || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Quantity Requested:</span>
+                        <p className="font-semibold text-gray-900">{selectedRequest.quantity_requested}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Date Requested:</span>
+                        <p className="font-semibold text-gray-900">
+                          {new Date(selectedRequest.borrow_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    {selectedRequest.purpose && (
+                      <div className="pt-2 border-t">
+                        <span className="text-gray-600 text-sm">Purpose:</span>
+                        <p className="text-gray-900 text-sm mt-1">{selectedRequest.purpose}</p>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
-            <form onSubmit={handleApprove}>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="quantity-approved">Quantity to Approve *</Label>
-                  <Input
-                    id="quantity-approved"
-                    type="number"
-                    min="1"
-                    max={selectedRequest?.quantity_requested}
-                    value={approvalForm.quantity_approved}
-                    onChange={(e) =>
-                      setApprovalForm({ ...approvalForm, quantity_approved: parseInt(e.target.value) || 0 })
-                    }
-                    required
-                  />
-                  <p className="text-xs text-gray-500">
-                    Maximum: {selectedRequest?.quantity_requested}
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="expected-return-date">Expected Return Date *</Label>
-                  <Input
-                    id="expected-return-date"
-                    type="date"
-                    value={approvalForm.expected_return_date}
-                    onChange={(e) =>
-                      setApprovalForm({ ...approvalForm, expected_return_date: e.target.value })
-                    }
-                    min={new Date().toISOString().split('T')[0]}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="admin-notes">Admin Notes (Optional)</Label>
-                  <Textarea
-                    id="admin-notes"
-                    value={approvalForm.admin_notes}
-                    onChange={(e) =>
-                      setApprovalForm({ ...approvalForm, admin_notes: e.target.value })
-                    }
-                    placeholder="Add any notes or instructions for the teacher..."
-                    rows={3}
-                  />
+                {/* Approval Form */}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="quantity-approved">Quantity to Approve *</Label>
+                    <Input
+                      id="quantity-approved"
+                      type="number"
+                      min="1"
+                      max={selectedRequest?.quantity_requested}
+                      value={approvalForm.quantity_approved}
+                      onChange={(e) =>
+                        setApprovalForm({ ...approvalForm, quantity_approved: parseInt(e.target.value) || 0 })
+                      }
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Maximum: {selectedRequest?.quantity_requested}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="expected-return-date">Expected Return Date *</Label>
+                    <Input
+                      id="expected-return-date"
+                      type="date"
+                      value={approvalForm.expected_return_date}
+                      onChange={(e) =>
+                        setApprovalForm({ ...approvalForm, expected_return_date: e.target.value })
+                      }
+                      min={new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="admin-notes">Admin Notes (Optional)</Label>
+                    <Textarea
+                      id="admin-notes"
+                      value={approvalForm.admin_notes}
+                      onChange={(e) =>
+                        setApprovalForm({ ...approvalForm, admin_notes: e.target.value })
+                      }
+                      placeholder="Add any notes or instructions for the teacher..."
+                      rows={3}
+                    />
+                  </div>
                 </div>
               </div>
-              <DialogFooter>
+              
+              <DialogFooter className="mt-6">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setShowApprovalModal(false)}
+                  className="px-6 py-2"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                <Button 
+                  type="submit" 
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 text-base shadow-lg hover:shadow-xl transition-all duration-200"
+                  style={{
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    minWidth: '140px',
+                    height: '48px'
+                  }}
+                >
                   Approve Request
                 </Button>
               </DialogFooter>
@@ -585,7 +617,8 @@ export function ReservationsPage() {
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-                <span className="text-red-600">✕</span> Reject Borrow Request
+                <XCircle className="w-5 h-5 text-red-600" />
+                Reject Borrow Request
               </DialogTitle>
               <DialogDescription>
                 Review the request details and provide a reason for rejection. The teacher will see this message.

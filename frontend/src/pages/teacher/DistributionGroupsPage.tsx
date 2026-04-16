@@ -56,10 +56,7 @@ const DistributionGroupsPage: React.FC = () => {
     try {
       setLoading(true);
       const params = filter !== 'all' ? { list_type: filter } : {};
-      console.log('Fetching distribution groups with params:', params);
       const response = await teacherAPI.getDistributionGroups(params);
-      console.log('Distribution groups response:', response.data);
-      console.log('Number of groups:', response.data.data?.length);
       setGroups(response.data.data || []);
     } catch (error: any) {
       console.error('Error fetching distribution groups:', error);

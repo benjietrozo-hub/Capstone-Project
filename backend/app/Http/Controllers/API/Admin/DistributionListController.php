@@ -84,10 +84,15 @@ class DistributionListController extends Controller
                 ->get()
                 ->pluck('count', 'department');
 
-            // Only get active (non-deleted) groups
-            $groups = DistributionGroup::withCount('teachers')
+            // Only get active (non-deleted) groups with manual teacher count
+            $groups = DistributionGroup::with('teachers')
                 ->where('is_active', true)
                 ->get();
+
+            // Add manual teachers_count to avoid SoftDeletes issues
+            $groups->each(function($group) {
+                $group->teachers_count = $group->teachers->count();
+            });
 
             return response()->json([
                 'success' => true,
@@ -137,14 +142,21 @@ class DistributionListController extends Controller
     public function groups()
     {
         try {
-            // Only get active (non-deleted) groups
-            $groups = DistributionGroup::withCount('teachers')
-                ->with(['teachers' => function($query) {
+            // Only get active (non-deleted) groups with manual teacher count
+            $groups = DistributionGroup::with(['teachers' => function($query) {
                     $query->select('teachers.id', 'first_name', 'last_name', 'email', 'department');
                 }])
                 ->where('is_active', true)
                 ->orderBy('group_name')
                 ->get();
+
+            // Add manual teachers_count to avoid SoftDeletes issues
+            $groups->each(function($group) {
+                $group->teachers_count = $group->teachers->count();
+            });
+
+            // Log the groups data for debugging
+            \Log::info('Groups data being returned: ' . json_encode($groups->toArray()));
 
             return response()->json([
                 'success' => true,
@@ -161,12 +173,51 @@ class DistributionListController extends Controller
         }
     }
 
+    // Show a specific distribution group
+    public function showGroup($id)
+    {
+        try {
+            $group = DistributionGroup::with(['teachers' => function($query) {
+                    $query->select('teachers.id', 'teacher_id', 'first_name', 'last_name', 'email', 'department', 'status');
+                }])
+                ->where('is_active', true)
+                ->find($id);
+
+            if (!$group) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Group not found'
+                ], 404);
+            }
+
+            // Add manual teachers_count to avoid SoftDeletes issues
+            $group->teachers_count = $group->teachers->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => $group
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Show group error: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch group',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     // Create a new distribution group
     public function createGroup(Request $request)
     {
+        // Log the incoming request data for debugging
+        \Log::info('Create group request data: ' . json_encode($request->all()));
+        
         $validator = Validator::make($request->all(), [
             'group_name' => 'required|string|max:255|unique:distribution_groups',
             'group_type' => 'required|in:department,grade_level,role,custom',
+            'visibility' => 'required|in:private,shared,public',
             'description' => 'nullable|string',
             'teacher_ids' => 'required|array',
             'teacher_ids.*' => 'exists:teachers,id',
@@ -186,9 +237,15 @@ class DistributionListController extends Controller
             $group = DistributionGroup::create([
                 'group_name' => $request->group_name,
                 'group_type' => $request->group_type,
+                'list_type' => 'user',
+                'visibility' => $request->visibility,
                 'description' => $request->description,
                 'is_active' => true,
+                'created_by' => auth()->id(),
             ]);
+
+            // Log the created group for debugging
+            \Log::info('Group created: ' . json_encode($group->toArray()));
 
             $group->teachers()->attach($request->teacher_ids);
 
@@ -333,10 +390,12 @@ class DistributionListController extends Controller
             $query = Teacher::query();
 
             // Apply filters
+            $templateName = null;
             if ($request->has('group_id')) {
                 $group = DistributionGroup::findOrFail($request->group_id);
                 $teacherIds = $group->teachers()->pluck('teachers.id');
                 $query->whereIn('id', $teacherIds);
+                $templateName = $group->group_name; // Get template/group name
             }
 
             if ($request->has('department') && $request->department !== 'all') {
@@ -349,7 +408,7 @@ class DistributionListController extends Controller
 
             $teachers = $query->orderBy('last_name')->get();
 
-            $data = $teachers->map(function($teacher) {
+            $data = $teachers->map(function($teacher) use ($templateName) {
                 return [
                     'Employee ID' => $teacher->employee_id,
                     'Full Name' => $teacher->full_name,
@@ -357,13 +416,18 @@ class DistributionListController extends Controller
                     'Phone' => $teacher->phone ?? 'N/A',
                     'Department' => $teacher->department,
                     'Status' => ucfirst($teacher->status),
+                    'Template/Group Used' => $templateName ?? 'Individual Selection',
                     'Last Login' => $teacher->last_login ? $teacher->last_login->format('Y-m-d H:i:s') : 'Never',
                 ];
             });
 
             return response()->json([
                 'success' => true,
-                'data' => $data
+                'data' => $data,
+                'template_info' => [
+                    'template_used' => $templateName ?? 'Individual Selection',
+                    'export_type' => $templateName ? 'Group Distribution' : 'Individual Distribution'
+                ]
             ]);
         } catch (\Exception $e) {
             return response()->json([

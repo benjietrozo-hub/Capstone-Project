@@ -115,14 +115,27 @@ class PurchaseOrderController extends Controller
 
     public function show($id)
     {
+        \Log::info("PurchaseOrderController@show called with ID: {$id}");
+        
         try {
-            $purchaseOrder = PurchaseOrder::with(['items', 'supplier', 'admin', 'logs'])->findOrFail($id);
+            \Log::info("Attempting to find purchase order with ID: {$id}");
+            $purchaseOrder = PurchaseOrder::with(['items', 'supplier', 'admin'])->findOrFail($id);
+            \Log::info("Found purchase order: " . $purchaseOrder->po_number);
             return response()->json($purchaseOrder);
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            \Log::error("Purchase order not found: {$id}");
             return response()->json([
                 'message' => 'Purchase order not found',
-                'error' => $e->getMessage()
+                'error' => "Purchase order with ID {$id} not found"
             ], 404);
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            \Log::error("Error fetching purchase order {$id}: " . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'Error fetching purchase order',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -368,6 +381,142 @@ class PurchaseOrderController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function exportPDF($id)
+    {
+        try {
+            $purchaseOrder = PurchaseOrder::with(['items', 'supplier', 'admin'])->findOrFail($id);
+            
+            // Generate HTML for PDF using structured format
+            $html = $this->generatePurchaseOrderHTML($purchaseOrder);
+            
+            // Create PDF using DOMPDF or similar
+            $pdf = new \Dompdf\Dompdf();
+            $pdf->loadHtml($html);
+            $pdf->setPaper('A4', 'portrait');
+            $pdf->render();
+            
+            // Download the PDF
+            return response($pdf->output())
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'attachment; filename="PO-' . $purchaseOrder->po_number . '.pdf"');
+                
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to generate PDF',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    private function generatePurchaseOrderHTML($purchaseOrder)
+    {
+        $poDate = date('m/d/Y', strtotime($purchaseOrder->po_date));
+        $deliveryDate = $purchaseOrder->expected_delivery_date ? date('m/d/Y', strtotime($purchaseOrder->expected_delivery_date)) : '';
+        
+        $html = '
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; font-weight: bold; margin-bottom: 20px; }
+            .section { margin-bottom: 20px; }
+            .section-title { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            .full-width { grid-column: 1 / -1; }
+            .items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            .items-table th, .items-table td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            .items-table th { background-color: #f5f5f5; }
+            .total-section { margin-top: 20px; text-align: right; }
+            .signature-section { margin-top: 40px; }
+        </style>
+        
+        <div class="header">
+            <h2>PURCHASE ORDER FORM (Structured Data)</h2>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Basic Information</div>
+            <div class="grid">
+                <div><strong>PO Number:</strong> ' . $purchaseOrder->po_number . '</div>
+                <div><strong>Date:</strong> ' . $poDate . '</div>
+                <div><strong>Mode of Procurement:</strong> ' . ($purchaseOrder->mode_of_procurement ?? 'SHOPPING') . '</div>
+                <div><strong>Expected Delivery Date:</strong> ' . $deliveryDate . '</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Supplier Information</div>
+            <div class="grid">
+                <div class="full-width"><strong>Supplier Name:</strong> ' . $purchaseOrder->supplier_name . '</div>
+                <div class="full-width"><strong>Address:</strong> ' . ($purchaseOrder->supplier_address ?? 'N/A') . '</div>
+                <div><strong>TIN:</strong> ' . ($purchaseOrder->supplier_tin ?? 'N/A') . '</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Items List</div>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Stock/Property No.</th>
+                        <th>Unit</th>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                        <th>Unit Cost</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>';
+        
+        foreach ($purchaseOrder->items as $index => $item) {
+            $html .= '
+                    <tr>
+                        <td>' . ($index + 1) . '</td>
+                        <td>' . ($item->unit_of_measure ?? 'unit') . '</td>
+                        <td>' . $item->item_name . '</td>
+                        <td>' . $item->quantity_ordered . '</td>
+                        <td>PHP ' . number_format($item->unit_price, 2) . '</td>
+                        <td>PHP ' . number_format($item->quantity_ordered * $item->unit_price, 2) . '</td>
+                    </tr>';
+        }
+        
+        $html .= '
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Delivery Details</div>
+            <div class="grid">
+                <div><strong>Place of Delivery:</strong> ' . ($purchaseOrder->delivery_place ?? 'N/A') . '</div>
+                <div><strong>Date of Delivery:</strong> ' . ($purchaseOrder->delivery_date ?? 'N/A') . '</div>
+                <div><strong>Delivery Term:</strong> ' . ($purchaseOrder->delivery_term ?? 'N/A') . '</div>
+                <div><strong>Payment Term:</strong> ' . ($purchaseOrder->payment_term ?? 'N/A') . '</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Summary</div>
+            <div class="total-section">
+                <p><strong>Total Amount:</strong> PHP ' . number_format($purchaseOrder->total_amount, 2) . '</p>
+                <p><strong>Amount in Words:</strong> ' . ($purchaseOrder->amount_in_words ?? 'N/A') . '</p>
+            </div>
+        </div>
+        
+        <div class="signature-section">
+            <div class="grid">
+                <div style="text-align: center;">
+                    <p>_________________________</p>
+                    <p>Authorized Signature</p>
+                </div>
+                <div style="text-align: center;">
+                    <p>_________________________</p>
+                    <p>Supplier Signature</p>
+                </div>
+            </div>
+        </div>';
+        
+        return $html;
     }
 
     private function recalculateTotals($purchaseOrder)

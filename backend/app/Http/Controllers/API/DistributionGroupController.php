@@ -86,6 +86,9 @@ class DistributionGroupController extends Controller
     public function store(Request $request)
     {
         try {
+            \Log::info('DistributionGroup store method called');
+            \Log::info('Request input: ' . json_encode($request->all()));
+            
             $validator = Validator::make($request->all(), [
                 'group_name' => 'required|string|max:255',
                 'group_type' => 'required|string|in:department,role,custom',
@@ -119,7 +122,7 @@ class DistributionGroupController extends Controller
             ]);
 
             // Attach teachers if provided
-            if ($request->has('teacher_ids') && is_array($request->teacher_ids)) {
+            if ($request->has('teacher_ids') && is_array($request->teacher_ids) && count($request->teacher_ids) > 0) {
                 $group->teachers()->attach($request->teacher_ids);
             }
 
@@ -131,6 +134,10 @@ class DistributionGroupController extends Controller
                 'data' => $group
             ], 201);
         } catch (\Exception $e) {
+            \Log::error('Error creating distribution group: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            \Log::error('Request data: ' . json_encode($request->all()));
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create distribution group',

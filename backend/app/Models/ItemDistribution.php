@@ -14,6 +14,7 @@ class ItemDistribution extends Model
         'item_id',
         'teacher_id',
         'distributed_by',
+        'bulk_distribution_id',
         'quantity_distributed',
         'status',
         'distribution_date',
@@ -49,6 +50,11 @@ class ItemDistribution extends Model
     public function distributedBy()
     {
         return $this->belongsTo(Admin::class, 'distributed_by');
+    }
+
+    public function bulkDistribution()
+    {
+        return $this->belongsTo(BulkDistribution::class, 'bulk_distribution_id');
     }
 
     // Scopes

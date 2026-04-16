@@ -407,6 +407,134 @@ class ItemDistributionController extends Controller
     }
 
     /**
+     * Bulk distribute items to a group
+     */
+    public function bulkDistribute(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'item_id' => 'required|exists:tools_equipment,id',
+            'group_id' => 'nullable|exists:distribution_groups,id',
+            'teacher_ids' => 'required_without:group_id|array',
+            'teacher_ids.*' => 'exists:teachers,id',
+            'quantity_per_teacher' => 'required|integer|min:1',
+            'distribution_date' => 'required|date',
+            'purpose' => 'nullable|string',
+            'notes' => 'nullable|string',
+            'condition_on_distribution' => 'required|in:excellent,good,fair,poor',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Get the item
+            $item = ToolEquipment::findOrFail($request->item_id);
+
+            // Handle group distribution or individual teachers
+            $teachers = [];
+            $distributionDescription = '';
+
+            if ($request->has('group_id') && $request->group_id) {
+                // Group distribution
+                $group = \App\Models\DistributionGroup::with('teachers')->findOrFail($request->group_id);
+                $teachers = $group->teachers;
+                $distributionDescription = "Bulk distributed {$request->quantity_per_teacher} units of {$item->item_name} to {$group->teachers->count()} teachers in group '{$group->group_name}'";
+            } else {
+                // Individual teacher distribution
+                $teacherIds = $request->teacher_ids;
+                $teachers = \App\Models\Teacher::whereIn('id', $teacherIds)->get();
+                $distributionDescription = "Bulk distributed {$request->quantity_per_teacher} units of {$item->item_name} to " . count($teachers) . " selected teachers";
+            }
+
+            // Calculate total quantity needed
+            $totalQuantityNeeded = $request->quantity_per_teacher * $teachers->count();
+
+            // Check inventory availability
+            if ($item->quantity_available < $totalQuantityNeeded) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Insufficient inventory. Need {$totalQuantityNeeded} units but only {$item->quantity_available} available"
+                ], 422);
+            }
+
+            // Create distributions for each teacher
+            $distributions = [];
+            foreach ($teachers as $teacher) {
+                $distribution = ItemDistribution::create([
+                    'item_id' => $request->item_id,
+                    'teacher_id' => $teacher->id,
+                    'quantity_distributed' => $request->quantity_per_teacher,
+                    'distribution_date' => $request->distribution_date,
+                    'purpose' => $request->purpose,
+                    'notes' => $request->notes,
+                    'condition_on_distribution' => $request->condition_on_distribution,
+                    'status' => 'active',
+                    'distributed_by' => auth()->id(),
+                ]);
+
+                $distributions[] = $distribution;
+            }
+
+            // Update item inventory
+            $item->quantity_available -= $totalQuantityNeeded;
+            $item->quantity_borrowed += $totalQuantityNeeded;
+            $item->save();
+
+            // Log the action
+            SystemLog::create([
+                'admin_id' => auth()->id(),
+                'action' => 'bulk_distribution',
+                'description' => $distributionDescription,
+                'ip_address' => request()->ip(),
+            ]);
+
+            // Notify teachers (optional)
+            try {
+                if (isset($group)) {
+                    NotificationService::notifyBulkDistribution($group, $item, $request->quantity_per_teacher);
+                } else {
+                    // Individual teacher notifications
+                    foreach ($teachers as $teacher) {
+                        NotificationService::notifyDistributionCreated($teacher, $item, $request->quantity_per_teacher);
+                    }
+                }
+            } catch (\Exception $e) {
+                // Log notification error but don't fail the distribution
+                \Log::error('Bulk distribution notification failed: ' . $e->getMessage());
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully distributed items to {$teachers->count()} teachers",
+                'data' => [
+                    'total_distributed' => $totalQuantityNeeded,
+                    'teachers_count' => $teachers->count(),
+                    'item_name' => $item->item_name,
+                    'group_name' => $group->group_name ?? null,
+                    'distributions' => $distributions
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create bulk distribution',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Delete a distribution
      */
     public function destroy($id)

@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\BorrowRequest;
 use App\Services\NotificationService;
+use App\Services\EmailNotificationService;
 use Carbon\Carbon;
 
 class SendOverdueNotifications extends Command
@@ -71,6 +72,9 @@ class SendOverdueNotifications extends Command
                     $borrowRequest->id,
                     'borrow_request'
                 );
+                
+                // Send email notification to teacher
+                EmailNotificationService::notifyItemOverdue($borrowRequest, $daysOverdue);
                 
                 $this->line("✓ Sent overdue notice to {$borrowRequest->teacher->first_name} {$borrowRequest->teacher->last_name}");
                 $sentToTeachers++;

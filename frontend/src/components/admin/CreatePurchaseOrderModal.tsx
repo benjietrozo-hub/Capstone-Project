@@ -52,31 +52,24 @@ const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [formData, setFormData] = useState({
-    po_date: new Date().toISOString().split('T')[0],
+    po_number: '08-2025-16',
+    po_date: '',
     expected_delivery_date: '',
-    supplier_id: '',
+    mode_of_procurement: '',
     supplier_name: '',
     supplier_address: '',
-    supplier_contact_person: '',
-    supplier_email: '',
-    supplier_phone: '',
-    company_name: 'School Inventory System',
-    company_address: '',
-    company_contact_person: '',
-    company_email: '',
-    company_phone: '',
-    delivery_address: '',
+    supplier_tin: '',
+    delivery_place: '',
+    delivery_date: '',
+    delivery_term: '',
+    payment_term: '',
     delivery_method: 'courier',
-    shipping_terms: '',
-    receiving_instructions: '',
     payment_method: 'bank_transfer',
-    payment_terms: 'Net 30',
+    payment_terms: '',
     reference: '',
-    discount: 0,
-    tax: 0,
-    shipping_fee: 0,
     notes: '',
-    terms_conditions: '',
+    total_amount: 0,
+    amount_in_words: ''
   });
 
   const [items, setItems] = useState<POItem[]>([
@@ -86,7 +79,7 @@ const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> = ({
       description: '',
       category: '',
       quantity_ordered: 1,
-      unit_of_measure: 'pcs',
+      unit_of_measure: '',
       unit_price: 0,
     },
   ]);
@@ -147,12 +140,12 @@ const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> = ({
   };
 
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + item.quantity_ordered * item.unit_price, 0);
+    return items.reduce((sum, item) => sum + (item.quantity_ordered * item.unit_price), 0);
   };
 
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
-    return subtotal - formData.discount + formData.tax + formData.shipping_fee;
+    return subtotal;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -193,90 +186,90 @@ const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* PO Header */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>PO Date *</Label>
-              <Input
-                type="date"
-                value={formData.po_date}
-                onChange={(e) => setFormData({ ...formData, po_date: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <Label>Expected Delivery Date</Label>
-              <Input
-                type="date"
-                value={formData.expected_delivery_date}
-                onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
-              />
+          <div className="border-t pt-4">
+            <h3 className="font-semibold mb-3">🔹 Basic Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>PO Number</Label>
+                <Input
+                  type="text"
+                  value={formData.po_number}
+                  readOnly
+                  placeholder="Auto-generated"
+                />
+              </div>
+              <div>
+                <Label>Date *</Label>
+                <Input
+                  type="date"
+                  value={formData.po_date}
+                  onChange={(e) => setFormData({ ...formData, po_date: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Mode of Procurement *</Label>
+                <Select value={formData.mode_of_procurement} onValueChange={(value) => setFormData({ ...formData, mode_of_procurement: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SHOPPING">SHOPPING</SelectItem>
+                    <SelectItem value="BIDDING">BIDDING</SelectItem>
+                    <SelectItem value="NEGOTIATED">NEGOTIATED</SelectItem>
+                    <SelectItem value="DIRECT">DIRECT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Expected Delivery Date</Label>
+                <Input
+                  type="date"
+                  value={formData.expected_delivery_date}
+                  onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
+                />
+              </div>
             </div>
           </div>
 
           {/* Supplier Information */}
           <div className="border-t pt-4">
-            <h3 className="font-semibold mb-3">Supplier Information</h3>
+            <h3 className="font-semibold mb-3">🔹 Supplier Information</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <Label>Select Supplier *</Label>
-                <Select value={formData.supplier_id} onValueChange={handleSupplierChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a supplier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {suppliers.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.id.toString()}>
-                        {supplier.name} ({supplier.supplier_code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <div>
                 <Label>Supplier Name *</Label>
                 <Input
                   value={formData.supplier_name}
                   onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
+                  placeholder="Enter supplier name"
+                  required
+                />
+              </div>
+              <div className="col-span-2">
+                <Label>Address *</Label>
+                <Textarea
+                  value={formData.supplier_address}
+                  onChange={(e) => setFormData({ ...formData, supplier_address: e.target.value })}
+                  placeholder="Enter supplier address"
+                  rows={2}
                   required
                 />
               </div>
               <div>
-                <Label>Contact Person</Label>
+                <Label>TIN</Label>
                 <Input
-                  value={formData.supplier_contact_person}
-                  onChange={(e) => setFormData({ ...formData, supplier_contact_person: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={formData.supplier_email}
-                  onChange={(e) => setFormData({ ...formData, supplier_email: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Phone</Label>
-                <Input
-                  value={formData.supplier_phone}
-                  onChange={(e) => setFormData({ ...formData, supplier_phone: e.target.value })}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>Address</Label>
-                <Textarea
-                  value={formData.supplier_address}
-                  onChange={(e) => setFormData({ ...formData, supplier_address: e.target.value })}
-                  rows={2}
+                  value={formData.supplier_tin}
+                  onChange={(e) => setFormData({ ...formData, supplier_tin: e.target.value })}
+                  placeholder="Enter TIN number"
                 />
               </div>
             </div>
           </div>
 
-          {/* Items */}
+          {/* Items List */}
           <div className="border-t pt-4">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-semibold">Items</h3>
+              <h3 className="font-semibold">🔹 Items List</h3>
               <Button type="button" onClick={handleAddItem} size="sm" variant="outline">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Item
@@ -286,7 +279,7 @@ const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> = ({
               {items.map((item, index) => (
                 <div key={index} className="border p-4 rounded-lg space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">Item {index + 1}</span>
+                    <span className="font-medium">Stock/Property No. {index + 1}</span>
                     {items.length > 1 && (
                       <Button
                         type="button"
@@ -301,54 +294,16 @@ const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> = ({
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <Label>Item Code</Label>
-                      <Input
-                        value={item.item_code}
-                        onChange={(e) => handleItemChange(index, 'item_code', e.target.value)}
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label>Item Name *</Label>
-                      <Input
-                        value={item.item_name}
-                        onChange={(e) => handleItemChange(index, 'item_name', e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <Label>Description</Label>
-                      <Input
-                        value={item.description}
-                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label>Category</Label>
-                      <Input
-                        value={item.category}
-                        onChange={(e) => handleItemChange(index, 'category', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label>Quantity *</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantity_ordered}
-                        onChange={(e) => handleItemChange(index, 'quantity_ordered', parseInt(e.target.value))}
-                        required
-                      />
-                    </div>
-                    <div>
                       <Label>Unit</Label>
                       <Select
                         value={item.unit_of_measure}
                         onValueChange={(value) => handleItemChange(index, 'unit_of_measure', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="unit">unit</SelectItem>
                           <SelectItem value="pcs">Pieces</SelectItem>
                           <SelectItem value="box">Box</SelectItem>
                           <SelectItem value="kg">Kilogram</SelectItem>
@@ -357,22 +312,49 @@ const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> = ({
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="col-span-2">
+                      <Label>Description *</Label>
+                      <Input
+                        value={item.description}
+                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                        placeholder="Enter item description"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <Label>Unit Price *</Label>
+                      <Label>Quantity *</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantity_ordered}
+                        onChange={(e) => handleItemChange(index, 'quantity_ordered', parseInt(e.target.value))}
+                        placeholder="0"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>Unit Cost *</Label>
                       <Input
                         type="number"
                         step="0.01"
                         min="0"
                         value={item.unit_price}
                         onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value))}
+                        placeholder="0.00"
                         required
                       />
                     </div>
-                    <div className="col-span-2">
-                      <Label>Line Total</Label>
+                    <div>
+                      <Label>Amount</Label>
                       <Input
-                        value={`₱${(item.quantity_ordered * item.unit_price).toFixed(2)}`}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={(item.quantity_ordered * item.unit_price).toFixed(2)}
                         disabled
+                        placeholder="0.00"
                       />
                     </div>
                   </div>
@@ -381,43 +363,71 @@ const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> = ({
             </div>
           </div>
 
-          {/* Cost Summary */}
+          {/* Delivery Details */}
           <div className="border-t pt-4">
-            <h3 className="font-semibold mb-3">Cost Summary</h3>
+            <h3 className="font-semibold mb-3">🔹 Delivery Details</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Discount</Label>
+                <Label>Place of Delivery *</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.discount}
-                  onChange={(e) => setFormData({ ...formData, discount: parseFloat(e.target.value) || 0 })}
+                  type="text"
+                  value={formData.delivery_place}
+                  onChange={(e) => setFormData({ ...formData, delivery_place: e.target.value })}
+                  placeholder="Enter delivery location"
+                  required
                 />
               </div>
               <div>
-                <Label>Tax</Label>
+                <Label>Date of Delivery</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.tax}
-                  onChange={(e) => setFormData({ ...formData, tax: parseFloat(e.target.value) || 0 })}
+                  type="date"
+                  value={formData.delivery_date}
+                  onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
                 />
               </div>
               <div>
-                <Label>Shipping Fee</Label>
+                <Label>Delivery Term *</Label>
+                <Select value={formData.delivery_term} onValueChange={(value) => setFormData({ ...formData, delivery_term: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select delivery term" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PICK-UP">PICK-UP</SelectItem>
+                    <SelectItem value="DELIVERY">DELIVERY</SelectItem>
+                    <SelectItem value="COURIER">COURIER</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Payment Term</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.shipping_fee}
-                  onChange={(e) => setFormData({ ...formData, shipping_fee: parseFloat(e.target.value) || 0 })}
+                  type="text"
+                  value={formData.payment_term}
+                  onChange={(e) => setFormData({ ...formData, payment_term: e.target.value })}
+                  placeholder="Enter payment terms"
                 />
               </div>
-              <div className="bg-gray-50 p-3 rounded">
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="border-t pt-4">
+            <h3 className="font-semibold mb-3">🔹 Summary</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
                 <Label>Total Amount</Label>
-                <p className="text-2xl font-bold text-green-600">₱{calculateTotal().toFixed(2)}</p>
+                <div className="bg-gray-50 p-3 rounded">
+                  <p className="text-2xl font-bold text-green-600">₱{calculateTotal().toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="col-span-2">
+                <Label>Amount in Words</Label>
+                <Textarea
+                  value={formData.amount_in_words}
+                  onChange={(e) => setFormData({ ...formData, amount_in_words: e.target.value })}
+                  placeholder="Enter amount in words"
+                  rows={2}
+                />
               </div>
             </div>
           </div>

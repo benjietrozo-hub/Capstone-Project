@@ -20,7 +20,6 @@ const EnhancedNotificationProfile: React.FC = () => {
       await markAsRead(notification.id);
     }
     // Handle navigation based on notification type
-    console.log('Navigate to notification:', notification);
   };
 
   const handleSendEmail = async (notification: any) => {
@@ -152,7 +151,6 @@ const EnhancedNotificationProfile: React.FC = () => {
                 <button
                   onClick={() => {
                     // Navigate to full notifications page
-                    console.log('Navigate to full notifications');
                   }}
                   className="w-full text-center text-sm text-blue-600 hover:text-blue-800"
                 >

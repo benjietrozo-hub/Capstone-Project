@@ -16,7 +16,6 @@ function Dashboard() {
     useEffect(() => {
         const handleNotification = (notification) => {
             // Handle incoming notification
-            console.log('New notification:', notification);
         };
         
         addListener('notification', handleNotification);

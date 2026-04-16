@@ -19,7 +19,7 @@ class TeacherManagementController extends Controller
             $q->where(fn($q) => $q->where('first_name', 'like', "%{$s}%")
                                   ->orWhere('last_name', 'like', "%{$s}%")
                                   ->orWhere('email', 'like', "%{$s}%")
-                                  ->orWhere('employee_id', 'like', "%{$s}%"));
+                                  ->orWhere('teacher_id', 'like', "%{$s}%"));
         }
         if ($request->status) $q->where('status', $request->status);
         if ($request->department) $q->where('department', $request->department);
@@ -29,7 +29,7 @@ class TeacherManagementController extends Controller
     public function store(Request $request)
     {
         $v = $request->validate([
-            'employee_id' => 'required|unique:teachers,employee_id,NULL,id,deleted_at,NULL', 
+            'teacher_id' => 'required|unique:teachers,teacher_id,NULL,id,deleted_at,NULL', 
             'username' => 'required|unique:teachers,username,NULL,id,deleted_at,NULL', 
             'email' => 'required|email|unique:teachers,email,NULL,id,deleted_at,NULL', 
             'password' => 'required|min:8', 
@@ -46,7 +46,7 @@ class TeacherManagementController extends Controller
         // Log activity
         $this->logActivity(
             'teacher_created',
-            "Created new teacher account: {$teacher->first_name} {$teacher->last_name} ({$teacher->employee_id})",
+            "Created new teacher account: {$teacher->first_name} {$teacher->last_name} ({$teacher->teacher_id})",
             'info'
         );
         
@@ -77,7 +77,7 @@ class TeacherManagementController extends Controller
         // Log activity
         $this->logActivity(
             'teacher_updated',
-            "Updated teacher account: {$t->first_name} {$t->last_name} ({$t->employee_id})",
+            "Updated teacher account: {$t->first_name} {$t->last_name} ({$t->teacher_id})",
             'info'
         );
         
@@ -88,14 +88,14 @@ class TeacherManagementController extends Controller
     {
         $teacher = Teacher::findOrFail($id);
         $teacherName = $teacher->first_name . ' ' . $teacher->last_name;
-        $employeeId = $teacher->employee_id;
+        $teacherId = $teacher->teacher_id;
         
         $teacher->delete();
         
         // Log activity
         $this->logActivity(
             'teacher_deleted',
-            "Deleted teacher account: {$teacherName} ({$employeeId})",
+            "Deleted teacher account: {$teacherName} ({$teacherId})",
             'warning'
         );
         

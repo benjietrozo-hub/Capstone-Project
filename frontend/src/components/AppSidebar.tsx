@@ -95,12 +95,16 @@ export function AppSidebar() {
         {/* Logo Section */}
         <div className="p-4 border-b border-sidebar-border/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#5B8DEF] to-[#0063F7] rounded-lg flex items-center justify-center shrink-0 shadow-lg">
-              <Package className="w-6 h-6 text-white" />
+            <div className="w-14 h-14 rounded-full overflow-hidden shadow-lg flex items-center justify-center shrink-0">
+              <img 
+                src="/Logo_n.jpg" 
+                alt="Online IMS Logo" 
+                className="w-14 h-14 object-cover rounded-full"
+              />
             </div>
             {sidebarOpen && (
               <div className="flex-1">
-                <h2 className="text-lg font-bold text-white">OlineIMS</h2>
+                <h2 className="text-lg font-bold text-white">Online IMS</h2>
                 <p className="text-xs text-sidebar-foreground/70">Inventory System</p>
               </div>
             )}

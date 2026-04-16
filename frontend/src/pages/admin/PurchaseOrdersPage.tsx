@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Check, X, Package } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Check, X, Package, Printer, Download } from 'lucide-react';
 import axios from '../../api/axios';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -100,6 +100,28 @@ const PurchaseOrdersPage: React.FC = () => {
     }
   };
 
+  const handleDownloadPDF = async (id: number, poNumber: string) => {
+    try {
+      const response = await axios.get(`/admin/purchase-orders/${id}/export-pdf`, {
+        responseType: 'blob'
+      });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `PO-${poNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('PDF downloaded successfully');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to download PDF');
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this purchase order?')) return;
     
@@ -119,6 +141,20 @@ const PurchaseOrdersPage: React.FC = () => {
   };
 
   const handleReceive = (po: PurchaseOrder) => {
+    // Validate PO has required data before opening modal
+    if (!po || !po.id) {
+      toast.error('Invalid purchase order selected');
+      return;
+    }
+    
+    // Check if PO has items count (if available) or proceed anyway
+    // The actual items will be fetched in the modal
+    if (po.items_count === 0) {
+      toast.error('This purchase order has no items to receive');
+      return;
+    }
+    
+    console.log('Opening receive modal for PO:', po);
     setSelectedPO(po);
     setShowReceiveModal(true);
   };
@@ -276,6 +312,24 @@ const PurchaseOrdersPage: React.FC = () => {
                           title="View Details"
                         >
                           <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(`/admin/purchase-orders/${po.id}/print?t=${Date.now()}`, '_blank')}
+                          title="Print Purchase Order"
+                          className="text-purple-600 hover:text-purple-700"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadPDF(po.id, po.po_number)}
+                          title="Download PDF"
+                          className="text-green-600 hover:text-green-700"
+                        >
+                          <Download className="w-4 h-4" />
                         </Button>
                         {po.status === 'pending' && (
                           <Button

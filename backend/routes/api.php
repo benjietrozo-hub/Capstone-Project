@@ -19,6 +19,8 @@ use App\Http\Controllers\API\Teacher\InventoryController as TeacherInventoryCont
 use App\Http\Controllers\API\Teacher\BorrowRequestController as TeacherBorrowRequestController;
 use App\Http\Controllers\API\Teacher\DashboardController as TeacherDashboardController;
 use App\Http\Controllers\API\NotificationController;
+use App\Http\Controllers\API\BulkDistributionController;
+use App\Http\Controllers\API\DistributionLogController;
 
 // Test route
 Route::get('/test', function() {
@@ -70,6 +72,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::get('/teacher-departments', [TeacherManagementController::class, 'departments']);
     
     Route::apiResource('reports', AdminReportController::class);
+    Route::put('/reports/{id}/resolve', [AdminReportController::class, 'resolve']);
     
     Route::get('/logs', [SystemLogController::class, 'index']);
     Route::get('/logs/statistics', [SystemLogController::class, 'statistics']);
@@ -85,6 +88,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::post('/purchase-orders/{id}/approve', [PurchaseOrderController::class, 'approve']);
     Route::post('/purchase-orders/{id}/cancel', [PurchaseOrderController::class, 'cancel']);
     Route::post('/purchase-orders/{id}/receive', [PurchaseOrderController::class, 'receiveItems']);
+    Route::get('/purchase-orders/{id}/export-pdf', [PurchaseOrderController::class, 'exportPDF']);
     
     // Suppliers
     Route::get('/suppliers', [SupplierController::class, 'index']);
@@ -99,7 +103,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::get('/distribution/statistics', [DistributionListController::class, 'statistics']);
     Route::get('/distribution/departments', [DistributionListController::class, 'departments']);
     Route::get('/distribution/groups', [DistributionListController::class, 'groups']);
-    Route::post('/distribution/groups', [DistributionListController::class, 'createGroup']);
+    Route::get('/distribution/groups/{id}', [DistributionListController::class, 'showGroup']);
+    Route::post('/distribution/groups', [DistributionGroupController::class, 'store']);
     Route::put('/distribution/groups/{id}', [DistributionListController::class, 'updateGroup']);
     Route::delete('/distribution/groups/{id}', [DistributionListController::class, 'deleteGroup']);
     Route::get('/distribution/export', [DistributionListController::class, 'export']);
@@ -114,6 +119,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     // Item Distributions
     Route::get('/distributions', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'index']);
     Route::post('/distributions', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'store']);
+    Route::post('/distributions/bulk', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'bulkDistribute']);
     Route::get('/distributions/statistics', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'statistics']);
     Route::get('/distributions/{id}', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'show']);
     Route::put('/distributions/{id}', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'update']);
@@ -128,6 +134,20 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::post('/distribution-requests/{id}/approve', [\App\Http\Controllers\API\Admin\DistributionRequestController::class, 'approve']);
     Route::post('/distribution-requests/{id}/reject', [\App\Http\Controllers\API\Admin\DistributionRequestController::class, 'reject']);
     
+    // Bulk Distributions
+    Route::get('/bulk-distributions', [BulkDistributionController::class, 'index']);
+    Route::post('/bulk-distributions', [BulkDistributionController::class, 'store']);
+    Route::get('/bulk-distributions/statistics', [BulkDistributionController::class, 'statistics']);
+    Route::get('/bulk-distributions/{id}', [BulkDistributionController::class, 'show']);
+    Route::post('/bulk-distributions/{id}/process', [BulkDistributionController::class, 'process']);
+    Route::post('/bulk-distributions/{id}/cancel', [BulkDistributionController::class, 'cancel']);
+    
+    // Distribution Logs
+    Route::get('/distribution-logs', [DistributionLogController::class, 'index']);
+    Route::get('/distribution-logs/statistics', [DistributionLogController::class, 'statistics']);
+    Route::get('/distribution-logs/export', [DistributionLogController::class, 'export']);
+    Route::get('/distribution-logs/{id}', [DistributionLogController::class, 'show']);
+    
     // Notifications (Admin)
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
@@ -139,6 +159,15 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
 
 // Protected Teacher Routes
 Route::prefix('teacher')->middleware(['auth:sanctum'])->group(function () {
+    // Test route for debugging
+    Route::get('/test', function() {
+        return response()->json([
+            'message' => 'Teacher routes working',
+            'user' => auth()->user(),
+            'authenticated' => auth()->check()
+        ]);
+    });
+    
     Route::post('/logout', [TeacherAuthController::class, 'logout']);
     Route::get('/me', [TeacherAuthController::class, 'me']);
     Route::post('/refresh-token', [TeacherAuthController::class, 'refreshToken']); // Add refresh endpoint

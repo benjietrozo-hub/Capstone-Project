@@ -48,7 +48,7 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
       const token = localStorage.getItem("token");
 
       await axios.delete(
-        `${import.meta.env.VITE_API_URL}/api/admin/distribution/groups/${group.id}`,
+        `${import.meta.env.VITE_API_URL}/admin/distribution/groups/${group.id}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }

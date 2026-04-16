@@ -17,7 +17,25 @@ class InventoryController extends Controller
         }
         if ($request->category) $q->where('category', $request->category);
         if ($request->available_only) $q->where('quantity_available', '>', 0);
-        $q->orderBy($request->sort_by ?? 'item_name', $request->sort_order ?? 'asc');
+        $sortBy = $request->sort_by ?? 'item_name';
+        $sortOrder = $request->sort_order ?? 'asc';
+        
+        // Handle year-based sorting with alphabetical secondary sort
+        if ($sortBy === 'acquisition_year') {
+            $q->byYearAndName($sortOrder, 'asc');
+        } elseif ($sortBy === 'name_year') {
+            $q->orderBy('item_name', $sortOrder)
+              ->orderByRaw('YEAR(acquisition_date) desc');
+        } elseif ($sortBy === 'year_name_combined') {
+            $primarySort = $request->primary_sort ?? 'acquisition_year';
+            $secondarySort = $request->secondary_sort ?? 'item_name';
+            $primaryOrder = $request->primary_order ?? 'desc';
+            $secondaryOrder = $request->secondary_order ?? 'asc';
+            $q->combinedSort($primarySort, $secondarySort, $primaryOrder, $secondaryOrder);
+        } else {
+            $q->orderBy($sortBy, $sortOrder);
+        }
+        
         return response()->json($q->paginate($request->per_page ?? 12));
     }
 

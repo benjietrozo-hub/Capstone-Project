@@ -20,12 +20,17 @@ class UnifiedAuthController extends Controller
 {
     public function login(Request $request)
     {
+        // Debug logging
+        \Log::info('=== LOGIN ATTEMPT DEBUG ===');
+        \Log::info('Request data:', $request->all());
+        \Log::info('Request headers:', $request->headers->all());
+        
         $request->validate([
             'username' => 'required|string',
             'password' => 'required|string',
         ]);
 
-        $ipAddress = $request->ip();
+        $ipAddress = $request->ip() ?? '127.0.0.1';
         $identifier = $request->username;
 
         // Get or create login attempt record
@@ -113,7 +118,7 @@ class UnifiedAuthController extends Controller
         // Try to find user in teacher table
         $teacher = Teacher::where('username', $request->username)
                          ->orWhere('email', $request->username)
-                         ->orWhere('employee_id', $request->username)
+                         ->orWhere('teacher_id', $request->username)
                          ->first();
 
         if ($teacher && Hash::check($request->password, $teacher->password)) {

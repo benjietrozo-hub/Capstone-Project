@@ -201,7 +201,7 @@ export function MyInventoryPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavHeader />
+      <NavHeader title="My Inventory" />
       <div className="flex">
         <div className="flex-1 p-6">
           <div className="max-w-7xl mx-auto">
@@ -245,8 +245,6 @@ export function MyInventoryPage() {
                 <Table
                   columns={columns}
                   data={items}
-                  renderRow={renderRow}
-                  emptyMessage="No items found"
                 />
               </CardContent>
             </Card>

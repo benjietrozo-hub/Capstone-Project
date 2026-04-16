@@ -4,7 +4,9 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\BorrowRequest;
+use App\Models\ItemDistribution;
 use App\Services\NotificationService;
+use App\Services\DistributionNotificationService;
 use Carbon\Carbon;
 
 class SendReturnReminders extends Command
@@ -15,62 +17,44 @@ class SendReturnReminders extends Command
      * @var string
      */
     protected $signature = 'reminders:send-return
-                            {--days=1 : Number of days before return date to send reminder}';
+                            {--days=3 : Number of days before return date to send reminder}
+                            {--test : Run in test mode without sending emails}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Send return reminders to teachers for items that are nearly due';
+    protected $description = 'Send email return reminders to teachers for items that are nearly due (3 days) and overdue';
 
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(DistributionNotificationService $distributionNotificationService)
     {
-        $daysBeforeReturn = $this->option('days');
-        $targetDate = Carbon::today()->addDays($daysBeforeReturn)->toDateString();
+        $isTest = $this->option('test');
         
-        $this->info("Checking for items due on: {$targetDate}");
+        $this->info("Sending distribution return reminders...");
+        $this->info("Mode: " . ($isTest ? "TEST (no emails sent)" : "LIVE (emails will be sent)"));
         
-        // Get all borrowed items that are due on the target date
-        $borrowRequests = BorrowRequest::with(['teacher', 'item'])
-            ->where('status', 'borrowed')
-            ->whereDate('expected_return_date', $targetDate)
-            ->get();
-        
-        if ($borrowRequests->isEmpty()) {
-            $this->info('No items due for return on this date.');
-            return 0;
-        }
-        
-        $this->info("Found {$borrowRequests->count()} item(s) due for return.");
-        
-        $sentCount = 0;
-        
-        foreach ($borrowRequests as $borrowRequest) {
-            try {
-                // Send reminder notification to teacher
-                NotificationService::send(
-                    $borrowRequest->teacher_id,
-                    'teacher',
-                    'return_reminder',
-                    'Return Reminder',
-                    "Reminder: {$borrowRequest->item->item_name} is due for return on {$borrowRequest->expected_return_date}. Please return it on time.",
-                    $borrowRequest->id,
-                    'borrow_request'
-                );
-                
-                $this->line("✓ Sent reminder to {$borrowRequest->teacher->first_name} {$borrowRequest->teacher->last_name} for {$borrowRequest->item->item_name}");
-                $sentCount++;
-                
-            } catch (\Exception $e) {
-                $this->error("✗ Failed to send reminder for borrow request #{$borrowRequest->id}: {$e->getMessage()}");
+        try {
+            $distributionNotificationService->sendReturnReminders();
+            $this->info('Distribution return reminders queued successfully.');
+            
+            if ($isTest) {
+                $this->info('Test mode: No actual emails were sent.');
+            } else {
+                $this->info('Live mode: Emails have been queued for delivery.');
             }
+            
+            $this->info('Reminders include:');
+            $this->info('- Items due within 3 days (Nearly Due)');
+            $this->info('- Items already overdue (Overdue)');
+            
+        } catch (\Exception $e) {
+            $this->error('Failed to send distribution return reminders: ' . $e->getMessage());
+            return 1;
         }
-        
-        $this->info("\nSent {$sentCount} reminder(s) successfully.");
         
         return 0;
     }

@@ -23,6 +23,15 @@ const AuthHeader: React.FC<AuthHeaderProps> = ({
       <div className="relative z-10 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4 flex-1 min-w-0">
+            {/* Logo */}
+            <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center">
+              <img 
+                src="/Logo_n.jpg" 
+                alt="Online IMS Logo" 
+                className="w-14 h-14 object-cover rounded-full"
+              />
+            </div>
+            
             {showBackButton && (
               <Button
                 variant="ghost"

@@ -7,7 +7,7 @@ interface EmailNotificationModalProps {
   isOpen: boolean;
   onClose: () => void;
   recipientEmail?: string;
-  defaultType?: string;
+  defaultType?: 'notification' | 'alert' | 'report' | 'reminder';
 }
 
 const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
@@ -24,12 +24,19 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
     error
   } = useEmailNotifications();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    recipient_email: string;
+    subject: string;
+    message: string;
+    type: 'notification' | 'alert' | 'report' | 'reminder';
+    related_id?: number;
+    related_type: string;
+  }>({
     recipient_email: recipientEmail,
     subject: '',
     message: '',
     type: defaultType,
-    related_id: '',
+    related_id: undefined,
     related_type: ''
   });
 
@@ -50,13 +57,13 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
         await sendTemplateEmail(templateData);
       }
       onClose();
-      // Reset form
+      // Reset form - preserve recipient email
       setFormData({
-        recipient_email: recipientEmail,
+        recipient_email: formData.recipient_email || recipientEmail || '',
         subject: '',
         message: '',
         type: defaultType,
-        related_id: '',
+        related_id: undefined,
         related_type: ''
       });
     } catch (error) {
@@ -172,7 +179,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                   </label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData({...formData, type: e.target.value})}
+                    onChange={(e) => setFormData({...formData, type: e.target.value as 'notification' | 'alert' | 'report' | 'reminder'})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     {emailTypes.map(type => (
@@ -204,7 +211,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                     <input
                       type="text"
                       value={formData.related_id}
-                      onChange={(e) => setFormData({...formData, related_id: e.target.value})}
+                      onChange={(e) => setFormData({...formData, related_id: e.target.value ? parseInt(e.target.value) : undefined})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>

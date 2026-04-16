@@ -34,6 +34,51 @@ class BorrowRequestController extends Controller
         $br = BorrowRequest::with(['item', 'teacher'])->findOrFail($id);
         if ($br->status !== 'pending') return response()->json(['message' => 'Only pending requests can be approved'], 422);
         
+        // Check if item is still available
+        if (!$br->item->isAvailable) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This item is currently not available for borrowing',
+                'details' => [
+                    'item_name' => $br->item->item_name,
+                    'item_code' => $br->item->item_code,
+                    'quantity_available' => $br->item->quantity_available,
+                    'quantity_requested' => $br->quantity_requested
+                ]
+            ], 422);
+        }
+        
+        // Check if requested quantity is available
+        if ($br->quantity_requested > $br->item->quantity_available) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Insufficient quantity available for this request',
+                'details' => [
+                    'item_name' => $br->item->item_name,
+                    'item_code' => $br->item->item_code,
+                    'quantity_requested' => $br->quantity_requested,
+                    'quantity_available' => $br->item->quantity_available
+                ]
+            ], 422);
+        }
+        
+        // Check if there are already approved requests for this item that haven't been returned
+        $existingBorrowed = BorrowRequest::where('item_id', $br->item_id)
+            ->where('status', 'borrowed')
+            ->exists();
+            
+        if ($existingBorrowed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This item is currently borrowed by another user. Please wait for it to be returned before approving new requests.',
+                'details' => [
+                    'item_name' => $br->item->item_name,
+                    'item_code' => $br->item->item_code,
+                    'status' => 'Currently Borrowed'
+                ]
+            ], 422);
+        }
+        
         $v = $request->validate([
             'admin_notes' => 'nullable'
         ]);

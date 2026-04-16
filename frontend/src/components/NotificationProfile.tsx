@@ -13,6 +13,10 @@ import { useNotifications } from "@/context/NotificationContext";
 
 interface NotificationProfileProps {
   currentUser?: any;
+  notifications?: any[];
+  unreadCount?: number;
+  onMarkAsRead?: () => void;
+  onMarkAllAsRead?: () => void;
 }
 
 const NotificationProfile: React.FC<NotificationProfileProps> = ({ 

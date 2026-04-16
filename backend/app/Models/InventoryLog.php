@@ -12,9 +12,16 @@ class InventoryLog extends Model
     protected $fillable = [
         'item_id',
         'action',
-        'performed_by',
+        'user_id',
         'user_type',
         'details',
+        'table_name',
+        'record_id',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     // Relationships

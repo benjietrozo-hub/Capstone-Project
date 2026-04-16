@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
-  // withCredentials: false, // Not needed for Bearer token auth
+  withCredentials: true, // Enable credentials for CORS
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -27,11 +27,19 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle network errors gracefully
+    if (!error.response) {
+      console.warn('Network error - please check your connection');
+      return Promise.reject(error);
+    }
+    
     // Handle token expiration
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('role');
       window.location.href = '/login';
+      return Promise.reject(error);
     }
     
     // Handle token expiration (403)
@@ -45,8 +53,22 @@ axiosInstance.interceptors.response.use(
         // Refresh failed, redirect to login
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('role');
         window.location.href = '/login';
       });
+      return Promise.reject(error);
+    }
+    
+    // Handle 404 errors gracefully
+    if (error.response?.status === 404) {
+      console.warn('Resource not found');
+      return Promise.reject(error);
+    }
+    
+    // Handle 500 errors gracefully
+    if (error.response?.status === 500) {
+      console.warn('Server error - please try again later');
+      return Promise.reject(error);
     }
     
     return Promise.reject(error);

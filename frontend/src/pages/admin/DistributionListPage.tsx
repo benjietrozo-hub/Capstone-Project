@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Search, Download, Users, Filter, Plus, Mail, Phone, Building2, UserCheck, UserX, Package, Calendar, AlertCircle, CheckCircle, XCircle, Eye, Clock } from "lucide-react";
 import axios from "axios";
@@ -10,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import CreateGroupModal from "@/components/admin/CreateGroupModal";
 import ViewGroupModal from "@/components/admin/ViewGroupModal";
+import ManageGroupMembersModal from "@/components/admin/ManageGroupMembersModal";
 import CreateDistributionModal from "@/components/admin/CreateDistributionModal";
 import ReturnDistributionModal from "@/components/admin/ReturnDistributionModal";
 import ViewDistributionRequestModal from "@/components/admin/ViewDistributionRequestModal";
@@ -90,6 +92,49 @@ interface DistributionStats {
   total_quantity_distributed: number;
 }
 
+interface BulkDistribution {
+  id: number;
+  group_id: number;
+  item_id: number;
+  distributed_by: number;
+  total_quantity: number;
+  quantity_per_member: number;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  purpose: string | null;
+  notes: string | null;
+  distribution_date: string;
+  expected_return_date: string | null;
+  created_at: string;
+  updated_at: string;
+  group: {
+    id: number;
+    group_name: string;
+    group_type: string;
+    teachers_count: number;
+  };
+  item: {
+    id: number;
+    item_code: string;
+    item_name: string;
+    category: string;
+  };
+  distributedBy: {
+    id: number;
+    full_name: string;
+  };
+  itemDistributions: Array<{
+    id: number;
+    teacher_id: number;
+    quantity_distributed: number;
+    status: string;
+    teacher: {
+      id: number;
+      full_name: string;
+      email: string;
+    };
+  }>;
+}
+
 interface DistributionRequest {
   id: number;
   teacher_id: number;
@@ -145,15 +190,17 @@ export default function DistributionListPage() {
   
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showViewGroupModal, setShowViewGroupModal] = useState(false);
+  const [showManageMembersModal, setShowManageMembersModal] = useState(false);
   const [selectedGroupData, setSelectedGroupData] = useState<DistributionGroup | null>(null);
 
   // Item Distributions state
-  const [distributions, setDistributions] = useState<ItemDistribution[]>([]);
+  const [distributions, setDistributions] = useState<any[]>([]);
+  const [bulkDistributions, setBulkDistributions] = useState<BulkDistribution[]>([]);
   const [distributionStats, setDistributionStats] = useState<DistributionStats | null>(null);
   const [distributionSearch, setDistributionSearch] = useState("");
   const [distributionStatus, setDistributionStatus] = useState("all");
   const [showCreateDistributionModal, setShowCreateDistributionModal] = useState(false);
-  const [showReturnModal, setShowReturnModal] = useState(false);
+    const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedDistribution, setSelectedDistribution] = useState<ItemDistribution | null>(null);
 
   // Distribution Requests state
@@ -240,6 +287,7 @@ export default function DistributionListPage() {
     setFilteredTeachers(filtered);
   };
 
+  
   const handleExport = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -392,9 +440,21 @@ export default function DistributionListPage() {
     setShowViewGroupModal(true);
   };
 
+  const handleManageMembers = (group: DistributionGroup) => {
+    setSelectedGroupData(group);
+    setShowManageMembersModal(true);
+  };
+
   const handleGroupCreated = () => {
     fetchData();
     setShowCreateGroupModal(false);
+  };
+
+  const normalizeApiArray = (payload: any) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.data?.data)) return payload.data.data;
+    return [];
   };
 
   // Item Distribution functions
@@ -402,8 +462,12 @@ export default function DistributionListPage() {
     try {
       const token = localStorage.getItem("token");
       
-      const [distRes, statsRes] = await Promise.all([
+      const [distRes, bulkDistRes, statsRes] = await Promise.all([
         axios.get(`${import.meta.env.VITE_API_URL}/admin/distributions`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { status: distributionStatus !== 'all' ? distributionStatus : undefined }
+        }),
+        axios.get(`${import.meta.env.VITE_API_URL}/admin/bulk-distributions`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { status: distributionStatus !== 'all' ? distributionStatus : undefined }
         }),
@@ -412,7 +476,8 @@ export default function DistributionListPage() {
         })
       ]);
 
-      setDistributions(distRes.data.data.data || distRes.data.data);
+      setDistributions(normalizeApiArray(distRes.data));
+      setBulkDistributions(normalizeApiArray(bulkDistRes.data));
       setDistributionStats(statsRes.data.data);
     } catch (error: any) {
       console.error("Error fetching distributions:", error);
@@ -443,23 +508,103 @@ export default function DistributionListPage() {
     }
   };
 
+  const handleProcessBulkDistribution = async (bulkId: number) => {
+    if (!confirm("Process this bulk distribution now? This will create individual distributions for each group member and deduct inventory.")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/admin/bulk-distributions/${bulkId}/process`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success("Bulk distribution processed successfully");
+      fetchDistributions();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to process bulk distribution");
+    }
+  };
+
+  const handleReportDamaged = async (distribution: any) => {
+    const notes = prompt("Report item as damaged. Please provide details about the damage:");
+    if (!notes) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/admin/distributions/${distribution.id}/report-damaged`,
+        { notes },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success("Item reported as damaged");
+      fetchDistributions();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to report damaged item");
+    }
+  };
+
+  const handleReportLost = async (distribution: any) => {
+    if (!confirm("Report this item as lost? This will mark the recipient as accountable for replacement.")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/admin/distributions/${distribution.id}/report-lost`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success("Item reported as lost");
+      fetchDistributions();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to report lost item");
+    }
+  };
+
   const getStatusBadge = (status: string, isOverdue: boolean) => {
     if (isOverdue && status === 'active') {
       return <Badge className="bg-red-100 text-red-800">Overdue</Badge>;
     }
     
     const variants: Record<string, any> = {
-      active: <Badge className="bg-blue-100 text-blue-800">Active</Badge>,
+      active: <Badge className="bg-blue-100 text-blue-800">Issued</Badge>,
       returned: <Badge className="bg-green-100 text-green-800">Returned</Badge>,
       cancelled: <Badge className="bg-gray-100 text-gray-800">Cancelled</Badge>,
+      damaged: <Badge className="bg-orange-100 text-orange-800">Damaged</Badge>,
+      lost: <Badge className="bg-red-100 text-red-800">Lost</Badge>,
+      pending: <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>,
+      processing: <Badge className="bg-purple-100 text-purple-800">Processing</Badge>,
+      completed: <Badge className="bg-green-100 text-green-800">Completed</Badge>,
     };
-    return variants[status] || <Badge>{status}</Badge>;
+    return variants[status] || <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
   };
 
-  const filteredDistributions = distributions.filter(d => {
+  const safeDistributions = Array.isArray(distributions) ? distributions : [];
+  const safeBulkDistributions = Array.isArray(bulkDistributions) ? bulkDistributions : [];
+
+  const filteredDistributions = safeDistributions.filter(d => {
     const matchesSearch = distributionSearch === "" || 
       d.item.item_name.toLowerCase().includes(distributionSearch.toLowerCase()) ||
       d.teacher.full_name.toLowerCase().includes(distributionSearch.toLowerCase()) ||
+      d.item.item_code.toLowerCase().includes(distributionSearch.toLowerCase());
+    
+    const matchesStatus = distributionStatus === "all" || d.status === distributionStatus;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  // Combined list of individual and bulk distributions
+  const individualDistributions = safeDistributions.map(d => ({ ...d, type: 'individual' as const }));
+  const bulkDistributionsMapped = safeBulkDistributions.map(d => ({ ...d, type: 'bulk' as const }));
+  const allDistributions = [...individualDistributions, ...bulkDistributionsMapped];
+
+  const filteredAllDistributions = allDistributions.filter(d => {
+    const matchesSearch = distributionSearch === "" || 
+      d.item.item_name.toLowerCase().includes(distributionSearch.toLowerCase()) ||
+      (d.type === 'individual' && d.teacher.full_name.toLowerCase().includes(distributionSearch.toLowerCase())) ||
+      (d.type === 'bulk' && d.group.group_name.toLowerCase().includes(distributionSearch.toLowerCase())) ||
       d.item.item_code.toLowerCase().includes(distributionSearch.toLowerCase());
     
     const matchesStatus = distributionStatus === "all" || d.status === distributionStatus;
@@ -535,7 +680,7 @@ export default function DistributionListPage() {
         <div className="flex gap-3">
           <Button onClick={handleExport} variant="outline" className="gap-2">
             <Download className="w-4 h-4" />
-            Export CSV
+            Export
           </Button>
           <Button onClick={() => setShowCreateGroupModal(true)} className="gap-2 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7]">
             <Plus className="w-4 h-4" />
@@ -728,7 +873,7 @@ export default function DistributionListPage() {
         <TabsContent value="groups" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {groups.map((group) => (
-              <Card key={group.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleViewGroup(group)}>
+              <Card key={group.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
@@ -740,13 +885,36 @@ export default function DistributionListPage() {
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Users className="w-4 h-4" />
                       <span>{group.teachers_count} members</span>
                     </div>
                     <Badge variant="outline">{group.group_type}</Badge>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewGroup(group);
+                      }}
+                      className="flex-1"
+                    >
+                      View Details
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleManageMembers(group);
+                      }}
+                      className="flex-1 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7]"
+                    >
+                      Manage Members
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -839,14 +1007,16 @@ export default function DistributionListPage() {
                   </Select>
                 </div>
 
-                <Button onClick={() => setShowCreateDistributionModal(true)} className="gap-2 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7]">
-                  <Plus className="w-4 h-4" />
-                  Distribute Item
-                </Button>
+                <div className="flex gap-2">
+                                    <Button onClick={() => setShowCreateDistributionModal(true)} className="gap-2 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7]">
+                    <Plus className="w-4 h-4" />
+                    Distribute Item
+                  </Button>
+                </div>
               </div>
 
               <div className="text-sm text-gray-600 mt-4">
-                Showing {filteredDistributions.length} of {distributions.length} distributions
+                Showing {filteredAllDistributions.length} of {allDistributions.length} distributions ({distributions.length} individual, {bulkDistributions.length} bulk)
               </div>
             </CardContent>
           </Card>
@@ -858,18 +1028,22 @@ export default function DistributionListPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teacher</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distributed</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Control No.</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Details</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipient</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Condition</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issued By</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredDistributions.length === 0 ? (
+                    {filteredAllDistributions.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                        <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                           <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                           <p>No distributions found</p>
                           <Button 
@@ -882,32 +1056,94 @@ export default function DistributionListPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredDistributions.map((dist) => (
-                        <tr key={dist.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{dist.item.item_name}</div>
-                              <div className="text-sm text-gray-500">{dist.item.item_code}</div>
+                      filteredAllDistributions.map((dist) => (
+                        <tr key={`${dist.type}-${dist.id}`} className="hover:bg-gray-50">
+                          {/* Control No. Column */}
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">
+                              {dist.type === 'bulk' ? `BD-${dist.id.toString().padStart(6, '0')}` : `ID-${dist.id.toString().padStart(6, '0')}`}
                             </div>
+                            <Badge variant={dist.type === 'bulk' ? 'default' : 'secondary'} className="mt-1">
+                              {dist.type === 'bulk' ? 'Bulk' : 'Individual'}
+                            </Badge>
                           </td>
-                          <td className="px-6 py-4">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{dist.teacher.full_name}</div>
-                              <div className="text-sm text-gray-500">{dist.teacher.department}</div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {dist.quantity_distributed}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          
+                          {/* Date Column */}
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                             {new Date(dist.distribution_date).toLocaleDateString()}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {getStatusBadge(dist.status, dist.is_overdue)}
+                          
+                          {/* Item Details Column */}
+                          <td className="px-4 py-4">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{dist.item?.item_name || 'N/A'}</div>
+                              <div className="text-xs text-gray-500">{dist.item?.item_code || 'N/A'}</div>
+                              <div className="text-xs text-gray-400">{dist.item?.category || 'N/A'}</div>
+                            </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          
+                          {/* Recipient Column */}
+                          <td className="px-4 py-4">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {dist.type === 'individual' ? dist.teacher?.full_name : dist.group?.group_name}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {dist.type === 'individual' ? dist.teacher?.department : `${dist.group?.teachers_count} members`}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {dist.type === 'individual' ? 'Teacher' : 'Group'}
+                              </div>
+                            </div>
+                          </td>
+                          
+                          {/* Quantity Column */}
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div className="font-medium">
+                              {dist.type === 'individual' ? dist.quantity_distributed : `${dist.total_quantity} total`}
+                            </div>
+                            {dist.type === 'bulk' && (
+                              <div className="text-xs text-gray-500">{dist.quantity_per_member}/member</div>
+                            )}
+                            <div className="text-xs text-gray-400">units</div>
+                          </td>
+                          
+                          {/* Condition Column */}
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <Badge className={
+                              dist.condition_on_distribution === 'excellent' ? 'bg-green-100 text-green-800' :
+                              dist.condition_on_distribution === 'good' ? 'bg-blue-100 text-blue-800' :
+                              dist.condition_on_distribution === 'fair' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }>
+                              {dist.condition_on_distribution || 'Good'}
+                            </Badge>
+                          </td>
+                          
+                          {/* Purpose Column */}
+                          <td className="px-4 py-4">
+                            <div className="text-sm text-gray-900 max-w-xs truncate" title={dist.purpose || 'N/A'}>
+                              {dist.purpose || 'N/A'}
+                            </div>
+                          </td>
+                          
+                          {/* Issued By Column */}
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {dist.distributed_by_admin?.name || 'Admin'}
+                            </div>
+                            <div className="text-xs text-gray-500">Property Custodian</div>
+                          </td>
+                          
+                          {/* Status Column */}
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            {getStatusBadge(dist.status, (dist as any).is_overdue)}
+                          </td>
+                          
+                          {/* Actions Column */}
+                          <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex gap-2">
-                              {dist.status === 'active' && (
+                              {dist.type === 'individual' && dist.status === 'active' && (
                                 <>
                                   <Button
                                     size="sm"
@@ -920,12 +1156,49 @@ export default function DistributionListPage() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleCancelDistribution(dist.id)}
+                                    onClick={() => handleReportDamaged(dist)}
+                                    className="text-orange-600 hover:text-orange-700"
+                                  >
+                                    Damaged
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleReportLost(dist)}
                                     className="text-red-600 hover:text-red-700"
                                   >
-                                    Cancel
+                                    Lost
                                   </Button>
                                 </>
+                              )}
+                              {dist.type === 'bulk' && dist.status === 'pending' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => window.location.href = `/admin/bulk-distributions`}
+                                    className="text-blue-600 hover:text-blue-700"
+                                  >
+                                    View Details
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleProcessBulkDistribution(dist.id)}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    Process
+                                  </Button>
+                                </>
+                              )}
+                              {dist.type === 'bulk' && dist.status === 'processing' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.location.href = `/admin/bulk-distributions`}
+                                  className="text-blue-600 hover:text-blue-700"
+                                >
+                                  View Details
+                                </Button>
                               )}
                               {dist.status === 'returned' && (
                                 <span className="text-sm text-gray-500">
@@ -1063,8 +1336,8 @@ export default function DistributionListPage() {
                         <tr key={req.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4">
                             <div>
-                              <div className="text-sm font-medium text-gray-900">{req.item.item_name}</div>
-                              <div className="text-sm text-gray-500">{req.item.item_code}</div>
+                              <div className="text-sm font-medium text-gray-900">{req.item?.item_name || 'N/A'}</div>
+                              <div className="text-sm text-gray-500">{req.item?.item_code || 'N/A'}</div>
                             </div>
                           </td>
                           <td className="px-6 py-4">
@@ -1162,6 +1435,23 @@ export default function DistributionListPage() {
             fetchDistributionRequests();
             fetchDistributions(); // Refresh distributions as well
           }}
+        />
+      )}
+
+      
+      {showManageMembersModal && selectedGroupData && (
+        <ManageGroupMembersModal
+          isOpen={showManageMembersModal}
+          onClose={() => {
+            setShowManageMembersModal(false);
+            setSelectedGroupData(null);
+          }}
+          onSuccess={() => {
+            setShowManageMembersModal(false);
+            setSelectedGroupData(null);
+            fetchData();
+          }}
+          group={selectedGroupData}
         />
       )}
     </div>

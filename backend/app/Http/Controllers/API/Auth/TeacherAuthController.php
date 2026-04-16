@@ -19,7 +19,7 @@ class TeacherAuthController extends Controller
 
         $teacher = Teacher::where('username', $request->username)
                          ->orWhere('email', $request->username)
-                         ->orWhere('employee_id', $request->username)
+                         ->orWhere('teacher_id', $request->username)
                          ->first();
 
         if (!$teacher || !Hash::check($request->password, $teacher->password)) {

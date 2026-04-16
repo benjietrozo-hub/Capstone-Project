@@ -85,8 +85,6 @@ export function LogsPage() {
   // Listen for real-time log updates
   useEffect(() => {
     const handleLogUpdate = (newLog: SystemLog) => {
-      console.log('Received new log:', newLog);
-      
       // Add new log to the top of the list
       setLogs(prevLogs => [newLog, ...prevLogs]);
       

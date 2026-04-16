@@ -19,8 +19,8 @@ class NotificationService
             'type' => $type,
             'title' => $title,
             'message' => $message,
-            'related_id' => $relatedId,
-            'related_type' => $relatedType,
+            'reference_id' => $relatedId,
+            'related_table' => $relatedType,
             'is_read' => false,
         ]);
 
@@ -34,6 +34,9 @@ class NotificationService
             'related_type' => $relatedType,
             'timestamp' => $notification->created_at->toISOString(),
         ]);
+
+        // Send email notification
+        EmailNotificationService::sendEmailNotification($userId, $userType, $type, $title, $message, $relatedId, $relatedType);
 
         return $notification;
     }
@@ -59,8 +62,8 @@ class NotificationService
                 'type' => $type,
                 'title' => $title,
                 'message' => $message,
-                'related_id' => $relatedId,
-                'related_type' => $relatedType,
+                'reference_id' => $relatedId,
+                'related_table' => $relatedType,
                 'is_read' => false,
             ]);
         }
@@ -74,6 +77,9 @@ class NotificationService
             'related_type' => $relatedType,
             'timestamp' => now()->toISOString(),
         ]);
+
+        // Send email notifications to all users
+        EmailNotificationService::broadcastEmail($userType, $type, $title, $message, $relatedId, $relatedType);
     }
 
     /**

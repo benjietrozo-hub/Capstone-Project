@@ -90,4 +90,36 @@ class ReportController extends Controller
             ], 500);
         }
     }
+
+    public function resolve(Request $request, $id)
+    {
+        try {
+            $report = Report::findOrFail($id);
+            
+            $validated = $request->validate([
+                'admin_notes' => 'required|string',
+                'resolution_date' => 'required|date'
+            ]);
+            
+            $report->update([
+                'status' => 'resolved',
+                'resolution' => $validated['admin_notes'],
+                'resolved_at' => $validated['resolution_date'],
+                'resolved_by' => auth()->id()
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Report resolved successfully',
+                'data' => $report->load(['teacher', 'item', 'assignedAdmin'])
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Report resolve error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resolve report',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

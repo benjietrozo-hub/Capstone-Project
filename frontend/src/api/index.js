@@ -98,7 +98,7 @@ export const adminAPI = {
     axiosInstance.put(`/admin/reports/${id}`, data),
 
   resolveReport: (id, data) =>
-    axiosInstance.put(`/admin/reports/${id}`, { ...data, status: 'resolved' }),
+    axiosInstance.put(`/admin/reports/${id}/resolve`, data),
 
   // System Logs
   getLogs: (params) =>
@@ -188,6 +188,18 @@ export const adminAPI = {
 
   emptyTrash: (type) =>
     axiosInstance.delete('/admin/trash/empty', { params: { type } }),
+
+  // Distribution Groups
+  getDistributionGroups: (params) =>
+    axiosInstance.get('/admin/distribution/groups', { params }),
+  createDistributionGroup: (data) =>
+    axiosInstance.post('/admin/distribution/groups', data),
+  getDistributionGroup: (id) =>
+    axiosInstance.get(`/admin/distribution/groups/${id}`),
+  updateDistributionGroup: (id, data) =>
+    axiosInstance.put(`/admin/distribution/groups/${id}`, data),
+  deleteDistributionGroup: (id) =>
+    axiosInstance.delete(`/admin/distribution/groups/${id}`),
 };
 
 export const teacherAPI = {
@@ -246,9 +258,6 @@ export const teacherAPI = {
   // Distribution Groups
   getDistributionGroups: (params) =>
     axiosInstance.get('/teacher/distribution-groups', { params }),
-
-  createDistributionGroup: (data) =>
-    axiosInstance.post('/teacher/distribution-groups', data),
 
   getDistributionGroup: (id) =>
     axiosInstance.get(`/teacher/distribution-groups/${id}`),

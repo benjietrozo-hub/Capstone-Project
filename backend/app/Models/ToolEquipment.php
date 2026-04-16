@@ -97,4 +97,34 @@ class ToolEquipment extends Model
     {
         return $this->belongsTo(Admin::class, 'deleted_by');
     }
+
+    /**
+     * Scope for sorting by acquisition year and alphabetically within each year
+     */
+    public function scopeByYearAndName($query, $yearOrder = 'desc', $nameOrder = 'asc')
+    {
+        return $query->orderByRaw('YEAR(acquisition_date) ' . strtoupper($yearOrder))
+                     ->orderBy('item_name', strtoupper($nameOrder));
+    }
+
+    /**
+     * Scope for combined sorting (primary + secondary)
+     */
+    public function scopeCombinedSort($query, $primary = 'acquisition_year', $secondary = 'item_name', $primaryOrder = 'desc', $secondaryOrder = 'asc')
+    {
+        switch ($primary) {
+            case 'acquisition_year':
+                return $query->orderByRaw('YEAR(acquisition_date) ' . strtoupper($primaryOrder))
+                             ->orderBy('item_name', strtoupper($secondaryOrder));
+            case 'item_name':
+                return $query->orderBy('item_name', strtoupper($primaryOrder))
+                             ->orderByRaw('YEAR(acquisition_date) ' . strtoupper($secondaryOrder));
+            case 'acquisition_date':
+                return $query->orderBy('acquisition_date', strtoupper($primaryOrder))
+                             ->orderBy('item_name', strtoupper($secondaryOrder));
+            default:
+                return $query->orderBy($primary, strtoupper($primaryOrder))
+                             ->orderBy($secondary, strtoupper($secondaryOrder));
+        }
+    }
 }

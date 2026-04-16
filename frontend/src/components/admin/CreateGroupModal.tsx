@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, Users, Search } from "lucide-react";
-import axios from "axios";
+import { adminAPI } from "../../api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,19 +23,22 @@ interface CreateGroupModalProps {
   onSuccess: () => void;
 }
 
+console.log("🔍 CreateGroupModal component loaded v2.0 with adminAPI:", typeof adminAPI.createDistributionGroup);
+
 export default function CreateGroupModal({ teachers, onClose, onSuccess }: CreateGroupModalProps) {
   const [formData, setFormData] = useState({
     group_name: "",
     group_type: "custom",
     description: "",
+    visibility: "private",
   });
   const [selectedTeachers, setSelectedTeachers] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
 
   const filteredTeachers = teachers.filter(t =>
-    t.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.email.toLowerCase().includes(searchQuery.toLowerCase())
+    (t.full_name && t.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (t.email && t.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleToggleTeacher = (id: number) => {
@@ -57,26 +60,62 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
       return;
     }
 
+    // Validate group name length
+    if (formData.group_name.trim().length < 3) {
+      toast.error("Group name must be at least 3 characters long");
+      return;
+    }
+
+    // Validate group type
+    if (!formData.group_type) {
+      toast.error("Group type is required");
+      return;
+    }
+
+    // Validate visibility
+    if (!formData.visibility) {
+      toast.error("Visibility is required");
+      return;
+    }
+
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
 
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/admin/distribution/groups`,
-        {
-          ...formData,
-          teacher_ids: selectedTeachers,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const requestData = {
+        group_name: formData.group_name,
+        group_type: formData.group_type,
+        visibility: formData.visibility,
+        description: formData.description,
+        teacher_ids: selectedTeachers,
+      };
+      
+      console.log("DEBUG: Sending group data:", requestData);
+      console.log("DEBUG: formData:", formData);
+      console.log("DEBUG: selectedTeachers:", selectedTeachers);
+      
+      await adminAPI.createDistributionGroup(requestData);
 
       toast.success("Distribution group created successfully");
       onSuccess();
     } catch (error: any) {
       console.error("Error creating group:", error);
-      toast.error(error.response?.data?.message || "Failed to create group");
+      console.error("Error details:", {
+        message: error.response?.data?.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        errors: error.response?.data?.errors,
+        config: error.config
+      });
+      
+      // Show specific validation errors if available
+      if (error.response?.data?.errors) {
+        const validationErrors = error.response.data.errors;
+        const errorMessages = Object.values(validationErrors).flat();
+        toast.error((errorMessages[0] as string) || "Validation failed");
+      } else {
+        toast.error(error.response?.data?.message || "Failed to create group");
+      }
     } finally {
       setLoading(false);
     }
@@ -105,6 +144,7 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
                 <Label htmlFor="group_name">Group Name *</Label>
                 <Input
                   id="group_name"
+                  name="group_name"
                   value={formData.group_name}
                   onChange={(e) => setFormData({ ...formData, group_name: e.target.value })}
                   placeholder="e.g., Science Department Teachers"
@@ -114,15 +154,30 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
 
               <div>
                 <Label htmlFor="group_type">Group Type *</Label>
-                <Select value={formData.group_type} onValueChange={(value) => setFormData({ ...formData, group_type: value })}>
+                <Select value={formData.group_type} onValueChange={(value) => {
+                  console.log("🔍 Group type changed to:", value);
+                  setFormData({ ...formData, group_type: value });
+                }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="department">Department</SelectItem>
-                    <SelectItem value="grade_level">Grade Level</SelectItem>
                     <SelectItem value="role">Role</SelectItem>
                     <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="visibility">Visibility *</Label>
+                <Select value={formData.visibility} onValueChange={(value) => setFormData({ ...formData, visibility: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="private">Private</SelectItem>
+                    <SelectItem value="shared">Shared</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -131,6 +186,7 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
+                  name="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Brief description of this group..."
@@ -172,10 +228,10 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
                       className="rounded border-gray-300"
                     />
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">{teacher.full_name}</div>
-                      <div className="text-sm text-gray-600">{teacher.email}</div>
+                      <div className="font-medium text-gray-900">{teacher.full_name || 'Unknown Name'}</div>
+                      <div className="text-sm text-gray-600">{teacher.email || 'No Email'}</div>
                     </div>
-                    <Badge variant="outline">{teacher.department}</Badge>
+                    <Badge variant="outline">{teacher.department || 'No Department'}</Badge>
                   </div>
                 ))}
               </div>

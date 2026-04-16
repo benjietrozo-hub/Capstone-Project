@@ -43,13 +43,17 @@ export function BrowseInventoryPage() {
   const [requestForm, setRequestForm] = useState<RequestForm>({
     quantity: 1,
     purpose: '',
-    expected_return_date: '',
+    expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Tomorrow
   });
+
+  // Sorting state variables
+  const [sortBy, setSortBy] = useState('item_name');
+  const [sortOrder, setSortOrder] = useState('asc');
 
   useEffect(() => {
     fetchItems();
     fetchCategories();
-  }, [search, category]);
+  }, [search, category, sortBy, sortOrder]);
 
   const fetchItems = async () => {
     try {
@@ -59,14 +63,13 @@ export function BrowseInventoryPage() {
         category,
         available_only: true,
         per_page: 50,
+        sort_by: sortBy,
+        sort_order: sortOrder,
       });
       setItems(response.data.data);
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load inventory',
-        variant: 'destructive',
-      });
+      console.error('Failed to load inventory:', error);
+      // Don't show error toast to avoid confusing users after successful operations
     } finally {
       setLoading(false);
     }
@@ -84,31 +87,122 @@ export function BrowseInventoryPage() {
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItem) return;
-
-    try {
-      await teacherAPI.createBorrowRequest({
-        item_id: selectedItem.id,
-        ...requestForm
-      });
-      
-      // Success message using shadcn/ui toast
+    
+    // 🔍 Check if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error("🔥 NO TOKEN - User not logged in");
       toast({
-        title: '✅ Request Submitted Successfully!',
-        description: `Your borrow request for ${selectedItem.item_name} has been submitted. Please wait for admin approval.`,
-        duration: 5000,
-      });
-      
-      setShowRequestModal(false);
-      setRequestForm({ quantity: 1, purpose: '', expected_return_date: '' });
-      fetchItems();
-    } catch (error: any) {
-      // Error message
-      toast({
-        title: '❌ Failed to Submit Request',
-        description: error.response?.data?.message || 'An error occurred while submitting your request. Please try again.',
+        title: 'Authentication Required',
+        description: 'Please login to submit borrow requests.',
         variant: 'destructive',
         duration: 5000,
       });
+      return;
+    }
+    
+    console.log("🔍 User Token:", token ? 'Present' : 'Missing');
+
+    // Test API connectivity first
+    try {
+      console.log("Testing API connectivity...");
+      const testResponse = await teacherAPI.getBorrowRequests({ per_page: 1 });
+      console.log("API Test Response:", testResponse);
+    } catch (testError) {
+      console.error("API Test Failed:", testError);
+      toast({
+        title: 'API Connection Error',
+        description: 'Cannot connect to the server. Please check your connection.',
+        variant: 'destructive',
+        duration: 5000,
+      });
+      return;
+    }
+
+    try {
+      // 🔍 DEBUG: Log the data being sent
+      const requestData = {
+        item_id: selectedItem.id,
+        ...requestForm
+      };
+      console.log("🔍 Sending request data:", requestData);
+      console.log("🔍 Selected item:", selectedItem);
+      console.log("🔍 Request form:", requestForm);
+      console.log("🔍 Today's date:", new Date().toISOString().split('T')[0]);
+      
+      // Step 1: Submit borrow request
+      const response = await teacherAPI.createBorrowRequest(requestData);
+      
+      // 🔥 IMPORTANT CHECK - Verify success response format
+      console.log("🔍 API Response:", response);
+      
+      if (response?.data?.success) {
+        // Success message for borrow request submission
+        toast({
+          title: 'Request Submitted Successfully!',
+          description: response?.data?.message || `Your borrow request for ${selectedItem.item_name} has been submitted. Please wait for admin approval.`,
+          duration: 5000,
+        });
+        
+        // Close modal and reset form
+        setShowRequestModal(false);
+        setRequestForm({ 
+          quantity: 1, 
+          purpose: '', 
+          expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        });
+        
+        // Step 2: Refresh inventory list (separate from main success)
+        await fetchItems(); // Silent refresh - no error toast shown
+      } else {
+        throw new Error(response?.data?.message || "Unknown error occurred");
+      }
+      
+    } catch (error: any) {
+      // 🔍 DEBUG LOG - Add detailed error logging
+      console.error("🚨 FULL ERROR:", error);
+      console.error("🚨 Error Response:", error.response);
+      console.error("🚨 Error Data:", error.response?.data);
+      console.error("🚨 Error Status:", error.response?.status);
+      console.error("🚨 Error Code:", error.code);
+      
+      // Check specific error types
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        console.error("🔥 NETWORK ERROR - Backend might be down");
+        toast({
+          title: 'Network Error',
+          description: 'Cannot connect to server. Please check if backend is running.',
+          variant: 'destructive',
+          duration: 5000,
+        });
+      } else if (error.response?.status === 401) {
+        console.error("🔥 AUTH ERROR - User not logged in");
+        toast({
+          title: 'Authentication Error',
+          description: 'Please login to submit borrow requests.',
+          variant: 'destructive',
+          duration: 5000,
+        });
+      } else if (error.response?.status === 422) {
+        console.error("🔥 VALIDATION ERROR:", error.response?.data);
+        toast({
+          title: 'Validation Error',
+          description: error.response?.data?.message || 'Please check your input.',
+          variant: 'destructive',
+          duration: 5000,
+        });
+      } else {
+        // Error message for borrow request submission only
+        toast({
+          title: 'Failed to Submit Request',
+          description: 
+            error.response?.data?.message || 
+            error.message || 
+            'An error occurred while submitting your request. Please try again.',
+          variant: 'destructive',
+          duration: 5000,
+        });
+      }
     }
   };
 
@@ -152,7 +246,7 @@ export function BrowseInventoryPage() {
                 setRequestForm({
                   quantity: Math.min(1, row.quantity_available),
                   purpose: '',
-                  expected_return_date: '',
+                  expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 });
                 setShowRequestModal(true);
               }}
@@ -179,11 +273,7 @@ export function BrowseInventoryPage() {
         showMenuButton={true}
       >
         <NotificationProfile 
-          notifications={[]}
-          unreadCount={0}
           currentUser={currentUser}
-          onMarkAsRead={() => {}}
-          onMarkAllAsRead={() => {}}
         />
       </NavHeader>
       
@@ -195,7 +285,7 @@ export function BrowseInventoryPage() {
       
       <div className="p-6">
         <Card>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <FormField
             label="Search"
             value={search}
@@ -210,6 +300,29 @@ export function BrowseInventoryPage() {
             options={[
               { value: '', label: 'All Categories' },
               ...categories.map(c => ({ value: c, label: c }))
+            ]}
+          />
+          <FormField
+            label="Sort By"
+            type="select"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            options={[
+              { value: 'item_name', label: 'Item Name (A-Z)' },
+              { value: 'acquisition_year', label: 'Acquisition Year (Newest First)' },
+              { value: 'name_year', label: 'Name (A-Z)' },
+              { value: 'category', label: 'Category' },
+              { value: 'quantity_available', label: 'Available Quantity' }
+            ]}
+          />
+          <FormField
+            label="Order"
+            type="select"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            options={[
+              { value: 'asc', label: 'Ascending' },
+              { value: 'desc', label: 'Descending' }
             ]}
           />
           <div className="pt-6">
@@ -389,8 +502,9 @@ export function BrowseInventoryPage() {
             label="Quantity"
             type="number"
             value={requestForm.quantity}
-            onChange={(e) => setRequestForm({ ...requestForm, quantity: parseInt(e.target.value) })}
+            onChange={(e) => setRequestForm({ ...requestForm, quantity: parseInt(e.target.value) || 1 })}
             required
+            min="1"
           />
           <FormField
             label="Purpose"
@@ -405,6 +519,7 @@ export function BrowseInventoryPage() {
             value={requestForm.expected_return_date}
             onChange={(e) => setRequestForm({ ...requestForm, expected_return_date: e.target.value })}
             required
+            min={new Date().toISOString().split('T')[0]}
           />
           <div className="flex gap-4">
             <Button type="submit">Submit Request</Button>

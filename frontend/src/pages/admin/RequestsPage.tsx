@@ -138,11 +138,7 @@ export function BorrowRequestsPage() {
         showMenuButton={true}
       >
         <NotificationProfile 
-          notifications={[]}
-          unreadCount={0}
           currentUser={currentUser}
-          onMarkAsRead={() => {}}
-          onMarkAllAsRead={() => {}}
         />
       </NavHeader>
       
@@ -283,86 +279,156 @@ export function BorrowRequestsPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          padding: '10px'
         }}>
-          <div className="card" style={{ maxWidth: '450px', width: '90%' }}>
+          <div className="card" style={{ 
+            maxWidth: '420px', 
+            width: '100%',
+            height: 'auto',
+            maxHeight: '600px',
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: '#f8f9fa',
+            border: '3px solid #28a745'
+          }}>
             <div className="card-header" style={{
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              padding: '10px 14px',
+              borderBottom: '1px solid #e9ecef'
             }}>
-              <h5 style={{ margin: 0 }}>✓ Approve Request</h5>
+              <h5 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Approve Request</h5>
               <button
                 onClick={() => setShowApprovalModal(false)}
                 style={{
                   background: 'none',
                   border: 'none',
-                  fontSize: '24px',
+                  fontSize: '18px',
                   cursor: 'pointer',
-                  color: '#666'
+                  color: '#666',
+                  padding: '0',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
-                ✕
+                ×
               </button>
             </div>
-            <div className="card-body">
-              <form onSubmit={handleApprove} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div>
-                  <label className="form-label">Quantity to Approve</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={approvalForm.quantity_approved}
-                    onChange={(e) =>
-                      setApprovalForm({ ...approvalForm, quantity_approved: e.target.value })
-                    }
-                    required
-                  />
+            
+            {/* Form Fields */}
+            <div style={{ 
+              padding: '12px 14px',
+              overflowY: 'auto',
+              flex: 1,
+              maxHeight: '450px'
+            }}>
+              <form onSubmit={handleApprove} id="approveForm">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '12px' }}>
+                      Quantity <span style={{ color: '#dc3545' }}>*</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      min={1}
+                      max={selectedRequest?.quantity_requested ?? undefined}
+                      value={approvalForm.quantity_approved}
+                      onChange={(e) =>
+                        setApprovalForm({ ...approvalForm, quantity_approved: e.target.value })
+                      }
+                      required
+                      style={{ fontSize: '12px', padding: '5px 8px' }}
+                    />
+                    {selectedRequest?.quantity_requested ? (
+                      <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
+                        Max: {selectedRequest.quantity_requested}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '12px' }}>
+                      Return Date <span style={{ color: '#dc3545' }}>*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={approvalForm.expected_return_date}
+                      onChange={(e) =>
+                        setApprovalForm({ ...approvalForm, expected_return_date: e.target.value })
+                      }
+                      required
+                      style={{ fontSize: '12px', padding: '5px 8px' }}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="form-label">Expected Return Date</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={approvalForm.expected_return_date}
-                    onChange={(e) =>
-                      setApprovalForm({ ...approvalForm, expected_return_date: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Admin Notes</label>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '12px' }}>
+                    Notes
+                  </label>
                   <textarea
                     className="form-control"
                     value={approvalForm.admin_notes}
                     onChange={(e) =>
                       setApprovalForm({ ...approvalForm, admin_notes: e.target.value })
                     }
-                    rows={3}
+                    rows={2}
+                    placeholder="Optional..."
+                    style={{ fontSize: '12px', padding: '5px 8px', resize: 'vertical' }}
                   />
                 </div>
-                <div style={{
-                  display: 'flex',
-                  gap: '12px',
-                  marginTop: '20px',
-                  justifyContent: 'flex-end'
-                }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setShowApprovalModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-success"
-                  >
-                    Approve
-                  </button>
-                </div>
               </form>
+            </div>
+
+            {/* Buttons - Always Visible */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'flex-end',
+              padding: '20px 20px',
+              borderTop: '3px solid #28a745',
+              backgroundColor: '#fff',
+              position: 'sticky',
+              bottom: 0,
+              flexShrink: 0,
+              boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
+            }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowApprovalModal(false)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="approveForm"
+                className="btn btn-success"
+                style={{
+                  padding: '12px 30px',
+                  fontSize: '16px',
+                  fontWeight: '800',
+                  minWidth: '120px',
+                  height: '50px',
+                  backgroundColor: '#28a745',
+                  border: '3px solid #28a745',
+                  boxShadow: '0 4px 8px rgba(40, 167, 69, 0.3)'
+                }}
+              >
+                Approve
+              </button>
             </div>
           </div>
         </div>
@@ -380,63 +446,99 @@ export function BorrowRequestsPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          padding: '10px'
         }}>
-          <div className="card" style={{ maxWidth: '450px', width: '90%' }}>
+          <div className="card" style={{ 
+            maxWidth: '420px', 
+            width: '100%',
+            height: 'auto',
+            maxHeight: '400px'
+          }}>
             <div className="card-header" style={{
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              padding: '10px 14px',
+              borderBottom: '1px solid #e9ecef'
             }}>
-              <h5 style={{ margin: 0 }}>✕ Reject Request</h5>
+              <h5 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Reject Request</h5>
               <button
                 onClick={() => setShowRejectionModal(false)}
                 style={{
                   background: 'none',
                   border: 'none',
-                  fontSize: '24px',
+                  fontSize: '18px',
                   cursor: 'pointer',
-                  color: '#666'
+                  color: '#666',
+                  padding: '0',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
-                ✕
+                ×
               </button>
             </div>
-            <div className="card-body">
-              <form onSubmit={handleReject} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div>
-                  <label className="form-label">Reason for Rejection</label>
+            
+            {/* Form Fields */}
+            <div style={{ padding: '12px 14px' }}>
+              <form onSubmit={handleReject}>
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '12px' }}>
+                    Reason for Rejection <span style={{ color: '#dc3545' }}>*</span>
+                  </label>
                   <textarea
                     className="form-control"
                     value={rejectionForm.admin_notes}
                     onChange={(e) =>
                       setRejectionForm({ admin_notes: e.target.value })
                     }
-                    rows={4}
+                    rows={3}
                     required
+                    placeholder="Please provide a reason..."
+                    style={{ fontSize: '12px', padding: '5px 8px', resize: 'vertical' }}
                   />
                 </div>
-                <div style={{
-                  display: 'flex',
-                  gap: '12px',
-                  marginTop: '20px',
-                  justifyContent: 'flex-end'
-                }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setShowRejectionModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-danger"
-                  >
-                    Reject
-                  </button>
-                </div>
               </form>
+            </div>
+
+            {/* Buttons - Always Visible */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              justifyContent: 'flex-end',
+              padding: '10px 14px',
+              borderTop: '1px solid #e9ecef',
+              backgroundColor: '#fff'
+            }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowRejectionModal(false)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-danger"
+                onClick={handleReject}
+                style={{
+                  padding: '6px 16px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  minWidth: '80px'
+                }}
+              >
+                Reject
+              </button>
             </div>
           </div>
         </div>

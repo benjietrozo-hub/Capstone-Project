@@ -23,8 +23,10 @@ import { TeachersPage } from './pages/admin/TeachersPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { LogsPage } from './pages/admin/LogsPage';
 import PurchaseOrdersPage from './pages/admin/PurchaseOrdersPage';
+import PurchaseOrderPrint from './pages/admin/PurchaseOrderPrint';
 import SuppliersPage from './pages/admin/SuppliersPage';
 import DistributionListPage from './pages/admin/DistributionListPage';
+import BulkDistributionsPage from './pages/admin/BulkDistributionsPage';
 import TrashPage from './pages/admin/TrashPage';
 
 // Teacher Pages
@@ -59,7 +61,10 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ 
+      v7_startTransition: true,
+      v7_relativeSplatPath: true 
+    }}>
       <AuthProvider>
         <NotificationProvider>
           <Toaster />
@@ -148,6 +153,16 @@ function App() {
                   }
                 />
                 <Route
+                  path="purchase-orders/:id/print"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <ProtectedLayout>
+                        <PurchaseOrderPrint />
+                      </ProtectedLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="purchase-orders"
                   element={
                     <ProtectedRoute requiredRole="admin">
@@ -173,6 +188,16 @@ function App() {
                     <ProtectedRoute requiredRole="admin">
                       <ProtectedLayout>
                         <DistributionListPage />
+                      </ProtectedLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="bulk-distributions"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <ProtectedLayout>
+                        <BulkDistributionsPage />
                       </ProtectedLayout>
                     </ProtectedRoute>
                   }

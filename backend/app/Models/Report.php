@@ -11,18 +11,21 @@ class Report extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'report_code',
         'teacher_id',
         'item_id',
-        'issue_type',
+        'report_type',
         'description',
-        'resolution',
         'status',
-        'priority',
-        'assigned_to',
+        'admin_response',
+        'admin_id',
+        'resolved_at',
+        'resolved_by',
+        'date_reported',
     ];
 
     protected $casts = [
+        'resolved_at' => 'datetime',
+        'date_reported' => 'datetime',
     ];
 
     // Relationships
@@ -60,18 +63,5 @@ class Report extends Model
     public function scopeAssignedTo($query, $adminId)
     {
         return $query->where('assigned_to', $adminId);
-    }
-
-    // Generate unique report code
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($report) {
-            if (!$report->report_code) {
-                $count = static::whereDate('created_at', today())->count() + 1;
-                $report->report_code = 'RP-' . date('Ymd') . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
-            }
-        });
     }
 }

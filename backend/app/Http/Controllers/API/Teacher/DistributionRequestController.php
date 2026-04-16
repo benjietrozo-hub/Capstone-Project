@@ -47,7 +47,7 @@ class DistributionRequestController extends Controller
     {
         try {
             $items = ToolEquipment::where('quantity_available', '>', 0)
-                ->where('status', 'available')
+                ->where('status', 'active')
                 ->select('id', 'item_code', 'item_name', 'category', 'quantity_available')
                 ->orderBy('item_name')
                 ->get();

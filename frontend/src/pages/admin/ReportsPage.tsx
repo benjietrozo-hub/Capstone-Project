@@ -6,24 +6,25 @@ import { Button, FormField } from '../../components/common/FormElements';
 import { PageLoader } from '../../components/common/Loader';
 import { Modal } from '../../components/common/Modal';
 import { adminAPI } from '../../api';
-import { formatDate } from '../../utils/formatters';
-import toast from 'react-hot-toast';
+import { formatDate } from '../../utils/formatters.js';
+import { toast } from '@/hooks/use-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
 
 interface Report {
   id: number;
-  report_code: string;
   teacher?: {
     full_name: string;
   };
   item?: {
     item_name: string;
   };
-  issue_type: string;
-  issue_description: string;
+  report_type: string;
+  description: string;
   status: string;
+  admin_response?: string;
   date_reported: string;
+  created_at: string;
 }
 
 interface ResolutionForm {
@@ -59,7 +60,11 @@ export function ReportsPage() {
       });
       setReports(response.data.data);
     } catch (error) {
-      toast.error('Failed to load reports');
+      toast({
+        title: 'Error',
+        description: 'Failed to load reports',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -71,26 +76,33 @@ export function ReportsPage() {
 
     try {
       await adminAPI.resolveReport(selectedReport.id, resolutionForm);
-      toast.success('Report resolved successfully');
+      toast({
+        title: 'Success',
+        description: 'Report resolved successfully',
+      });
       setShowResolutionModal(false);
       setResolutionForm({ admin_notes: '', resolution_date: new Date().toISOString().split('T')[0] });
       fetchReports();
     } catch (error) {
-      toast.error('Failed to resolve report');
+      toast({
+        title: 'Error',
+        description: 'Failed to resolve report',
+        variant: 'destructive',
+      });
     }
   };
 
   const columns = [
-    { key: 'report_code', label: 'Report Code' },
+    { key: 'id', label: 'Report ID' },
     { key: 'teacher.full_name', label: 'Reported By', render: (_: any, row: Report) => row.teacher?.full_name },
     { key: 'item.item_name', label: 'Item', render: (_: any, row: Report) => row.item?.item_name },
-    { key: 'issue_type', label: 'Issue Type' },
+    { key: 'report_type', label: 'Report Type' },
     {
       key: 'status',
       label: 'Status',
       render: (value: string) => <StatusBadge label={value} status={value} />,
     },
-    { key: 'date_reported', label: 'Date', render: (value: string) => formatDate(value) },
+    { key: 'date_reported', label: 'Date', render: (_: any, row: Report) => formatDate(row.date_reported || row.created_at) },
     {
       key: 'actions',
       label: 'Actions',
@@ -133,11 +145,7 @@ export function ReportsPage() {
         showMenuButton={true}
       >
         <NotificationProfile 
-          notifications={[]}
-          unreadCount={0}
           currentUser={currentUser}
-          onMarkAsRead={() => {}}
-          onMarkAllAsRead={() => {}}
         />
       </NavHeader>
       
@@ -158,7 +166,7 @@ export function ReportsPage() {
               options={[
                 { value: '', label: 'All Reports' },
                 { value: 'pending', label: 'Pending' },
-                { value: 'in_progress', label: 'In Progress' },
+                { value: 'reviewed', label: 'Reviewed' },
                 { value: 'resolved', label: 'Resolved' },
             ]}
           />
@@ -176,8 +184,8 @@ export function ReportsPage() {
         {selectedReport && (
           <div className="space-y-4">
             <div>
-              <label className="font-semibold text-gray-700">Report Code</label>
-              <p className="text-gray-600">{selectedReport.report_code}</p>
+              <label className="font-semibold text-gray-700">Report ID</label>
+              <p className="text-gray-600">#{selectedReport.id}</p>
             </div>
             <div>
               <label className="font-semibold text-gray-700">Reported By</label>
@@ -188,12 +196,12 @@ export function ReportsPage() {
               <p className="text-gray-600">{selectedReport.item?.item_name}</p>
             </div>
             <div>
-              <label className="font-semibold text-gray-700">Issue Type</label>
-              <p className="text-gray-600">{selectedReport.issue_type}</p>
+              <label className="font-semibold text-gray-700">Report Type</label>
+              <p className="text-gray-600">{selectedReport.report_type}</p>
             </div>
             <div>
               <label className="font-semibold text-gray-700">Description</label>
-              <p className="text-gray-600">{selectedReport.issue_description}</p>
+              <p className="text-gray-600">{selectedReport.description}</p>
             </div>
             <div>
               <label className="font-semibold text-gray-700">Status</label>
@@ -201,7 +209,7 @@ export function ReportsPage() {
             </div>
             <div>
               <label className="font-semibold text-gray-700">Date Reported</label>
-              <p className="text-gray-600">{formatDate(selectedReport.date_reported)}</p>
+              <p className="text-gray-600">{formatDate(selectedReport.date_reported || selectedReport.created_at)}</p>
             </div>
           </div>
         )}

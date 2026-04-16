@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Package, Clock, AlertTriangle } from 'lucide-react';
+import { Package, Clock, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { Footer } from '@/components/common/Footer';
 import AuthHeader from '@/components/common/AuthHeader';
 import axios from 'axios';
@@ -22,6 +22,7 @@ export function LoginPage() {
     username: '',
     password: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   // Check lockout status on mount and restore from localStorage
   useEffect(() => {
@@ -107,6 +108,9 @@ export function LoginPage() {
 
     setLoading(true);
 
+    // Debug logging
+    console.log('Submitting login form with data:', formData);
+
     try {
       const response = await login(formData);
       const { role } = response;
@@ -125,6 +129,11 @@ export function LoginPage() {
         navigate('/teacher/dashboard');
       }
     } catch (err: any) {
+      // Debug logging
+      console.log('Login error:', err);
+      console.log('Error response:', err.response);
+      console.log('Error data:', err.response?.data);
+      
       // Check if account is locked
       if (err.response?.status === 429) {
         const data = err.response.data;
@@ -159,17 +168,21 @@ export function LoginPage() {
         <Card className="w-full max-w-[366px] shadow-2xl border-0 bg-[#1C2536] text-white my-auto">
             <CardHeader className="space-y-3 pb-4 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7] rounded-t-lg">
               <div className="flex justify-center">
-                <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg overflow-hidden">
                   {isLocked ? (
                     <Clock className="w-8 h-8 text-white animate-pulse" />
                   ) : (
-                    <Package className="w-8 h-8 text-white" />
+                    <img 
+                      src="/Logo_n.jpg" 
+                      alt="Online IMS Logo" 
+                      className="w-14 h-14 object-cover rounded-full"
+                    />
                   )}
                 </div>
               </div>
               <div className="text-center">
                 <CardTitle className="text-2xl font-bold text-white">
-                  {isLocked ? 'Account Locked' : 'OlineIMS'}
+                  {isLocked ? 'Account Locked' : 'Online IMS'}
                 </CardTitle>
                 <CardDescription className="text-sm mt-1 text-white/90">
                   {isLocked ? 'Too many failed attempts' : 'Online Inventory Management System'}
@@ -224,19 +237,35 @@ export function LoginPage() {
                   >
                     Password
                   </Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    disabled={loading || isLocked}
-                    className={`h-10 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:border-[#5B8DEF] focus:ring-[#5B8DEF] ${
-                      isLocked ? 'cursor-not-allowed opacity-50' : ''
-                    }`}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      disabled={loading || isLocked}
+                      className={`h-10 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:border-[#5B8DEF] focus:ring-[#5B8DEF] pr-10 ${
+                        isLocked ? 'cursor-not-allowed opacity-50' : ''
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={loading || isLocked}
+                      className={`absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors ${
+                        isLocked ? 'cursor-not-allowed opacity-50' : ''
+                      }`}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <Button 

@@ -55,8 +55,24 @@ class InventoryController extends Controller
 
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
+        
         \Log::info('Sorting:', ['sort_by' => $sortBy, 'sort_order' => $sortOrder]);
-        $query->orderBy($sortBy, $sortOrder);
+        
+        // Handle year-based sorting with alphabetical secondary sort
+        if ($sortBy === 'acquisition_year') {
+            $query->byYearAndName($sortOrder, 'asc');
+        } elseif ($sortBy === 'name_year') {
+            $query->orderBy('item_name', $sortOrder)
+                  ->orderByRaw('YEAR(acquisition_date) desc');
+        } elseif ($sortBy === 'year_name_combined') {
+            $primarySort = $request->get('primary_sort', 'acquisition_year');
+            $secondarySort = $request->get('secondary_sort', 'item_name');
+            $primaryOrder = $request->get('primary_order', 'desc');
+            $secondaryOrder = $request->get('secondary_order', 'asc');
+            $query->combinedSort($primarySort, $secondarySort, $primaryOrder, $secondaryOrder);
+        } else {
+            $query->orderBy($sortBy, $sortOrder);
+        }
 
         // Log the SQL query
         $sql = $query->toSql();
@@ -88,7 +104,7 @@ class InventoryController extends Controller
             'item_code' => 'required|string|unique:tools_equipment',
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'category' => 'required|string',
+            'category' => 'required|string|max:50',
             'quantity_total' => 'required|integer|min:0',
             'condition' => 'required|in:excellent,good,fair,poor,damaged',
             'location' => 'nullable|string|max:255',
@@ -110,9 +126,11 @@ class InventoryController extends Controller
         InventoryLog::create([
             'item_id' => $item->id,
             'action' => 'created',
-            'performed_by' => $request->user()->id,
+            'user_id' => $request->user()->id,
             'user_type' => 'admin',
             'details' => 'Item created',
+            'table_name' => 'tools_equipment',
+            'record_id' => $item->id,
         ]);
 
         // Log to system logs
@@ -171,9 +189,11 @@ class InventoryController extends Controller
         InventoryLog::create([
             'item_id' => $item->id,
             'action' => 'updated',
-            'performed_by' => $request->user()->id,
+            'user_id' => $request->user()->id,
             'user_type' => 'admin',
             'details' => 'Item updated',
+            'table_name' => 'tools_equipment',
+            'record_id' => $item->id,
         ]);
 
         // Log to system logs

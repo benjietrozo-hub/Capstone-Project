@@ -17,6 +17,7 @@ class SystemLog extends Model
         'ip_address',
         'user_agent',
         'severity',
+        'reference_id',
     ];
 
     protected $casts = [

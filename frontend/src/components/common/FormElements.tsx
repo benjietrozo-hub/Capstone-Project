@@ -17,6 +17,9 @@ interface FormFieldProps {
   disabled?: boolean;
   options?: SelectOption[];
   rows?: number;
+  min?: string;
+  max?: string;
+  step?: string;
 }
 
 export function FormField({
@@ -31,6 +34,9 @@ export function FormField({
   disabled = false,
   options = null,
   rows = null,
+  min,
+  max,
+  step,
 }: FormFieldProps) {
   if (type === 'select') {
     return (
@@ -113,6 +119,9 @@ export function FormField({
         onChange={onChange}
         placeholder={placeholder}
         disabled={disabled}
+        min={min}
+        max={max}
+        step={step}
         className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 ${
           error ? 'border-red-600' : 'border-gray-300'
         }`}

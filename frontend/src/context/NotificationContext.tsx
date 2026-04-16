@@ -51,13 +51,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
 
-  console.log('[NotificationContext] Initialized with:', { 
-    hasToken: !!token, 
-    role, 
-    userId: user?.id,
-    userEmail: user?.email 
-  });
-
   // Initialize WebSocket
   const { addListener, removeListener } = useWebSocket(user?.id, role);
 
@@ -66,19 +59,14 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     try {
       setLoading(true);
-      console.log('[NotificationContext] Fetching notifications for role:', role);
       const response = await axiosInstance.get(`/${role}/notifications`, {
         params: { user_type: role }
       });
 
-      console.log('[NotificationContext] Response:', response.data);
-
       if (response.data.success) {
         const notifs = response.data.data.data || response.data.data || [];
-        console.log('[NotificationContext] Parsed notifications:', notifs.length, 'items');
         setNotifications(notifs);
         const unread = notifs.filter((n: Notification) => !n.is_read).length;
-        console.log('[NotificationContext] Unread count:', unread);
         setUnreadCount(unread);
       }
     } catch (error) {
@@ -183,8 +171,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   // Handle incoming WebSocket notifications
   useEffect(() => {
     const handleNotification = (data: any) => {
-      console.log('Received notification via WebSocket:', data);
-      
       // Create notification object from WebSocket data
       const notification: Notification = {
         id: data.id || Date.now(), // Use timestamp as fallback ID
@@ -212,7 +198,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
           label: 'View',
           onClick: () => {
             // This will be handled by the notification click in the dropdown
-            console.log('View notification:', notification.id);
           },
         },
       });
@@ -228,14 +213,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   // Fetch notifications on mount
   useEffect(() => {
     if (token && user?.id) {
-      console.log('[NotificationContext] Fetching notifications on mount');
       fetchNotifications();
       fetchUnreadCount();
-    } else {
-      console.log('[NotificationContext] Skipping fetch - missing token or user ID', { 
-        hasToken: !!token, 
-        hasUserId: !!user?.id 
-      });
     }
   }, [token, user?.id, fetchNotifications, fetchUnreadCount]);
 

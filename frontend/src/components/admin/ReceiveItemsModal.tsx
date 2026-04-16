@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../../api/axios';
+import { adminAPI } from '../../api';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '../ui/dialog';
 import { toast } from 'sonner';
 
@@ -36,17 +37,33 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({
 
   const fetchPODetails = async () => {
     try {
-      const response = await axios.get(`/admin/purchase-orders/${poId}`);
-      setPO(response.data);
+      console.log('Fetching PO details for ID:', poId);
+      const response = await adminAPI.getPurchaseOrder(poId);
+      console.log('PO response:', response);
+      
+      setPO(response.data.data);
       
       // Initialize received quantities
       const initialQuantities: { [key: number]: number } = {};
-      response.data.items?.forEach((item: any) => {
+      response.data.data.items?.forEach((item: any) => {
         initialQuantities[item.id] = 0;
       });
       setReceivedQuantities(initialQuantities);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to fetch purchase order details');
+      console.error('Error fetching PO details:', error);
+      
+      if (error.response?.status === 404) {
+        toast.error(`Purchase Order #${poId} not found. It may have been deleted or doesn't exist.`);
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to fetch purchase order details');
+      }
+      
+      // Close modal on 404 error
+      if (error.response?.status === 404) {
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      }
     }
   };
 
@@ -74,7 +91,7 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({
 
     setLoading(true);
     try {
-      await axios.post(`/admin/purchase-orders/${poId}/receive`, { items });
+      await adminAPI.receivePurchaseOrderItems(poId, { items });
       toast.success('Items received successfully');
       onSuccess();
       onClose();
@@ -89,6 +106,12 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Loading Purchase Order</DialogTitle>
+            <DialogDescription>
+              Please wait while we load the purchase order details...
+            </DialogDescription>
+          </DialogHeader>
           <div className="flex justify-center items-center py-8">
             <p>Loading...</p>
           </div>
@@ -102,6 +125,9 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Receive Items - {po.po_number}</DialogTitle>
+          <DialogDescription>
+            Enter the quantities received for each item in this purchase order.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

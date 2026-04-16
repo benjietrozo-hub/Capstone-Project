@@ -6,6 +6,9 @@ import { useEffect, useRef } from 'react';
  */
 export const useWebSocket = (userId, userType) => {
     const wsRef = useRef(null);
+    const reconnectAttemptsRef = useRef(0);
+    const maxReconnectAttempts = 0; // Disabled - no reconnection attempts
+    const connectionStateRef = useRef('disabled'); // Start as disabled
     const callbacksRef = useRef({
         notification: [],
         stats_update: [],
@@ -43,64 +46,9 @@ export const useWebSocket = (userId, userType) => {
     };
 
     const connect = () => {
-        if (!window.WEBSOCKET_ENABLED) {
-            console.log('WebSocket disabled, using polling fallback');
-            return;
-        }
-
-        // Close existing connection if any
-        if (wsRef.current) {
-            wsRef.current.close();
-            wsRef.current = null;
-        }
-
-        try {
-            const wsUrl = window.WEBSOCKET_URL || 'ws://localhost:8080';
-            console.log('Connecting to WebSocket:', wsUrl);
-            
-            wsRef.current = new WebSocket(wsUrl);
-
-            wsRef.current.onopen = () => {
-                console.log('WebSocket connected successfully');
-                if (userId && userType) {
-                    wsRef.current.send(JSON.stringify({
-                        type: 'register',
-                        user_id: userId,
-                        user_type: userType
-                    }));
-                }
-                triggerCallbacks('connected');
-            };
-
-            wsRef.current.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    console.log('WebSocket message received:', data);
-                    handleMessage(data);
-                } catch (e) {
-                    console.error('WebSocket message parse error:', e);
-                }
-            };
-
-            wsRef.current.onclose = (event) => {
-                console.log('WebSocket disconnected, code:', event.code, 'reason:', event.reason);
-                triggerCallbacks('disconnected');
-                
-                // Auto-reconnect after 3 seconds if not a normal closure
-                if (event.code !== 1000) {
-                    setTimeout(() => {
-                        console.log('Attempting to reconnect...');
-                        connect();
-                    }, 3000);
-                }
-            };
-
-            wsRef.current.onerror = (error) => {
-                console.error('WebSocket error:', error);
-            };
-        } catch (error) {
-            console.error('WebSocket connection failed:', error);
-        }
+        // WebSocket is completely disabled to prevent all errors
+        connectionStateRef.current = 'disabled';
+        return;
     };
 
     const handleMessage = (data) => {
@@ -121,27 +69,25 @@ export const useWebSocket = (userId, userType) => {
                 triggerCallbacks('log_update', data.log);
                 break;
             default:
-                console.log('Unknown message type:', data.type);
+                // Unknown message type - ignore
         }
     };
 
     const disconnect = () => {
-        if (wsRef.current) {
-            wsRef.current.close();
-            wsRef.current = null;
-        }
+        // WebSocket is disabled - no disconnect needed
+        return;
     };
 
     useEffect(() => {
-        connect();
-
+        // WebSocket is disabled - no connection attempt
         return () => {
-            disconnect();
+            // No cleanup needed
         };
     }, [userId, userType]);
 
     return {
         isConnected: wsRef.current?.readyState === WebSocket.OPEN,
+        connectionState: connectionStateRef.current,
         addListener,
         removeListener,
         connect,

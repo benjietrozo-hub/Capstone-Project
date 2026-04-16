@@ -11,24 +11,25 @@ class BorrowRequest extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'request_code',
         'teacher_id',
         'item_id',
         'quantity_requested',
         'purpose',
-        'borrow_date',
+        'date_requested',
+        'date_needed',
         'expected_return_date',
-        'actual_return_date',
         'status',
         'admin_notes',
-        'condition_before',
-        'condition_after',
-        'deleted_by',
+        'approved_by',
+        'issued_by',
+        'received_by',
     ];
 
     protected $casts = [
-        'borrow_date' => 'date',
-        'expected_return_date' => 'date',
-        'actual_return_date' => 'date',
+        'date_requested' => 'date:Y-m-d',
+        'date_needed' => 'date:Y-m-d',
+        'expected_return_date' => 'date:Y-m-d',
         'quantity_requested' => 'integer',
     ];
 
