@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { adminAPI } from '../../api';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, formatDateTime } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
+import { Eye, Download, FileText } from 'lucide-react';
+import { exportToCSV, generateRequestPDF } from '../../utils/exportUtils';
 
 interface BorrowRequest {
   id: number;
@@ -13,10 +15,14 @@ interface BorrowRequest {
   };
   item?: {
     item_name: string;
+    item_code?: string;
   };
   quantity_requested: number;
   status: string;
   created_at: string;
+  expected_return_date?: string;
+  purpose?: string;
+  admin_notes?: string;
 }
 
 interface ApprovalForm {
@@ -36,6 +42,8 @@ export function BorrowRequestsPage() {
   const [selectedRequest, setSelectedRequest] = useState<BorrowRequest | null>(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedViewRequest, setSelectedViewRequest] = useState<BorrowRequest | null>(null);
   const [approvalForm, setApprovalForm] = useState<ApprovalForm>({
     quantity_approved: '',
     expected_return_date: '',
@@ -117,6 +125,37 @@ export function BorrowRequestsPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    const formattedData = requests.map(req => ({
+      'Request ID': req.request_code || `REQ-${req.id}`,
+      'Teacher': req.teacher?.full_name || 'N/A',
+      'Item Name': req.item?.item_name || 'N/A',
+      'Quantity': req.quantity_requested,
+      'Status': req.status,
+      'Date Requested': req.created_at ? formatDateTime(req.created_at) : 'N/A',
+      'Expected Return': req.expected_return_date ? formatDate(req.expected_return_date) : 'N/A',
+    }));
+    exportToCSV(formattedData, 'Borrow_Requests');
+  };
+
+  const handleDownloadPDF = () => {
+    if (!selectedViewRequest) return;
+    
+    generateRequestPDF({
+      id: selectedViewRequest.id,
+      request_code: selectedViewRequest.request_code,
+      teacher_name: selectedViewRequest.teacher?.full_name,
+      item_name: selectedViewRequest.item?.item_name,
+      item_code: selectedViewRequest.item?.item_code,
+      quantity: selectedViewRequest.quantity_requested,
+      status: selectedViewRequest.status,
+      date_requested: selectedViewRequest.created_at,
+      expected_return: selectedViewRequest.expected_return_date,
+      purpose: selectedViewRequest.purpose,
+      admin_notes: selectedViewRequest.admin_notes
+    });
+  };
+
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'pending': return 'badge-warning';
@@ -151,21 +190,31 @@ export function BorrowRequestsPage() {
       <div className="p-6">
         <div className="card" style={{ marginBottom: '24px' }}>
           <div className="card-body">
-          <div style={{ marginBottom: '20px' }}>
-            <label className="form-label">Filter by Status</label>
-            <select
-              className="form-control"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              style={{ maxWidth: '250px' }}
+          <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <div>
+              <label className="form-label">Filter by Status</label>
+              <select
+                className="form-control"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                style={{ maxWidth: '250px' }}
+              >
+                <option value="">All Requests</option>
+                <option value="pending">⏳ Pending</option>
+                <option value="approved">✓ Approved</option>
+                <option value="borrowed">📤 Borrowed</option>
+                <option value="returned">📥 Returned</option>
+                <option value="rejected">✕ Rejected</option>
+              </select>
+            </div>
+            <button
+              onClick={handleExportCSV}
+              className="btn btn-outline-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '14px', border: '1px solid #667eea', color: '#667eea', borderRadius: '6px', background: 'transparent', cursor: 'pointer' }}
             >
-              <option value="">All Requests</option>
-              <option value="pending">⏳ Pending</option>
-              <option value="approved">✓ Approved</option>
-              <option value="borrowed">📤 Borrowed</option>
-              <option value="returned">📥 Returned</option>
-              <option value="rejected">✕ Rejected</option>
-            </select>
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
@@ -201,10 +250,20 @@ export function BorrowRequestsPage() {
                       </span>
                     </td>
                     <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px' }}>
-                      {formatDate(req.created_at)}
+                      {formatDateTime(req.created_at)}
                     </td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => {
+                            setSelectedViewRequest(req);
+                            setShowViewModal(true);
+                          }}
+                          className="btn btn-primary"
+                          style={{ padding: '4px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '4px' }}
+                        >
+                          <Eye className="w-3 h-3" /> View
+                        </button>
                         {req.status === 'pending' && (
                           <>
                             <button
@@ -328,7 +387,7 @@ export function BorrowRequestsPage() {
               maxHeight: '450px'
             }}>
               <form onSubmit={handleApprove} id="approveForm">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                <div style={{ marginBottom: '12px' }}>
                   <div>
                     <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '12px' }}>
                       Quantity <span style={{ color: '#dc3545' }}>*</span>
@@ -350,22 +409,6 @@ export function BorrowRequestsPage() {
                         Max: {selectedRequest.quantity_requested}
                       </div>
                     ) : null}
-                  </div>
-
-                  <div>
-                    <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '12px' }}>
-                      Return Date <span style={{ color: '#dc3545' }}>*</span>
-                    </label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={approvalForm.expected_return_date}
-                      onChange={(e) =>
-                        setApprovalForm({ ...approvalForm, expected_return_date: e.target.value })
-                      }
-                      required
-                      style={{ fontSize: '12px', padding: '5px 8px' }}
-                    />
                   </div>
                 </div>
 
@@ -538,6 +581,148 @@ export function BorrowRequestsPage() {
                 }}
               >
                 Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Modal */}
+      {showViewModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '10px'
+        }}>
+          <div className="card" style={{ 
+            maxWidth: '500px', 
+            width: '100%',
+            height: 'auto',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div className="card-header" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 16px',
+              borderBottom: '1px solid #e9ecef'
+            }}>
+              <h5 style={{ margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Eye className="w-5 h-5" style={{ color: '#667eea' }} />
+                Request Details
+              </h5>
+              <button
+                onClick={() => setShowViewModal(false)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666' }}
+              >×</button>
+            </div>
+            
+            <div style={{ padding: '16px', overflowY: 'auto' }}>
+              {selectedViewRequest && (
+                <div style={{ background: '#f8f9fa', padding: '16px', borderRadius: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px' }}>
+                    <div>
+                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Request Code</span>
+                      <strong style={{ color: '#333' }}>{selectedViewRequest.request_code}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Status</span>
+                      <span className={`badge ${getStatusColor(selectedViewRequest.status)}`}>
+                        {selectedViewRequest.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Teacher</span>
+                      <strong style={{ color: '#333' }}>{selectedViewRequest.teacher?.full_name || 'N/A'}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Item</span>
+                      <strong style={{ color: '#333' }}>{selectedViewRequest.item?.item_name || 'N/A'}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Quantity</span>
+                      <strong style={{ color: '#333' }}>{selectedViewRequest.quantity_requested}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Date Requested</span>
+                      <strong style={{ color: '#333' }}>{formatDateTime(selectedViewRequest.created_at)}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Expected Return</span>
+                      <strong style={{ color: '#333' }}>
+                        {selectedViewRequest.expected_return_date ? formatDate(selectedViewRequest.expected_return_date) : 'N/A'}
+                      </strong>
+                    </div>
+                  </div>
+                  
+                  {selectedViewRequest.purpose && (
+                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e9ecef' }}>
+                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '4px' }}>Purpose</span>
+                      <div style={{ background: '#fff', padding: '8px', border: '1px solid #e9ecef', borderRadius: '4px', fontSize: '13px' }}>
+                        {selectedViewRequest.purpose}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedViewRequest.admin_notes && (
+                    <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e9ecef' }}>
+                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '4px' }}>Admin Notes</span>
+                      <div style={{ background: '#fff', padding: '8px', border: '1px solid #e9ecef', borderRadius: '4px', fontSize: '13px' }}>
+                        {selectedViewRequest.admin_notes}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '16px',
+              borderTop: '1px solid #e9ecef',
+              background: '#fff'
+            }}>
+              <button
+                onClick={handleDownloadPDF}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  fontSize: '14px',
+                  color: '#667eea',
+                  border: '1px solid #667eea',
+                  borderRadius: '6px',
+                  background: 'transparent',
+                  cursor: 'pointer'
+                }}
+              >
+                <FileText className="w-4 h-4" /> Download PDF
+              </button>
+              <button
+                onClick={() => setShowViewModal(false)}
+                style={{
+                  padding: '8px 24px',
+                  fontSize: '14px',
+                  color: '#fff',
+                  background: '#343a40',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
               </button>
             </div>
           </div>

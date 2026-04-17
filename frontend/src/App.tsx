@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { WebSocketProvider } from './context/WebSocketContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
@@ -66,242 +67,244 @@ function App() {
       v7_relativeSplatPath: true 
     }}>
       <AuthProvider>
-        <NotificationProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        <WebSocketProvider>
+          <NotificationProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          {/* Admin Routes */}
-          <Route
-            path="/admin/*"
-            element={
-              <Routes>
-                <Route
-                  path="dashboard"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <AdminDashboard />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="inventory"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <InventoryPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="requests"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <BorrowRequestsPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="reservations"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <ReservationsPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="teachers"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <TeachersPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="logs"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <LogsPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="reports"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <ReportsPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="purchase-orders/:id/print"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <PurchaseOrderPrint />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="purchase-orders"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <PurchaseOrdersPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="suppliers"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <SuppliersPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="distribution"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <DistributionListPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="bulk-distributions"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <BulkDistributionsPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="trash"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ProtectedLayout>
-                        <TrashPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<Navigate to="/admin/dashboard" />} />
-              </Routes>
-            }
-          />
+              {/* Admin Routes */}
+              <Route
+                path="/admin/*"
+                element={
+                  <Routes>
+                    <Route
+                      path="dashboard"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <AdminDashboard />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="inventory"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <InventoryPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="requests"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <BorrowRequestsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="reservations"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <ReservationsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="teachers"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <TeachersPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="logs"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <LogsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="reports"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <ReportsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="purchase-orders/:id/print"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <PurchaseOrderPrint />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="purchase-orders"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <PurchaseOrdersPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="suppliers"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <SuppliersPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="distribution"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <DistributionListPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="bulk-distributions"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <BulkDistributionsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="trash"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <TrashPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="*" element={<Navigate to="/admin/dashboard" />} />
+                  </Routes>
+                }
+              />
 
-          {/* Teacher Routes */}
-          <Route
-            path="/teacher/*"
-            element={
-              <Routes>
-                <Route
-                  path="dashboard"
-                  element={
-                    <ProtectedRoute requiredRole="teacher">
-                      <ProtectedLayout>
-                        <TeacherDashboard />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="inventory"
-                  element={
-                    <ProtectedRoute requiredRole="teacher">
-                      <ProtectedLayout>
-                        <BrowseInventoryPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="reservations"
-                  element={
-                    <ProtectedRoute requiredRole="teacher">
-                      <ProtectedLayout>
-                        <MyReservationsPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="activity-logs"
-                  element={
-                    <ProtectedRoute requiredRole="teacher">
-                      <ProtectedLayout>
-                        <ActivityLogsPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="distribution-groups"
-                  element={
-                    <ProtectedRoute requiredRole="teacher">
-                      <ProtectedLayout>
-                        <DistributionGroupsPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="distribution-requests"
-                  element={
-                    <ProtectedRoute requiredRole="teacher">
-                      <ProtectedLayout>
-                        <DistributionRequestsPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="my-requests"
-                  element={
-                    <ProtectedRoute requiredRole="teacher">
-                      <ProtectedLayout>
-                        <MyRequestsPage />
-                      </ProtectedLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<Navigate to="/teacher/dashboard" />} />
-              </Routes>
-            }
-          />
+              {/* Teacher Routes */}
+              <Route
+                path="/teacher/*"
+                element={
+                  <Routes>
+                    <Route
+                      path="dashboard"
+                      element={
+                        <ProtectedRoute requiredRole="teacher">
+                          <ProtectedLayout>
+                            <TeacherDashboard />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="inventory"
+                      element={
+                        <ProtectedRoute requiredRole="teacher">
+                          <ProtectedLayout>
+                            <BrowseInventoryPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="reservations"
+                      element={
+                        <ProtectedRoute requiredRole="teacher">
+                          <ProtectedLayout>
+                            <MyReservationsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="activity-logs"
+                      element={
+                        <ProtectedRoute requiredRole="teacher">
+                          <ProtectedLayout>
+                            <ActivityLogsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="distribution-groups"
+                      element={
+                        <ProtectedRoute requiredRole="teacher">
+                          <ProtectedLayout>
+                            <DistributionGroupsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="distribution-requests"
+                      element={
+                        <ProtectedRoute requiredRole="teacher">
+                          <ProtectedLayout>
+                            <DistributionRequestsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="my-requests"
+                      element={
+                        <ProtectedRoute requiredRole="teacher">
+                          <ProtectedLayout>
+                            <MyRequestsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="*" element={<Navigate to="/teacher/dashboard" />} />
+                  </Routes>
+                }
+              />
 
-          {/* Default Routes */}
-          <Route path="/" element={<RoleBasedRedirect />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-        </NotificationProvider>
+              {/* Default Routes */}
+              <Route path="/" element={<RoleBasedRedirect />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </NotificationProvider>
+        </WebSocketProvider>
       </AuthProvider>
     </BrowserRouter>
   );

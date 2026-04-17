@@ -14,7 +14,23 @@ if not exist "%~dp0vendor" (
     echo.
     echo Installing dependencies...
     cd "%~dp0"
-    composer install
+    composer install --no-interaction
+    echo.
+    if errorlevel 1 (
+        echo Failed to install dependencies!
+        pause
+        exit /b 1
+    )
+)
+
+REM Check if vendor/autoload.php exists (verify installation)
+if not exist "%~dp0vendor\autoload.php" (
+    echo ERROR: Composer autoload file not found!
+    echo.
+    echo Reinstalling dependencies...
+    cd "%~dp0"
+    rmdir /s /q vendor 2>nul
+    composer install --no-interaction
     echo.
     if errorlevel 1 (
         echo Failed to install dependencies!

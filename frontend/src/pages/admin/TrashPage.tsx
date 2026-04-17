@@ -1,35 +1,34 @@
 import { useState, useEffect } from 'react';
-import { Trash2, RefreshCw, AlertTriangle, Search, Filter, Archive } from 'lucide-react';
+import { Archive, RefreshCw, AlertTriangle, Search, Filter, Trash2 } from 'lucide-react';
 import { adminAPI } from '@/api';
 
-interface TrashItem {
+interface ArchivedItem {
   id: number;
   type: string;
   name: string;
   code: string;
   category?: string;
-  deleted_at: string;
-  deleted_by: string;
+  archived_at: string;
+  archived_by: string;
   details: Record<string, any>;
 }
 
-interface TrashStats {
+interface ArchiveStats {
   inventory: number;
   suppliers: number;
   purchase_orders: number;
   borrow_requests: number;
   distribution_groups: number;
+  teachers: number;
   total: number;
 }
 
 const TrashPage = () => {
-  const [trashedItems, setTrashedItems] = useState<TrashItem[]>([]);
-  const [stats, setStats] = useState<TrashStats | null>(null);
+  const [archivedItems, setArchivedItems] = useState<ArchivedItem[]>([]);
+  const [stats, setStats] = useState<ArchiveStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItems, setSelectedItems] = useState<number[]>([]);
-  const [showEmptyConfirm, setShowEmptyConfirm] = useState(false);
 
   const typeLabels: Record<string, string> = {
     all: 'All Items',
@@ -38,6 +37,7 @@ const TrashPage = () => {
     purchase_order: 'Purchase Orders',
     borrow_request: 'Borrow Requests',
     distribution_group: 'Distribution Groups',
+    teacher: 'Teachers',
   };
 
   const typeBadgeColors: Record<string, string> = {
@@ -46,23 +46,24 @@ const TrashPage = () => {
     purchase_order: 'bg-purple-100 text-purple-800',
     borrow_request: 'bg-orange-100 text-orange-800',
     distribution_group: 'bg-pink-100 text-pink-800',
+    teacher: 'bg-teal-100 text-teal-800',
   };
 
   useEffect(() => {
-    fetchTrashData();
+    fetchArchiveData();
     fetchStats();
   }, [selectedType, searchQuery]);
 
-  const fetchTrashData = async () => {
+  const fetchArchiveData = async () => {
     try {
       setLoading(true);
-      const response = await adminAPI.getTrash({
+      const response = await (adminAPI as any).getArchive({
         type: selectedType,
-        search: searchQuery
+        search: searchQuery,
       });
-      setTrashedItems(response.data.data || []);
+      setArchivedItems(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching trash:', error);
+      console.error('Error fetching archive:', error);
     } finally {
       setLoading(false);
     }
@@ -70,7 +71,7 @@ const TrashPage = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await adminAPI.getTrashStats();
+      const response = await (adminAPI as any).getArchiveStats();
       setStats(response.data.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -79,41 +80,13 @@ const TrashPage = () => {
 
   const handleRestore = async (type: string, id: number) => {
     if (!confirm('Are you sure you want to restore this item?')) return;
-
     try {
-      await adminAPI.restoreFromTrash(type, id);
-      fetchTrashData();
+      await (adminAPI as any).restoreFromArchive(type, id);
+      fetchArchiveData();
       fetchStats();
     } catch (error) {
       console.error('Error restoring item:', error);
       alert('Failed to restore item');
-    }
-  };
-
-  const handlePermanentDelete = async (type: string, id: number) => {
-    if (!confirm('Are you sure you want to permanently delete this item? This action cannot be undone!')) return;
-
-    try {
-      await adminAPI.deleteFromTrash(type, id);
-      fetchTrashData();
-      fetchStats();
-    } catch (error) {
-      console.error('Error deleting item:', error);
-      alert('Failed to delete item');
-    }
-  };
-
-  const handleEmptyTrash = async () => {
-    if (!confirm('Are you sure you want to empty the entire trash? This will permanently delete all items and cannot be undone!')) return;
-
-    try {
-      await adminAPI.emptyTrash(selectedType);
-      setShowEmptyConfirm(false);
-      fetchTrashData();
-      fetchStats();
-    } catch (error) {
-      console.error('Error emptying trash:', error);
-      alert('Failed to empty trash');
     }
   };
 
@@ -135,30 +108,21 @@ const TrashPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Trash2 className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Archive className="w-6 h-6 text-white" />
                 </div>
-                Trash
+                Archive
               </h1>
-              <p className="text-gray-600 mt-2">Manage deleted items and restore or permanently delete them</p>
+              <p className="text-gray-600 mt-2">Manage archived items — restore them to their original location</p>
             </div>
-            {stats && stats.total > 0 && (
-              <button
-                onClick={() => setShowEmptyConfirm(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Empty Trash
-              </button>
-            )}
           </div>
         </div>
 
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-              <div className="text-sm text-gray-600">Total Items</div>
+              <div className="text-sm text-gray-600">Total</div>
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
@@ -178,8 +142,12 @@ const TrashPage = () => {
               <div className="text-2xl font-bold text-orange-600">{stats.borrow_requests}</div>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-              <div className="text-sm text-gray-600">Distribution Groups</div>
+              <div className="text-sm text-gray-600">Groups</div>
               <div className="text-2xl font-bold text-pink-600">{stats.distribution_groups}</div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-600">Teachers</div>
+              <div className="text-2xl font-bold text-teal-600">{stats.teachers}</div>
             </div>
           </div>
         )}
@@ -192,10 +160,10 @@ const TrashPage = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search deleted items..."
+                  placeholder="Search archived items..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -204,7 +172,7 @@ const TrashPage = () => {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               >
                 <option value="all">All Types</option>
                 <option value="inventory">Inventory</option>
@@ -212,54 +180,43 @@ const TrashPage = () => {
                 <option value="purchase_orders">Purchase Orders</option>
                 <option value="borrow_requests">Borrow Requests</option>
                 <option value="distribution_groups">Distribution Groups</option>
+                <option value="teachers">Teachers</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* Trash Items */}
+        {/* Archived Items Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           {loading ? (
             <div className="p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-600 mt-4">Loading trash...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div>
+              <p className="text-gray-600 mt-4">Loading archive...</p>
             </div>
-          ) : trashedItems.length === 0 ? (
+          ) : archivedItems.length === 0 ? (
             <div className="p-12 text-center">
               <Archive className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Trash is empty</h3>
-              <p className="text-gray-600">No deleted items found</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Archive is empty</h3>
+              <p className="text-gray-600">No archived items found</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Code
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Deleted At
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Deleted By
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Archived At</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Archived By</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {trashedItems.map((item) => (
+                  {archivedItems.map((item) => (
                     <tr key={`${item.type}-${item.id}`} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${typeBadgeColors[item.type]}`}>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${typeBadgeColors[item.type] || 'bg-gray-100 text-gray-800'}`}>
                           {typeLabels[item.type] || item.type}
                         </span>
                       </td>
@@ -273,25 +230,19 @@ const TrashPage = () => {
                         <div className="text-sm text-gray-900">{item.code}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{formatDate(item.deleted_at)}</div>
+                        <div className="text-sm text-gray-900">{formatDate(item.archived_at)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{item.deleted_by}</div>
+                        <div className="text-sm text-gray-900">{item.archived_by}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleRestore(item.type, item.id)}
-                          className="text-green-600 hover:text-green-900 mr-4"
+                          className="inline-flex items-center gap-1 text-green-600 hover:text-green-900 mr-4 px-2 py-1 rounded hover:bg-green-50 transition-colors"
                           title="Restore"
                         >
-                          <RefreshCw className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handlePermanentDelete(item.type, item.id)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Permanently Delete"
-                        >
-                          <Trash2 className="w-5 h-5" />
+                          <RefreshCw className="w-4 h-4" />
+                          <span className="text-xs">Restore</span>
                         </button>
                       </td>
                     </tr>
@@ -302,37 +253,6 @@ const TrashPage = () => {
           )}
         </div>
       </div>
-
-      {/* Empty Trash Confirmation Modal */}
-      {showEmptyConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Empty Trash?</h3>
-            </div>
-            <p className="text-gray-600 mb-6">
-              This will permanently delete all items in the trash. This action cannot be undone!
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowEmptyConfirm(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleEmptyTrash}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Empty Trash
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

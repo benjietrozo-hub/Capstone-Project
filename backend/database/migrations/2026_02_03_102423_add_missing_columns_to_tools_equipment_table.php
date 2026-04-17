@@ -27,13 +27,17 @@ return new class extends Migration
             }
         });
         
-        // Generate item codes for existing items
+        // Generate item codes for existing items that don't have one
         DB::statement("UPDATE tools_equipment SET item_code = CONCAT('ITEM', LPAD(id, 4, '0')) WHERE item_code IS NULL");
         
-        // Make item_code unique after populating
-        Schema::table('tools_equipment', function (Blueprint $table) {
-            $table->unique('item_code');
-        });
+        // Check if unique constraint already exists before adding it
+        $indexExists = DB::select("SHOW INDEXES FROM tools_equipment WHERE Key_name = 'tools_equipment_item_code_unique'");
+        
+        if (empty($indexExists)) {
+            Schema::table('tools_equipment', function (Blueprint $table) {
+                $table->unique('item_code');
+            });
+        }
     }
 
     /**

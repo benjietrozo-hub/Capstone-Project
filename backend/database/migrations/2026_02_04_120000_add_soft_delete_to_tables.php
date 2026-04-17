@@ -24,9 +24,8 @@ return new class extends Migration
             $table->foreign('deleted_by')->references('id')->on('admins')->onDelete('set null');
         });
 
-        // Add soft delete to borrow_requests
+        // borrow_requests already has deleted_at, just add deleted_by
         Schema::table('borrow_requests', function (Blueprint $table) {
-            $table->softDeletes();
             $table->unsignedBigInteger('deleted_by')->nullable();
             $table->foreign('deleted_by')->references('id')->on('admins')->onDelete('set null');
         });
@@ -68,7 +67,7 @@ return new class extends Migration
 
         Schema::table('borrow_requests', function (Blueprint $table) {
             $table->dropForeign(['deleted_by']);
-            $table->dropColumn(['deleted_at', 'deleted_by']);
+            $table->dropColumn('deleted_by');
         });
 
         Schema::table('tools_equipment', function (Blueprint $table) {

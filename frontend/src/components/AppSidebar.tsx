@@ -18,6 +18,7 @@ import {
   Activity,
   Truck,
   Trash2,
+  Archive,
   Send
 } from "lucide-react";
 
@@ -51,7 +52,7 @@ const adminItems: MenuItem[] = [
   { title: "User Management", url: "/admin/teachers", icon: Users },
   { title: "Activity Logs", url: "/admin/logs", icon: Activity },
   { title: "Reports", url: "/admin/reports", icon: FileText },
-  { title: "Trash", url: "/admin/trash", icon: Trash2 },
+  { title: "Archive", url: "/admin/trash", icon: Archive },
 ];
 
 const teacherItems: MenuItem[] = [

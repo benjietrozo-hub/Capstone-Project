@@ -12,12 +12,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('distribution_groups', function (Blueprint $table) {
-            $table->string('list_type')->default('user')->after('group_type');
-            $table->string('visibility')->default('private')->after('list_type');
-            $table->integer('created_by')->nullable()->after('visibility');
-            $table->boolean('auto_membership')->default(false)->after('created_by');
-            $table->string('department')->nullable()->after('auto_membership');
-            $table->integer('deleted_by')->nullable()->after('department');
+            // Check if columns already exist before adding
+            if (!Schema::hasColumn('distribution_groups', 'list_type')) {
+                $table->string('list_type')->default('user')->after('group_type');
+            }
+            if (!Schema::hasColumn('distribution_groups', 'visibility')) {
+                $table->string('visibility')->default('private')->after('list_type');
+            }
+            if (!Schema::hasColumn('distribution_groups', 'created_by')) {
+                $table->unsignedBigInteger('created_by')->nullable()->after('visibility');
+            }
+            if (!Schema::hasColumn('distribution_groups', 'auto_membership')) {
+                $table->boolean('auto_membership')->default(false)->after('created_by');
+            }
+            if (!Schema::hasColumn('distribution_groups', 'department')) {
+                $table->string('department')->nullable()->after('auto_membership');
+            }
+            if (!Schema::hasColumn('distribution_groups', 'deleted_by')) {
+                $table->unsignedBigInteger('deleted_by')->nullable()->after('department');
+            }
         });
     }
 

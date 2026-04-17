@@ -11,7 +11,7 @@ use App\Http\Controllers\API\Admin\DashboardController as AdminDashboardControll
 use App\Http\Controllers\API\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\API\Admin\SystemLogController;
 use App\Http\Controllers\API\Admin\DistributionListController;
-use App\Http\Controllers\API\Admin\TrashController;
+use App\Http\Controllers\API\Admin\ArchiveController;
 use App\Http\Controllers\API\DistributionGroupController;
 use App\Http\Controllers\API\PurchaseOrderController;
 use App\Http\Controllers\API\SupplierController;
@@ -109,12 +109,12 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::delete('/distribution/groups/{id}', [DistributionListController::class, 'deleteGroup']);
     Route::get('/distribution/export', [DistributionListController::class, 'export']);
     
-    // Trash Management
-    Route::get('/trash', [TrashController::class, 'index']);
-    Route::get('/trash/stats', [TrashController::class, 'stats']);
-    Route::post('/trash/{type}/{id}/restore', [TrashController::class, 'restore']);
-    Route::delete('/trash/{type}/{id}', [TrashController::class, 'forceDelete']);
-    Route::delete('/trash/empty', [TrashController::class, 'emptyTrash']);
+    // Archive Management
+    Route::get('/archive', [ArchiveController::class, 'index']);
+    Route::get('/archive/stats', [ArchiveController::class, 'stats']);
+    Route::delete('/archive/empty', [ArchiveController::class, 'emptyArchive']);
+    Route::post('/archive/{type}/{id}/restore', [ArchiveController::class, 'restore']);
+    Route::delete('/archive/{type}/{id}', [ArchiveController::class, 'forceDelete']);
     
     // Item Distributions
     Route::get('/distributions', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'index']);

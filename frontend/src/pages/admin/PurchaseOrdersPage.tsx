@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Check, X, Package, Printer, Download } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Archive, Check, X, Package, Printer, Download } from 'lucide-react';
 import axios from '../../api/axios';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -123,15 +123,15 @@ const PurchaseOrdersPage: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this purchase order?')) return;
+    if (!confirm('Are you sure you want to archive this purchase order?')) return;
     
     try {
       await axios.delete(`/admin/purchase-orders/${id}`);
-      toast.success('Purchase order deleted successfully');
+      toast.success('Purchase order archived successfully');
       fetchPurchaseOrders();
       fetchStatistics();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to delete purchase order');
+      toast.error(error.response?.data?.message || 'Failed to archive purchase order');
     }
   };
 
@@ -368,10 +368,10 @@ const PurchaseOrdersPage: React.FC = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(po.id)}
-                          title="Delete"
-                          className="text-red-600 hover:text-red-700"
+                          title="Archive"
+                          className="text-amber-600 hover:text-amber-700"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Archive className="w-4 h-4" />
                         </Button>
                       </div>
                     </td>

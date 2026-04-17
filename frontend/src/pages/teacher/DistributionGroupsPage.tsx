@@ -9,7 +9,8 @@ import CreateDistributionGroupModal from '../../components/teacher/CreateDistrib
 import ManageGroupMembersModal from '../../components/teacher/ManageGroupMembersModal';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
-import axios from 'axios';
+import { toast } from 'sonner';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface DistributionGroup {
   id: number;
@@ -21,6 +22,7 @@ interface DistributionGroup {
   description: string;
   is_active: boolean;
   created_by: number | null;
+  teachers_count: number;
   teachers: any[];
   creator: any;
   created_at: string;
@@ -30,6 +32,11 @@ const DistributionGroupsPage: React.FC = () => {
   const [groups, setGroups] = useState<DistributionGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'system' | 'user'>('all');
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    total: 0
+  });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<DistributionGroup | null>(null);
   const [showMembersModal, setShowMembersModal] = useState(false);
@@ -39,7 +46,7 @@ const DistributionGroupsPage: React.FC = () => {
   useEffect(() => {
     fetchGroups();
     fetchCurrentUser();
-  }, [filter]);
+  }, [filter, pagination.currentPage]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -55,18 +62,27 @@ const DistributionGroupsPage: React.FC = () => {
   const fetchGroups = async () => {
     try {
       setLoading(true);
-      const params = filter !== 'all' ? { list_type: filter } : {};
+      const params = {
+        list_type: filter !== 'all' ? filter : undefined,
+        page: pagination.currentPage,
+        per_page: 9
+      };
       const response = await teacherAPI.getDistributionGroups(params);
-      setGroups(response.data.data || []);
+      const { data, current_page, last_page, total } = response.data.data;
+      setGroups(data || []);
+      setPagination({
+        currentPage: current_page,
+        lastPage: last_page,
+        total: total
+      });
     } catch (error: any) {
       console.error('Error fetching distribution groups:', error);
-      console.error('Error response:', error.response);
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to fetch distribution groups',
+        description: 'Failed to fetch distribution groups',
         variant: 'destructive',
       });
-      setGroups([]); // Set empty array on error
+      setGroups([]);
     } finally {
       setLoading(false);
     }
@@ -176,7 +192,10 @@ const DistributionGroupsPage: React.FC = () => {
           System Groups ({systemGroups.length})
         </button>
         <button
-          onClick={() => setFilter('user')}
+          onClick={() => {
+            setFilter('user');
+            setPagination(prev => ({ ...prev, currentPage: 1 }));
+          }}
           className={`px-4 py-2 font-medium transition-colors ${
             filter === 'user'
               ? 'text-blue-600 border-b-2 border-blue-600'
@@ -217,7 +236,7 @@ const DistributionGroupsPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{group.group_name}</h3>
-                    <p className="text-sm text-gray-600">{group.teachers.length} members</p>
+                    <p className="text-sm text-gray-600">{group.teachers_count} members</p>
                   </div>
                 </div>
                 {group.visibility === 'private' ? (
@@ -266,6 +285,47 @@ const DistributionGroupsPage: React.FC = () => {
               </div>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!loading && pagination.lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={pagination.currentPage === 1}
+            onClick={() => setPagination(prev => ({ ...prev, currentPage: 1 }))}
+          >
+            <ChevronsLeft className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={pagination.currentPage === 1}
+            onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-sm font-medium px-4">
+            Page {pagination.currentPage} of {pagination.lastPage}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={pagination.currentPage === pagination.lastPage}
+            onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={pagination.currentPage === pagination.lastPage}
+            onClick={() => setPagination(prev => ({ ...prev, currentPage: pagination.lastPage }))}
+          >
+            <ChevronsRight className="w-4 h-4" />
+          </Button>
         </div>
       )}
 

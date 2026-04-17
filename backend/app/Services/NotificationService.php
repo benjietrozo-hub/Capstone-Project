@@ -19,8 +19,8 @@ class NotificationService
             'type' => $type,
             'title' => $title,
             'message' => $message,
-            'reference_id' => $relatedId,
-            'related_table' => $relatedType,
+            'related_id' => $relatedId,
+            'related_type' => $relatedType,
             'is_read' => false,
         ]);
 
@@ -55,20 +55,28 @@ class NotificationService
             $users = collect();
         }
 
+        $notificationData = [];
         foreach ($users as $user) {
-            Notification::create([
+            $notificationData[] = [
                 'user_id' => $user->id,
                 'user_type' => $userType,
                 'type' => $type,
                 'title' => $title,
                 'message' => $message,
-                'reference_id' => $relatedId,
-                'related_table' => $relatedType,
+                'related_id' => $relatedId,
+                'related_type' => $relatedType,
                 'is_read' => false,
-            ]);
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
         }
 
-        // Also broadcast via WebSocket for real-time updates
+        if (!empty($notificationData)) {
+            Notification::insert($notificationData);
+        }
+
+        // 2. Broadcast via WebSocket IMMEDIATELY for real-time updates
+        // This is prioritized over emails
         WebSocketBroadcaster::broadcastToUserType($userType, [
             'type' => $type,
             'title' => $title,
@@ -78,7 +86,7 @@ class NotificationService
             'timestamp' => now()->toISOString(),
         ]);
 
-        // Send email notifications to all users
+        // 3. Send email notifications to all users (now queued in background)
         EmailNotificationService::broadcastEmail($userType, $type, $title, $message, $relatedId, $relatedType);
     }
 

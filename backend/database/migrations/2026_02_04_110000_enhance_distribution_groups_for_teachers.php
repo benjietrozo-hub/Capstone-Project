@@ -12,12 +12,9 @@ return new class extends Migration
         Schema::table('distribution_groups', function (Blueprint $table) {
             $table->string('list_type')->default('system')->after('group_type'); // system / user
             $table->string('visibility')->default('shared')->after('list_type'); // private / shared
-            $table->integer('created_by')->nullable()->after('visibility'); // teacher_id who created it
+            $table->foreignId('created_by')->nullable()->constrained('teachers')->onDelete('set null')->after('visibility'); // teacher_id who created it
             $table->boolean('auto_membership')->default(false)->after('created_by'); // future-proofing
             $table->string('department')->nullable()->after('auto_membership'); // for department-based lists
-            
-            // Add foreign key for created_by
-            $table->foreign('created_by')->references('id')->on('teachers')->onDelete('set null');
         });
 
         // Create system default distribution groups

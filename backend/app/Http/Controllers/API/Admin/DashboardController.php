@@ -13,12 +13,17 @@ class DashboardController extends Controller
     public function index()
     {
         return response()->json([
-            'total_items' => DB::table('tools_equipment')->count(),
-            'available_items' => DB::table('tools_equipment')->sum('quantity_available'),
-            'borrowed_items' => DB::table('tools_equipment')->sum('quantity_borrowed'),
-            'total_teachers' => DB::table('teachers')->where('status', 'active')->count(),
-            'pending_requests' => DB::table('borrow_requests')->where('status', 'pending')->count(),
-            'overdue_items' => DB::table('borrow_requests')->where('status', 'approved')->where('due_date', '<', now())->count(),
+            'total_items' => (int) DB::table('tools_equipment')->sum('quantity_total'),
+            'available_items' => (int) DB::table('tools_equipment')->sum('quantity_available'),
+            'borrowed_items' => (int) DB::table('tools_equipment')->sum('quantity_borrowed'),
+            'total_teachers' => (int) DB::table('teachers')->where('status', 'active')->count(),
+            'pending_requests' => (int) DB::table('borrow_requests')->where('status', 'pending')->count(),
+            'overdue_items' => (int) DB::table('borrow_requests')
+                ->where('status', 'approved')
+                ->where('expected_return_date', '<', now())
+                ->count(),
+            'total_logs' => (int) DB::table('system_logs')->count(),
+            'total_reports' => (int) DB::table('reports')->count(),
         ]);
     }
 

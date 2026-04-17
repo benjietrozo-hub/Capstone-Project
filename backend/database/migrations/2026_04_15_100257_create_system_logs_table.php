@@ -11,20 +11,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('system_logs', function (Blueprint $table) {
-            $table->id();
-            $table->string('log_type')->nullable();
-            $table->string('user_type')->nullable();
-            $table->unsignedBigInteger('user_id')->nullable();
-            $table->string('user_name')->nullable();
-            $table->string('action')->nullable();
-            $table->text('description')->nullable();
-            $table->string('ip_address')->nullable();
-            $table->text('user_agent')->nullable();
-            $table->string('severity')->nullable();
-            $table->json('metadata')->nullable();
-            $table->timestamps();
-        });
+        // system_logs table already exists from earlier migration, skip
+        if (!Schema::hasTable('system_logs')) {
+            Schema::create('system_logs', function (Blueprint $table) {
+                $table->id();
+                $table->string('log_type')->nullable();
+                $table->string('user_type')->nullable();
+                $table->unsignedBigInteger('user_id')->nullable();
+                $table->string('user_name')->nullable();
+                $table->string('action')->nullable();
+                $table->text('description')->nullable();
+                $table->string('ip_address')->nullable();
+                $table->text('user_agent')->nullable();
+                $table->string('severity')->nullable();
+                $table->json('metadata')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

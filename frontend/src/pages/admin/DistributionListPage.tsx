@@ -9,12 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/useDebounce";
 import CreateGroupModal from "@/components/admin/CreateGroupModal";
 import ViewGroupModal from "@/components/admin/ViewGroupModal";
 import ManageGroupMembersModal from "@/components/admin/ManageGroupMembersModal";
 import CreateDistributionModal from "@/components/admin/CreateDistributionModal";
 import ReturnDistributionModal from "@/components/admin/ReturnDistributionModal";
 import ViewDistributionRequestModal from "@/components/admin/ViewDistributionRequestModal";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 interface Teacher {
   id: number;
@@ -176,13 +178,30 @@ interface DistributionRequestStats {
 
 export default function DistributionListPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [filteredTeachers, setFilteredTeachers] = useState<Teacher[]>([]);
   const [groups, setGroups] = useState<DistributionGroup[]>([]);
+  const [allGroups, setAllGroups] = useState<DistributionGroup[]>([]);
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [departments, setDepartments] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Pagination state for Teachers
+  const [teacherPagination, setTeacherPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+    perPage: 10
+  });
+
+  // Pagination state for Groups
+  const [groupPagination, setGroupPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+    perPage: 10
+  });
+  
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 500);
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
@@ -212,24 +231,23 @@ export default function DistributionListPage() {
   const [selectedRequest, setSelectedRequest] = useState<DistributionRequest | null>(null);
 
   useEffect(() => {
-    fetchData();
+    fetchTeachers();
+  }, [debouncedSearch, selectedDepartment, selectedStatus, selectedGroup, teacherPagination.currentPage]);
+
+  useEffect(() => {
+    fetchGroups();
+  }, [groupPagination.currentPage]);
+
+  useEffect(() => {
+    fetchStatsAndDepts();
     fetchDistributions();
     fetchDistributionRequests();
   }, []);
 
-  useEffect(() => {
-    filterTeachers();
-  }, [teachers, searchQuery, selectedDepartment, selectedStatus, selectedGroup]);
-
-  const fetchData = async () => {
+  const fetchStatsAndDepts = async () => {
     try {
-      setLoading(true);
       const token = localStorage.getItem("token");
-      
-      const [teachersRes, statsRes, deptRes, groupsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
+      const [statsRes, deptRes, allGroupsRes] = await Promise.all([
         axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution/statistics`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
@@ -237,65 +255,85 @@ export default function DistributionListPage() {
           headers: { Authorization: `Bearer ${token}` }
         }),
         axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution/groups`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          params: { all: true }
         })
       ]);
-
-      setTeachers(teachersRes.data.data);
       setStatistics(statsRes.data.data);
       setDepartments(deptRes.data.data);
-      setGroups(groupsRes.data.data);
+      setAllGroups(allGroupsRes.data.data);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
+
+  const fetchTeachers = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: {
+          page: teacherPagination.currentPage,
+          per_page: teacherPagination.perPage,
+          search: debouncedSearch,
+          department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
+          status: selectedStatus !== 'all' ? selectedStatus : undefined,
+          group_id: selectedGroup || undefined
+        }
+      });
+      
+      const { data, current_page, last_page, total } = response.data.data;
+      setTeachers(data);
+      setTeacherPagination(prev => ({ ...prev, currentPage: current_page, lastPage: last_page, total }));
     } catch (error: any) {
-      console.error("Error fetching data:", error);
-      toast.error(error.response?.data?.message || "Failed to load distribution list");
+      console.error("Error fetching teachers:", error);
+      toast.error("Failed to load teachers");
     } finally {
       setLoading(false);
     }
   };
 
-  const filterTeachers = () => {
-    let filtered = [...teachers];
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(t =>
-        t.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.employee_id.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  const fetchGroups = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution/groups`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: {
+          page: groupPagination.currentPage,
+          per_page: groupPagination.perPage
+        }
+      });
+      
+      const { data, current_page, last_page, total } = response.data.data;
+      setGroups(data);
+      setGroupPagination(prev => ({ ...prev, currentPage: current_page, lastPage: last_page, total }));
+    } catch (error) {
+      console.error("Error fetching groups:", error);
     }
-
-    // Department filter
-    if (selectedDepartment !== "all") {
-      filtered = filtered.filter(t => t.department === selectedDepartment);
-    }
-
-    // Status filter
-    if (selectedStatus !== "all") {
-      filtered = filtered.filter(t => t.status === selectedStatus);
-    }
-
-    // Group filter
-    if (selectedGroup) {
-      const group = groups.find(g => g.id === selectedGroup);
-      if (group && group.teachers) {
-        const groupTeacherIds = group.teachers.map(t => t.id);
-        filtered = filtered.filter(t => groupTeacherIds.includes(t.id));
-      }
-    }
-
-    setFilteredTeachers(filtered);
   };
 
   
   const handleExport = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
       
-      // Determine what data to export based on filters
-      let dataToExport = filteredTeachers;
+      // Fetch ALL matching teachers for export
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: {
+          all: true,
+          search: debouncedSearch,
+          department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
+          status: selectedStatus !== 'all' ? selectedStatus : undefined,
+          group_id: selectedGroup || undefined
+        }
+      });
+
+      const dataToExport = response.data.data;
       
-      if (dataToExport.length === 0) {
+      if (!dataToExport || dataToExport.length === 0) {
         toast.error("No data to export");
         return;
       }
@@ -422,10 +460,10 @@ export default function DistributionListPage() {
   };
 
   const handleSelectAll = () => {
-    if (selectedTeachers.length === filteredTeachers.length) {
+    if (selectedTeachers.length === teachers.length) {
       setSelectedTeachers([]);
     } else {
-      setSelectedTeachers(filteredTeachers.map(t => t.id));
+      setSelectedTeachers(teachers.map(t => t.id));
     }
   };
 
@@ -727,7 +765,7 @@ export default function DistributionListPage() {
             <Building2 className="w-4 h-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{groups.length}</div>
+            <div className="text-2xl font-bold text-purple-600">{groupPagination.total}</div>
           </CardContent>
         </Card>
       </div>
@@ -786,7 +824,7 @@ export default function DistributionListPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Groups</SelectItem>
-                    {groups.map(group => (
+                    {allGroups.map(group => (
                       <SelectItem key={group.id} value={group.id.toString()}>
                         {group.group_name} ({group.teachers_count})
                       </SelectItem>
@@ -797,19 +835,21 @@ export default function DistributionListPage() {
 
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
                 <div className="text-sm text-gray-600">
-                  Showing {filteredTeachers.length} of {teachers.length} teachers
+                  Showing {teachers.length} of {teacherPagination.total} teachers
                   {selectedTeachers.length > 0 && ` • ${selectedTeachers.length} selected`}
                 </div>
-                <Button variant="outline" size="sm" onClick={handleSelectAll}>
-                  {selectedTeachers.length === filteredTeachers.length ? "Deselect All" : "Select All"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                    {selectedTeachers.length === teachers.length ? "Deselect All" : "Select All"}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Teachers Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTeachers.map((teacher) => (
+            {teachers.map((teacher) => (
               <Card key={teacher.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
@@ -858,7 +898,7 @@ export default function DistributionListPage() {
             ))}
           </div>
 
-          {filteredTeachers.length === 0 && (
+          {teachers.length === 0 && (
             <Card>
               <CardContent className="py-12 text-center">
                 <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -867,6 +907,45 @@ export default function DistributionListPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Teacher Pagination */}
+          <div className="flex items-center justify-center gap-2 mt-6">
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={teacherPagination.currentPage === 1}
+              onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: 1 }))}
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={teacherPagination.currentPage === 1}
+              onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-sm font-medium px-4">
+              Page {teacherPagination.currentPage} of {teacherPagination.lastPage}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={teacherPagination.currentPage === teacherPagination.lastPage}
+              onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={teacherPagination.currentPage === teacherPagination.lastPage}
+              onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: teacherPagination.lastPage }))}
+            >
+              <ChevronsRight className="w-4 h-4" />
+            </Button>
+          </div>
         </TabsContent>
 
         {/* Distribution Groups Tab */}
@@ -920,6 +999,47 @@ export default function DistributionListPage() {
               </Card>
             ))}
           </div>
+
+          {/* Group Pagination */}
+          {groupPagination.lastPage > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={groupPagination.currentPage === 1}
+                onClick={() => setGroupPagination(prev => ({ ...prev, currentPage: 1 }))}
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={groupPagination.currentPage === 1}
+                onClick={() => setGroupPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-medium px-4">
+                Page {groupPagination.currentPage} of {groupPagination.lastPage}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={groupPagination.currentPage === groupPagination.lastPage}
+                onClick={() => setGroupPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={groupPagination.currentPage === groupPagination.lastPage}
+                onClick={() => setGroupPagination(prev => ({ ...prev, currentPage: groupPagination.lastPage }))}
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
         </TabsContent>
 
         {/* Item Distributions Tab */}

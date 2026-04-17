@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('item_distributions', function (Blueprint $table) {
             $table->id();
-            $table->integer('item_id');
-            $table->integer('teacher_id');
-            $table->unsignedBigInteger('distributed_by');
+            $table->foreignId('item_id')->constrained('tools_equipment')->onDelete('cascade');
+            $table->foreignId('teacher_id')->constrained('teachers')->onDelete('cascade');
+            $table->foreignId('distributed_by')->constrained('admins')->onDelete('cascade');
             $table->integer('quantity_distributed');
             $table->enum('status', ['active', 'returned', 'cancelled'])->default('active');
             $table->date('distribution_date');
@@ -28,11 +28,6 @@ return new class extends Migration
             $table->enum('condition_on_return', ['excellent', 'good', 'fair', 'poor'])->nullable();
             $table->timestamps();
             $table->softDeletes();
-            
-            // Foreign keys
-            $table->foreign('item_id')->references('id')->on('tools_equipment')->onDelete('cascade');
-            $table->foreign('teacher_id')->references('id')->on('teachers')->onDelete('cascade');
-            $table->foreign('distributed_by')->references('id')->on('admins')->onDelete('cascade');
             
             // Indexes
             $table->index('status');

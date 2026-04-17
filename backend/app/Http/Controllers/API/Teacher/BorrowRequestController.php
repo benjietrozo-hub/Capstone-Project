@@ -106,8 +106,7 @@ class BorrowRequestController extends Controller
         $br->load(['item', 'teacher']);
         
         // Notify all admins about new borrow request
-        // TEMPORARILY DISABLED TO FIX CORS ISSUE
-        // NotificationService::notifyBorrowRequestCreated($br);
+        NotificationService::notifyBorrowRequestCreated($br);
         
         return response()->json([
             'success' => true,

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         // Distribution Groups Table
         Schema::create('distribution_groups', function (Blueprint $table) {
-            $table->integer('id', true, true); // unsigned integer auto-increment
+            $table->id(); // bigint unsigned auto-increment
             $table->string('group_name');
             $table->string('group_type'); // department, grade_level, role, custom
             $table->text('description')->nullable();
@@ -20,14 +20,12 @@ return new class extends Migration
 
         // Distribution Group Members Table (Many-to-Many)
         Schema::create('distribution_group_members', function (Blueprint $table) {
-            $table->integer('id', true, true); // unsigned integer auto-increment
-            $table->integer('group_id', false, true); // unsigned integer
-            $table->integer('teacher_id', false, true); // unsigned integer
+            $table->id(); // bigint unsigned auto-increment
+            $table->foreignId('group_id')->constrained('distribution_groups')->onDelete('cascade');
+            $table->foreignId('teacher_id')->constrained('teachers')->onDelete('cascade');
             $table->timestamps();
             
             $table->unique(['group_id', 'teacher_id']);
-            $table->foreign('group_id')->references('id')->on('distribution_groups')->onDelete('cascade');
-            $table->foreign('teacher_id')->references('id')->on('teachers')->onDelete('cascade');
         });
     }
 

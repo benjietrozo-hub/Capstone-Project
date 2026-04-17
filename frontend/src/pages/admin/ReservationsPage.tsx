@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Package, ClipboardList, CheckCircle, XCircle } from 'lucide-react';
+import { Package, ClipboardList, CheckCircle, XCircle, Eye, Download, FileText } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { exportToCSV, generateRequestPDF } from '../../utils/exportUtils';
 
 interface BorrowRequest {
   id: number;
@@ -24,7 +25,9 @@ interface BorrowRequest {
   };
   quantity_requested: number;
   status: string;
-  borrow_date: string;
+  borrow_date?: string;
+  created_at?: string;
+  date_requested?: string;
   expected_return_date?: string;
   actual_return_date?: string;
   admin_notes?: string;
@@ -52,6 +55,8 @@ export function ReservationsPage() {
   const [selectedRequest, setSelectedRequest] = useState<BorrowRequest | null>(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedViewRequest, setSelectedViewRequest] = useState<BorrowRequest | null>(null);
   const [approvalForm, setApprovalForm] = useState<ApprovalForm>({
     quantity_approved: 0,
     expected_return_date: '',
@@ -164,6 +169,39 @@ export function ReservationsPage() {
     }
   };
 
+  const handleExportCSV = (data: BorrowRequest[], filename: string) => {
+    const formattedData = data.map(req => ({
+      'Request ID': `REQ-${req.id}`,
+      'Teacher': req.teacher?.full_name || 'N/A',
+      'Employee ID': req.teacher?.employee_id || 'N/A',
+      'Item Name': req.item?.item_name || 'N/A',
+      'Item Code': req.item?.item_code || 'N/A',
+      'Quantity': req.quantity_requested,
+      'Status': req.status,
+      'Date Requested': req.created_at ? new Date(req.created_at).toLocaleString() : 'N/A',
+      'Expected Return': req.expected_return_date ? new Date(req.expected_return_date).toLocaleDateString() : 'N/A',
+    }));
+    exportToCSV(formattedData, filename);
+  };
+
+  const handleDownloadPDF = () => {
+    if (!selectedViewRequest) return;
+    
+    generateRequestPDF({
+      id: selectedViewRequest.id,
+      teacher_name: selectedViewRequest.teacher?.full_name,
+      employee_id: selectedViewRequest.teacher?.employee_id,
+      item_name: selectedViewRequest.item?.item_name,
+      item_code: selectedViewRequest.item?.item_code,
+      quantity: selectedViewRequest.quantity_requested,
+      status: selectedViewRequest.status,
+      date_requested: selectedViewRequest.created_at,
+      expected_return: selectedViewRequest.expected_return_date,
+      purpose: selectedViewRequest.purpose,
+      admin_notes: selectedViewRequest.admin_notes
+    });
+  };
+
   const handleReturn = async (id: number) => {
     if (!confirm('Mark this item as returned?')) return;
     
@@ -242,13 +280,23 @@ export function ReservationsPage() {
                   </div>
                 ) : (
                   <div>
-                    <div style={{ marginBottom: '20px' }}>
-                      <h5 style={{ margin: 0, color: '#667eea' }}>
-                        Currently Borrowed Items ({borrowedItems.length})
-                      </h5>
-                      <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>
-                        Items that have been issued and are currently with teachers
-                      </p>
+                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h5 style={{ margin: 0, color: '#667eea' }}>
+                          Currently Borrowed Items ({borrowedItems.length})
+                        </h5>
+                        <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>
+                          Items that have been issued and are currently with teachers
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleExportCSV(borrowedItems, 'Borrowed_Items')}
+                        className="btn btn-outline-primary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '14px', border: '1px solid #667eea', color: '#667eea', borderRadius: '6px', background: 'transparent', cursor: 'pointer' }}
+                      >
+                        <Download className="w-4 h-4" />
+                        Export CSV
+                      </button>
                     </div>
 
                 <div style={{ overflowX: 'auto' }}>
@@ -301,7 +349,9 @@ export function ReservationsPage() {
                             {item.quantity_requested}
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px' }}>
-                            {item.borrow_date ? new Date(item.borrow_date).toLocaleDateString() : 'N/A'}
+                            {item.created_at 
+                              ? new Date(item.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) 
+                              : 'N/A'}
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px' }}>
                             {item.expected_return_date ? (
@@ -338,13 +388,25 @@ export function ReservationsPage() {
                             ) : 'N/A'}
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
-                            <button
-                              onClick={() => handleReturn(item.id)}
-                              className="btn btn-success"
-                              style={{ padding: '6px 12px', fontSize: '12px' }}
-                            >
-                              📥 Mark as Returned
-                            </button>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                              <button
+                                onClick={() => {
+                                  setSelectedViewRequest(item);
+                                  setShowViewModal(true);
+                                }}
+                                className="btn btn-primary"
+                                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '4px' }}
+                              >
+                                <Eye className="w-3 h-3" /> View
+                              </button>
+                              <button
+                                onClick={() => handleReturn(item.id)}
+                                className="btn btn-success"
+                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                              >
+                                📥 Return
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -371,13 +433,23 @@ export function ReservationsPage() {
                   </div>
                 ) : (
                   <div>
-                    <div style={{ marginBottom: '20px' }}>
-                      <h5 style={{ margin: 0, color: '#667eea' }}>
-                        Pending Borrow Requests ({requests.length})
-                      </h5>
-                      <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>
-                        New requests waiting for approval
-                      </p>
+                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h5 style={{ margin: 0, color: '#667eea' }}>
+                          Pending Borrow Requests ({requests.length})
+                        </h5>
+                        <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>
+                          New requests waiting for approval
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleExportCSV(requests, 'Borrow_Requests')}
+                        className="btn btn-outline-primary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '14px', border: '1px solid #667eea', color: '#667eea', borderRadius: '6px', background: 'transparent', cursor: 'pointer' }}
+                      >
+                        <Download className="w-4 h-4" />
+                        Export CSV
+                      </button>
                     </div>
 
                 <div style={{ overflowX: 'auto' }}>
@@ -429,10 +501,22 @@ export function ReservationsPage() {
                             {req.quantity_requested}
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px' }}>
-                            {new Date(req.borrow_date).toLocaleDateString()}
+                            {req.created_at 
+                              ? new Date(req.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) 
+                              : 'N/A'}
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                              <button
+                                onClick={() => {
+                                  setSelectedViewRequest(req);
+                                  setShowViewModal(true);
+                                }}
+                                className="btn btn-primary"
+                                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '4px' }}
+                              >
+                                <Eye className="w-3 h-3" /> View
+                              </button>
                               <button
                                 onClick={() => {
                                   setSelectedRequest(req);
@@ -524,9 +608,19 @@ export function ReservationsPage() {
                       <div>
                         <span className="text-gray-600">Date Requested:</span>
                         <p className="font-semibold text-gray-900">
-                          {new Date(selectedRequest.borrow_date).toLocaleDateString()}
+                          {selectedRequest.created_at 
+                            ? new Date(selectedRequest.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) 
+                            : 'N/A'}
                         </p>
                       </div>
+                      {selectedRequest.expected_return_date && (
+                        <div>
+                          <span className="text-gray-600">Expected Return:</span>
+                          <p className="font-semibold text-gray-900">
+                            {new Date(selectedRequest.expected_return_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      )}
                     </div>
                     {selectedRequest.purpose && (
                       <div className="pt-2 border-t">
@@ -555,20 +649,6 @@ export function ReservationsPage() {
                     <p className="text-xs text-gray-500 mt-1">
                       Maximum: {selectedRequest?.quantity_requested}
                     </p>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="expected-return-date">Expected Return Date *</Label>
-                    <Input
-                      id="expected-return-date"
-                      type="date"
-                      value={approvalForm.expected_return_date}
-                      onChange={(e) =>
-                        setApprovalForm({ ...approvalForm, expected_return_date: e.target.value })
-                      }
-                      min={new Date().toISOString().split('T')[0]}
-                      required
-                    />
                   </div>
                   
                   <div>
@@ -695,6 +775,107 @@ export function ReservationsPage() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Modal */}
+        <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                <Eye className="w-5 h-5 text-blue-600" />
+                Request Details
+              </DialogTitle>
+              <DialogDescription>
+                View full details of the borrow request.
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedViewRequest && (
+              <div className="space-y-4 py-4">
+                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-500 block mb-1">Request ID</span>
+                      <span className="font-medium text-gray-900">#{selectedViewRequest.id}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block mb-1">Status</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        selectedViewRequest.status === 'pending' ? 'bg-amber-100 text-amber-800' :
+                        selectedViewRequest.status === 'borrowed' ? 'bg-blue-100 text-blue-800' :
+                        selectedViewRequest.status === 'returned' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {selectedViewRequest.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block mb-1">Teacher</span>
+                      <span className="font-medium text-gray-900">{selectedViewRequest.teacher?.full_name || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block mb-1">Employee ID</span>
+                      <span className="font-medium text-gray-900">{selectedViewRequest.teacher?.employee_id || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block mb-1">Item</span>
+                      <span className="font-medium text-gray-900">{selectedViewRequest.item?.item_name || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block mb-1">Item Code</span>
+                      <span className="font-medium text-gray-900">{selectedViewRequest.item?.item_code || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block mb-1">Quantity</span>
+                      <span className="font-medium text-gray-900">{selectedViewRequest.quantity_requested}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block mb-1">Date Requested</span>
+                      <span className="font-medium text-gray-900">
+                        {selectedViewRequest.created_at ? new Date(selectedViewRequest.created_at).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block mb-1">Expected Return</span>
+                      <span className="font-medium text-gray-900">
+                        {selectedViewRequest.expected_return_date ? new Date(selectedViewRequest.expected_return_date).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {selectedViewRequest.purpose && (
+                    <div className="pt-3 border-t border-gray-200 mt-3">
+                      <span className="text-gray-500 block mb-1">Purpose</span>
+                      <p className="text-sm text-gray-900 bg-white p-2 border rounded">{selectedViewRequest.purpose}</p>
+                    </div>
+                  )}
+
+                  {selectedViewRequest.admin_notes && (
+                    <div className="pt-3 border-t border-gray-200 mt-3">
+                      <span className="text-gray-500 block mb-1">Admin Notes</span>
+                      <p className="text-sm text-gray-900 bg-white p-2 border rounded">{selectedViewRequest.admin_notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter className="flex justify-between items-center w-full">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                onClick={handleDownloadPDF}
+              >
+                <FileText className="w-4 h-4" /> Download PDF
+              </Button>
+              <Button 
+                onClick={() => setShowViewModal(false)}
+                className="bg-gray-800 text-white hover:bg-gray-700"
+              >
+                Close
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

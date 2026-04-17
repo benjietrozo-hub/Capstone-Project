@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('distribution_logs', function (Blueprint $table) {
             $table->id();
-            $table->morphs('distributable'); // Can be BulkDistribution or ItemDistribution
-            $table->integer('teacher_id');
-            $table->integer('item_id');
+            $table->morphs('distributable'); // Can be BulkDistribution or ItemDistribution (already creates index)
+            $table->foreignId('teacher_id')->constrained('teachers')->onDelete('cascade');
+            $table->foreignId('item_id')->constrained('tools_equipment')->onDelete('cascade');
             $table->integer('quantity');
             $table->enum('action', ['created', 'processed', 'cancelled', 'returned', 'modified']);
             $table->text('description')->nullable();
@@ -27,16 +27,11 @@ return new class extends Migration
             $table->string('user_agent')->nullable();
             $table->timestamps();
             
-            // Foreign keys
-            $table->foreign('teacher_id')->references('id')->on('teachers')->onDelete('cascade');
-            $table->foreign('item_id')->references('id')->on('tools_equipment')->onDelete('cascade');
+            // Foreign key for performed_by (polymorphic, so we don't use constrained)
             $table->foreign('performed_by')->references('id')->on('admins')->onDelete('cascade');
             
-            // Indexes
-            $table->index(['distributable_type', 'distributable_id']);
+            // Indexes (morphs() already creates index for distributable_type and distributable_id)
             $table->index('action');
-            $table->index('teacher_id');
-            $table->index('item_id');
             $table->index('performed_by');
             $table->index('created_at');
         });

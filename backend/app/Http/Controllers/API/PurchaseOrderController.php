@@ -98,6 +98,9 @@ class PurchaseOrderController extends Controller
                 'reference_id' => $purchaseOrder->id
             ]);
 
+            // Notify all admins about new purchase order
+            \App\Services\NotificationService::notifyPurchaseOrderCreated($purchaseOrder);
+
             DB::commit();
 
             return response()->json([
@@ -344,6 +347,9 @@ class PurchaseOrderController extends Controller
                 'user_id' => auth()->id(),
                 'reference_id' => $purchaseOrder->id
             ]);
+
+            // Notify all admins about received items
+            \App\Services\NotificationService::notifyPurchaseOrderReceived($purchaseOrder);
 
             DB::commit();
 

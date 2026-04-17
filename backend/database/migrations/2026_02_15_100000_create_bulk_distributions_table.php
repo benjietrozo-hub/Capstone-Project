@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('bulk_distributions', function (Blueprint $table) {
             $table->id();
-            $table->integer('group_id');
-            $table->integer('item_id');
-            $table->unsignedBigInteger('distributed_by');
+            $table->foreignId('group_id')->constrained('distribution_groups')->onDelete('cascade');
+            $table->foreignId('item_id')->constrained('tools_equipment')->onDelete('cascade');
+            $table->foreignId('distributed_by')->constrained('admins')->onDelete('cascade');
             $table->integer('total_quantity');
             $table->integer('quantity_per_member');
             $table->enum('status', ['pending', 'processing', 'completed', 'cancelled'])->default('pending');
@@ -25,11 +25,6 @@ return new class extends Migration
             $table->date('expected_return_date')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            
-            // Foreign keys
-            $table->foreign('group_id')->references('id')->on('distribution_groups')->onDelete('cascade');
-            $table->foreign('item_id')->references('id')->on('tools_equipment')->onDelete('cascade');
-            $table->foreign('distributed_by')->references('id')->on('admins')->onDelete('cascade');
             
             // Indexes
             $table->index('status');

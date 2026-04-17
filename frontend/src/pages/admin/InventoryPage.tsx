@@ -607,19 +607,19 @@ const forceCloseModal = () => {
 
   const handleDeleteItem = async (id: number) => {
 
-    if (!confirm('Are you sure you want to delete this item?')) return;
+    if (!confirm('Are you sure you want to archive this item?')) return;
 
     try {
 
       await adminAPI.deleteInventory(id);
 
-      toast.success('Item deleted successfully');
+      toast.success('Item archived successfully');
 
       fetchItems();
 
     } catch (error) {
 
-      toast.error('Failed to delete item');
+      toast.error('Failed to archive item');
 
     }
 
@@ -974,11 +974,11 @@ const forceCloseModal = () => {
 
                       onClick={() => handleDeleteItem(item.id)}
 
-                      className="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors"
+                      className="flex-1 bg-amber-600 text-white px-3 py-2 rounded text-sm hover:bg-amber-700 transition-colors"
 
                     >
 
-                      Delete
+                      Archive
 
                     </button>
 
@@ -1106,13 +1106,13 @@ const forceCloseModal = () => {
 
                             onClick={() => handleDeleteItem(item.id)}
 
-                            className="btn btn-danger"
+                            className="btn btn-warning"
 
                             style={{ padding: '6px 12px', fontSize: '12px' }}
 
                           >
 
-                            Delete
+                            Archive
 
                           </button>
 

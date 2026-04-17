@@ -89,16 +89,16 @@ class TeacherManagementController extends Controller
         $teacher = Teacher::findOrFail($id);
         $teacherName = $teacher->first_name . ' ' . $teacher->last_name;
         $teacherId = $teacher->teacher_id;
-        
+
         $teacher->delete();
-        
+
         // Log activity
         $this->logActivity(
-            'teacher_deleted',
-            "Deleted teacher account: {$teacherName} ({$teacherId})",
+            'teacher_archived',
+            "Archived teacher account: {$teacherName} ({$teacherId})",
             'warning'
         );
-        
+
         return response()->json(null, 204);
     }
 

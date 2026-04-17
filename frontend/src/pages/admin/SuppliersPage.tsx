@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Search, Edit, Archive, Eye } from 'lucide-react';
 import axios from '../../api/axios';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -62,14 +62,14 @@ const SuppliersPage: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this supplier?')) return;
+    if (!confirm('Are you sure you want to archive this supplier?')) return;
 
     try {
       await axios.delete(`/admin/suppliers/${id}`);
-      toast.success('Supplier deleted successfully');
+      toast.success('Supplier archived successfully');
       fetchSuppliers();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to delete supplier');
+      toast.error(error.response?.data?.message || 'Failed to archive supplier');
     }
   };
 
@@ -199,10 +199,10 @@ const SuppliersPage: React.FC = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(supplier.id)}
-                          title="Delete"
-                          className="text-red-600 hover:text-red-700"
+                          title="Archive"
+                          className="text-amber-600 hover:text-amber-700"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Archive className="w-4 h-4" />
                         </Button>
                       </div>
                     </td>

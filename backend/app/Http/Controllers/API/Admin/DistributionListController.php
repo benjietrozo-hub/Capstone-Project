@@ -17,7 +17,12 @@ class DistributionListController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Teacher::query()->with('borrowRequests');
+            $query = Teacher::query();
+
+            // Fix N+1 issue by using withCount for active borrows
+            $query->withCount(['borrowRequests as active_borrows_count' => function($q) {
+                $q->whereIn('status', ['approved', 'borrowed']);
+            }]);
 
             // Filters
             if ($request->has('department') && $request->department !== 'all') {
@@ -28,38 +33,46 @@ class DistributionListController extends Controller
                 $query->where('status', $request->status);
             }
 
+            // Group filter
+            if ($request->has('group_id') && $request->group_id !== 'all') {
+                $query->whereHas('distributionGroups', function($q) use ($request) {
+                    $q->where('distribution_groups.id', $request->group_id);
+                });
+            }
+
             if ($request->has('search')) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
                       ->orWhere('last_name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('employee_id', 'like', "%{$search}%");
+                      ->orWhere('teacher_id', 'like', "%{$search}%");
                 });
             }
 
-            $teachers = $query->orderBy('last_name')->get();
+            // Support both pagination and full list (for export)
+            if ($request->has('all')) {
+                $teachers = $query->orderBy('last_name')->get();
+                $data = $teachers->map(function($teacher) {
+                    return $this->formatTeacherData($teacher);
+                });
+                return response()->json([
+                    'success' => true,
+                    'data' => $data
+                ]);
+            }
+
+            $perPage = $request->get('per_page', 10);
+            $teachers = $query->orderBy('last_name')->paginate($perPage);
+
+            // Map paginated items
+            $teachers->getCollection()->transform(function($teacher) {
+                return $this->formatTeacherData($teacher);
+            });
 
             return response()->json([
                 'success' => true,
-                'data' => $teachers->map(function($teacher) {
-                    return [
-                        'id' => $teacher->id,
-                        'teacher_id' => $teacher->teacher_id,
-                        'employee_id' => $teacher->employee_id,
-                        'full_name' => $teacher->full_name,
-                        'first_name' => $teacher->first_name,
-                        'middle_initial' => $teacher->middle_initial,
-                        'last_name' => $teacher->last_name,
-                        'email' => $teacher->email,
-                        'phone' => $teacher->phone,
-                        'department' => $teacher->department,
-                        'status' => $teacher->status,
-                        'last_login' => $teacher->last_login,
-                        'active_borrows_count' => $teacher->borrowRequests()
-                            ->whereIn('status', ['approved', 'borrowed'])->count(),
-                    ];
-                }),
+                'data' => $teachers
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -68,6 +81,28 @@ class DistributionListController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Helper to format teacher data consistently
+     */
+    private function formatTeacherData($teacher)
+    {
+        return [
+            'id' => $teacher->id,
+            'teacher_id' => $teacher->teacher_id,
+            'employee_id' => $teacher->teacher_id, // Map for frontend compatibility
+            'full_name' => $teacher->full_name,
+            'first_name' => $teacher->first_name,
+            'middle_initial' => $teacher->middle_initial,
+            'last_name' => $teacher->last_name,
+            'email' => $teacher->email,
+            'phone' => $teacher->phone,
+            'department' => $teacher->department,
+            'status' => $teacher->status,
+            'last_login' => $teacher->last_login,
+            'active_borrows_count' => $teacher->active_borrows_count ?? 0,
+        ];
     }
 
     // Get statistics
@@ -85,14 +120,9 @@ class DistributionListController extends Controller
                 ->pluck('count', 'department');
 
             // Only get active (non-deleted) groups with manual teacher count
-            $groups = DistributionGroup::with('teachers')
+            $groups = DistributionGroup::withCount('teachers')
                 ->where('is_active', true)
                 ->get();
-
-            // Add manual teachers_count to avoid SoftDeletes issues
-            $groups->each(function($group) {
-                $group->teachers_count = $group->teachers->count();
-            });
 
             return response()->json([
                 'success' => true,
@@ -139,24 +169,21 @@ class DistributionListController extends Controller
     }
 
     // Get all distribution groups
-    public function groups()
+    public function groups(Request $request)
     {
         try {
-            // Only get active (non-deleted) groups with manual teacher count
-            $groups = DistributionGroup::with(['teachers' => function($query) {
-                    $query->select('teachers.id', 'first_name', 'last_name', 'email', 'department');
-                }])
+            $query = DistributionGroup::withCount('teachers')
                 ->where('is_active', true)
-                ->orderBy('group_name')
-                ->get();
+                ->orderBy('group_name');
 
-            // Add manual teachers_count to avoid SoftDeletes issues
-            $groups->each(function($group) {
-                $group->teachers_count = $group->teachers->count();
-            });
+            if ($request->has('all')) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $query->get()
+                ]);
+            }
 
-            // Log the groups data for debugging
-            \Log::info('Groups data being returned: ' . json_encode($groups->toArray()));
+            $groups = $query->paginate($request->get('per_page', 10));
 
             return response()->json([
                 'success' => true,
@@ -365,13 +392,13 @@ class DistributionListController extends Controller
             SystemLog::create([
                 'admin_id' => auth()->id(),
                 'action' => 'delete_distribution_group',
-                'description' => "Moved distribution group to trash: {$groupName}",
+                'description' => "Archived distribution group: {$groupName}",
                 'ip_address' => request()->ip(),
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Distribution group moved to trash successfully'
+                'message' => 'Distribution group archived successfully'
             ]);
         } catch (\Exception $e) {
             \Log::error('Delete distribution group error: ' . $e->getMessage());

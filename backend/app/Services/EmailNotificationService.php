@@ -60,7 +60,8 @@ class EmailNotificationService
             ];
 
             // Send email
-            Mail::to($email)->send(new SystemNotificationMail($emailData));
+            // Queue email for background processing
+            Mail::to($email)->queue(new SystemNotificationMail($emailData));
 
             Log::info("Email notification sent to {$email} for type: {$type}");
             return true;

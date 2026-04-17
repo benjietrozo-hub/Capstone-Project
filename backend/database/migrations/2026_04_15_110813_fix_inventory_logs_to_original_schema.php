@@ -29,7 +29,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('inventory_logs', function (Blueprint $table) {
-            $table->integer('performed_by')->nullable()->after('action');
+            $table->unsignedBigInteger('performed_by')->nullable()->after('action');
             $table->dropColumn(['old_values', 'new_values', 'ip_address', 'user_agent']);
         });
     }

@@ -13,10 +13,12 @@ return new class extends Migration
     {
         Schema::table('teachers', function (Blueprint $table) {
             // Drop unique constraints to allow soft delete reuse
-            $table->dropIndex('username');
-            $table->dropIndex('email');
-            $table->dropIndex('employee_id');
-            $table->dropUnique('teachers_teacher_id_unique');
+            $table->dropUnique(['username']);
+            $table->dropUnique(['email']);
+            if (Schema::hasColumn('teachers', 'employee_id')) {
+                $table->dropUnique(['employee_id']);
+            }
+            $table->dropUnique(['teacher_id']);
         });
     }
 

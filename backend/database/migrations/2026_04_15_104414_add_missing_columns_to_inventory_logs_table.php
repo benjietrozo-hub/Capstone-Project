@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('inventory_logs', function (Blueprint $table) {
-            $table->integer('user_id')->after('action')->nullable();
+            $table->unsignedBigInteger('user_id')->after('action')->nullable();
             $table->string('table_name', 50)->after('user_type')->nullable();
-            $table->integer('record_id')->after('table_name')->nullable();
+            $table->unsignedBigInteger('record_id')->after('table_name')->nullable();
         });
     }
 

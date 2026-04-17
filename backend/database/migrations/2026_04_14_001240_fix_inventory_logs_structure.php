@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('inventory_logs', function (Blueprint $table) {
-            $table->unsignedBigInteger('item_id')->after('id')->nullable();
+            // item_id already exists from the original migration, skip adding it
+            if (!Schema::hasColumn('inventory_logs', 'item_id')) {
+                $table->unsignedBigInteger('item_id')->after('id')->nullable();
+            }
         });
     }
 

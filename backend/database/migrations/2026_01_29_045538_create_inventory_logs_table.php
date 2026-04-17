@@ -15,11 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('item_id')->constrained('tools_equipment')->onDelete('cascade');
             $table->string('action');
-            $table->integer('performed_by');
+            $table->unsignedBigInteger('performed_by');
             $table->string('user_type');
             $table->text('details')->nullable();
             $table->timestamps();
-            $table->index('item_id');
             $table->index('action');
             $table->index('created_at');
         });

@@ -173,21 +173,21 @@ export const adminAPI = {
   getDistributionRequestStats: () =>
     axiosInstance.get('/admin/distribution-requests/statistics'),
 
-  // Trash Management
-  getTrash: (params) =>
-    axiosInstance.get('/admin/trash', { params }),
+  // Archive Management
+  getArchive: (params) =>
+    axiosInstance.get('/admin/archive', { params }),
 
-  getTrashStats: () =>
-    axiosInstance.get('/admin/trash/stats'),
+  getArchiveStats: () =>
+    axiosInstance.get('/admin/archive/stats'),
 
-  restoreFromTrash: (type, id) =>
-    axiosInstance.post(`/admin/trash/${type}/${id}/restore`),
+  restoreFromArchive: (type, id) =>
+    axiosInstance.post(`/admin/archive/${type}/${id}/restore`),
 
-  deleteFromTrash: (type, id) =>
-    axiosInstance.delete(`/admin/trash/${type}/${id}`),
+  deleteFromArchive: (type, id) =>
+    axiosInstance.delete(`/admin/archive/${type}/${id}`),
 
-  emptyTrash: (type) =>
-    axiosInstance.delete('/admin/trash/empty', { params: { type } }),
+  emptyArchive: (type) =>
+    axiosInstance.delete('/admin/archive/empty', { params: { type } }),
 
   // Distribution Groups
   getDistributionGroups: (params) =>

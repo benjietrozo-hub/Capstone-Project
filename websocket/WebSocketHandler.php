@@ -17,8 +17,8 @@ class WebSocketHandler implements MessageComponentInterface {
     public function setLoop($loop) {
         $this->loop = $loop;
 
-        // Process queued messages every second
-        $this->loop->addPeriodicTimer(1, function() {
+        // Process queued messages every 100ms for near-instant relay
+        $this->loop->addPeriodicTimer(0.1, function() {
             $this->processQueuedMessages();
         });
     }
@@ -44,10 +44,20 @@ class WebSocketHandler implements MessageComponentInterface {
 
                 if ($userId && $userType) {
                     $key = "{$userId}_{$userType}";
-                    $this->users[$key] = $from;
+                    
+                    // Initialize array for this user if not exists
+                    if (!isset($this->users[$key])) {
+                        $this->users[$key] = [];
+                    }
+                    
+                    // Add this connection if not already in the array
+                    if (!in_array($from, $this->users[$key], true)) {
+                        $this->users[$key][] = $from;
+                    }
+                    
                     $from->userKey = $key;
 
-                    echo "[" . date('Y-m-d H:i:s') . "] User registered: {$key} (Connection: {$from->resourceId})\n";
+                    echo "[" . date('Y-m-d H:i:s') . "] User registered: {$key} (Total connections for user: " . count($this->users[$key]) . ")\n";
                     
                     // Send confirmation
                     $from->send(json_encode([
@@ -72,13 +82,23 @@ class WebSocketHandler implements MessageComponentInterface {
     }
 
     public function onClose(ConnectionInterface $conn) {
-        // Remove user from users map
+        // Remove user connection from users map
         if (isset($conn->userKey) && isset($this->users[$conn->userKey])) {
-            unset($this->users[$conn->userKey]);
-            echo "[" . date('Y-m-d H:i:s') . "] User disconnected: {$conn->userKey}\n";
+            $key = array_search($conn, $this->users[$conn->userKey], true);
+            if ($key !== false) {
+                unset($this->users[$conn->userKey][$key]);
+                
+                // If no more connections for this user, remove the key
+                if (empty($this->users[$conn->userKey])) {
+                    unset($this->users[$conn->userKey]);
+                    echo "[" . date('Y-m-d H:i:s') . "] Last connection for user {$conn->userKey} disconnected\n";
+                } else {
+                    echo "[" . date('Y-m-d H:i:s') . "] One connection for user {$conn->userKey} disconnected (Remaining: " . count($this->users[$conn->userKey]) . ")\n";
+                }
+            }
         }
 
-        // Remove connection
+        // Remove connection from general list
         $this->clients->detach($conn);
         echo "[" . date('Y-m-d H:i:s') . "] Connection {$conn->resourceId} has disconnected\n";
     }
@@ -94,8 +114,12 @@ class WebSocketHandler implements MessageComponentInterface {
     public function sendToUser($userId, $userType, $message) {
         $key = "{$userId}_{$userType}";
         if (isset($this->users[$key])) {
-            $this->users[$key]->send(json_encode($message));
-            return true;
+            $sent = 0;
+            foreach ($this->users[$key] as $conn) {
+                $conn->send(json_encode($message));
+                $sent++;
+            }
+            return $sent > 0;
         }
         return false;
     }
@@ -105,10 +129,12 @@ class WebSocketHandler implements MessageComponentInterface {
      */
     public function broadcastToUserType($userType, $message) {
         $sent = 0;
-        foreach ($this->users as $key => $conn) {
+        foreach ($this->users as $key => $connections) {
             if (strpos($key, "_{$userType}") !== false) {
-                $conn->send(json_encode($message));
-                $sent++;
+                foreach ($connections as $conn) {
+                    $conn->send(json_encode($message));
+                    $sent++;
+                }
             }
         }
         return $sent;
@@ -167,46 +193,46 @@ class WebSocketHandler implements MessageComponentInterface {
                             }
                         } elseif (isset($target['user_type'])) {
                             // Broadcast to all users of this type
-                            $sent = $this->broadcastToUserType($target['user_type'], [
+                            $sentCount = $this->broadcastToUserType($target['user_type'], [
                                 'type' => 'notification',
                                 'notification' => $data,
                                 'timestamp' => time()
                             ]);
-                            echo "[" . date('Y-m-d H:i:s') . "] Broadcasted notification to {$sent} {$target['user_type']} user(s)\n";
+                            echo "[" . date('Y-m-d H:i:s') . "] Broadcasted notification to {$sentCount} {$target['user_type']} connection(s)\n";
                         }
                         break;
 
                     case 'stats_update':
                         if (isset($target['user_type'])) {
-                            $sent = $this->broadcastToUserType($target['user_type'], [
+                            $sentCount = $this->broadcastToUserType($target['user_type'], [
                                 'type' => 'stats_update',
                                 'stats' => $data,
                                 'timestamp' => time()
                             ]);
-                            echo "[" . date('Y-m-d H:i:s') . "] Broadcasted stats update to {$sent} {$target['user_type']} user(s)\n";
+                            echo "[" . date('Y-m-d H:i:s') . "] Broadcasted stats update to {$sentCount} {$target['user_type']} connection(s)\n";
                         }
                         break;
 
                     case 'inventory_update':
                         if (isset($target['user_type'])) {
-                            $sent = $this->broadcastToUserType($target['user_type'], [
+                            $sentCount = $this->broadcastToUserType($target['user_type'], [
                                 'type' => 'inventory_update',
                                 'inventory' => $data,
                                 'timestamp' => time()
                             ]);
-                            echo "[" . date('Y-m-d H:i:s') . "] Broadcasted inventory update to {$sent} {$target['user_type']} user(s)\n";
+                            echo "[" . date('Y-m-d H:i:s') . "] Broadcasted inventory update to {$sentCount} {$target['user_type']} connection(s)\n";
                         }
                         break;
 
                     case 'request_update':
                         if (isset($target['user_id']) && isset($target['user_type'])) {
-                            $sent = $this->sendToUser($target['user_id'], $target['user_type'], [
+                            $this->sendToUser($target['user_id'], $target['user_type'], [
                                 'type' => 'request_update',
                                 'request' => $data,
                                 'timestamp' => time()
                             ]);
                         } elseif (isset($target['user_type'])) {
-                            $sent = $this->broadcastToUserType($target['user_type'], [
+                            $this->broadcastToUserType($target['user_type'], [
                                 'type' => 'request_update',
                                 'request' => $data,
                                 'timestamp' => time()
@@ -216,12 +242,14 @@ class WebSocketHandler implements MessageComponentInterface {
 
                     case 'log_update':
                         // Broadcast log updates to all admin users
-                        $sent = $this->broadcastToUserType('admin', [
+                        $sentCount = $this->broadcastToUserType('admin', [
                             'type' => 'log_update',
                             'log' => $data,
                             'timestamp' => time()
                         ]);
-                        echo "[" . date('Y-m-d H:i:s') . "] Broadcasted log update to {$sent} admin user(s)\n";
+                        if ($sentCount > 0) {
+                            echo "[" . date('Y-m-d H:i:s') . "] Broadcasted log update to {$sentCount} admin connection(s)\n";
+                        }
                         break;
                 }
             }

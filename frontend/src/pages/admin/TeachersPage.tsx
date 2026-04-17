@@ -210,13 +210,13 @@ export function TeachersPage() {
   };
 
   const handleDeleteTeacher = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this teacher?')) return;
+    if (!confirm('Are you sure you want to archive this teacher?')) return;
     try {
       await adminAPI.deleteTeacher(id);
-      toast.success('Teacher deleted successfully');
+      toast.success('Teacher archived successfully');
       fetchTeachers();
     } catch (error) {
-      toast.error('Failed to delete teacher');
+      toast.error('Failed to archive teacher');
     }
   };
 
@@ -263,9 +263,9 @@ export function TeachersPage() {
           </button>
           <button
             onClick={() => handleDeleteTeacher(row.id)}
-            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+            className="bg-amber-500 text-white px-3 py-1 rounded text-sm hover:bg-amber-600"
           >
-            Delete
+            Archive
           </button>
         </div>
       ),

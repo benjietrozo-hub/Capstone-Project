@@ -24,6 +24,8 @@ interface DashboardData {
   total_teachers: number;
   pending_requests: number;
   overdue_items: number;
+  total_logs: number;
+  total_reports: number;
 }
 
 export function AdminDashboard() {
@@ -35,6 +37,8 @@ export function AdminDashboard() {
     total_teachers: 0,
     pending_requests: 0,
     overdue_items: 0,
+    total_logs: 0,
+    total_reports: 0,
   });
   const [loading, setLoading] = useState(true);
   
@@ -126,7 +130,7 @@ export function AdminDashboard() {
       icon: ScrollText,
       url: "/admin/logs",
       color: "from-gray-500 to-slate-500",
-      value: "0",
+      value: dashboardData.total_logs.toString(),
       change: "0%",
       trend: "neutral"
     },
@@ -136,7 +140,7 @@ export function AdminDashboard() {
       icon: FileText,
       url: "/admin/reports",
       color: "from-green-500 to-emerald-500",
-      value: "0",
+      value: dashboardData.total_reports.toString(),
       change: "+0%",
       trend: "up"
     },

@@ -19,9 +19,7 @@ class DistributionGroupController extends Controller
             $user = $request->user();
             $teacherId = $user instanceof Teacher ? $user->id : null;
 
-            $query = DistributionGroup::with(['teachers', 'creator'])
-                ->active()
-                ->visible($teacherId);
+            $query = DistributionGroup::active()->visible($teacherId);
 
             // Filter by type
             if ($request->has('type')) {
@@ -44,7 +42,16 @@ class DistributionGroupController extends Controller
 
             $groups = $query->orderBy('list_type', 'asc')
                            ->orderBy('group_name', 'asc')
-                           ->get();
+                           ->withCount('teachers')
+                           ->with(['creator' => function($q) {
+                               $q->select('id', 'first_name', 'last_name', 'email');
+                           }])
+                           ->paginate($request->get('per_page', 10));
+
+            return response()->json([
+                'success' => true,
+                'data' => $groups
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -245,7 +252,7 @@ class DistributionGroupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Distribution group moved to trash successfully'
+                'message' => 'Distribution group archived successfully'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -380,7 +387,10 @@ class DistributionGroupController extends Controller
             $teacher = Teacher::findOrFail($teacherId);
             $groups = $teacher->distributionGroups()
                              ->active()
-                             ->with('creator')
+                             ->withCount('teachers')
+                             ->with(['creator' => function($q) {
+                                 $q->select('id', 'first_name', 'last_name', 'email');
+                             }])
                              ->get();
 
             return response()->json([
