@@ -4,8 +4,7 @@ namespace App\Http\Controllers\API\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ItemDistribution;
-use App\Models\ToolEquipment;
-use App\Models\Teacher;
+use App\Models\InventoryItem;
 use App\Models\SystemLog;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -14,36 +13,28 @@ use Illuminate\Support\Facades\Validator;
 
 class ItemDistributionController extends Controller
 {
-    /**
-     * Get all item distributions
-     */
     public function index(Request $request)
     {
         try {
-            $query = ItemDistribution::with(['item', 'teacher', 'distributedBy']);
+            $query = ItemDistribution::with(['category', 'teacher', 'distributedBy', 'inventoryItems']);
 
-            // Filter by status
             if ($request->has('status') && $request->status !== 'all') {
                 $query->where('status', $request->status);
             }
 
-            // Filter by teacher
             if ($request->has('teacher_id')) {
                 $query->where('teacher_id', $request->teacher_id);
             }
 
-            // Filter by item
-            if ($request->has('item_id')) {
-                $query->where('item_id', $request->item_id);
+            if ($request->has('category_id')) {
+                $query->where('category_id', $request->category_id);
             }
 
-            // Search
             if ($request->has('search')) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {
-                    $q->whereHas('item', function($itemQuery) use ($search) {
-                        $itemQuery->where('item_name', 'like', "%{$search}%")
-                                 ->orWhere('item_code', 'like', "%{$search}%");
+                    $q->whereHas('category', function($catQuery) use ($search) {
+                        $catQuery->where('category_name', 'like', "%{$search}%");
                     })->orWhereHas('teacher', function($teacherQuery) use ($search) {
                         $teacherQuery->where('first_name', 'like', "%{$search}%")
                                     ->orWhere('last_name', 'like', "%{$search}%");
@@ -51,10 +42,8 @@ class ItemDistributionController extends Controller
                 });
             }
 
-            $distributions = $query->orderBy('distribution_date', 'desc')
-                                  ->paginate(15);
+            $distributions = $query->orderBy('distribution_date', 'desc')->paginate(15);
 
-            // Add distributed_by_admin alias for frontend compatibility
             $distributions->getCollection()->transform(function ($distribution) {
                 $distribution->distributed_by_admin = $distribution->distributedBy;
                 return $distribution;
@@ -66,7 +55,6 @@ class ItemDistributionController extends Controller
             ]);
         } catch (\Exception $e) {
             \Log::error('ItemDistribution index error: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch distributions',
@@ -75,18 +63,14 @@ class ItemDistributionController extends Controller
         }
     }
 
-    /**
-     * Get distribution statistics
-     */
     public function statistics()
     {
         try {
             $totalDistributions = ItemDistribution::count();
-            $activeDistributions = ItemDistribution::active()->count();
-            $returnedDistributions = ItemDistribution::returned()->count();
-            $overdueDistributions = ItemDistribution::overdue()->count();
-
-            $totalQuantityDistributed = ItemDistribution::active()->sum('quantity_distributed');
+            $activeDistributions = ItemDistribution::where('status', 'active')->count();
+            $returnedDistributions = ItemDistribution::where('status', 'returned')->count();
+            $overdueDistributions = ItemDistribution::where('status', 'active')->where('expected_return_date', '<', now())->count();
+            $totalQuantityDistributed = ItemDistribution::where('status', 'active')->sum('quantity_distributed');
 
             return response()->json([
                 'success' => true,
@@ -107,15 +91,13 @@ class ItemDistributionController extends Controller
         }
     }
 
-    /**
-     * Create a new distribution
-     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'item_id' => 'required|exists:tools_equipment,id',
+            'category_id' => 'required|exists:item_categories,id',
             'teacher_id' => 'required|exists:teachers,id',
-            'quantity_distributed' => 'required|integer|min:1',
+            'inventory_item_ids' => 'required|array|min:1',
+            'inventory_item_ids.*' => 'exists:inventory_items,id',
             'distribution_date' => 'required|date',
             'expected_return_date' => 'nullable|date|after_or_equal:distribution_date',
             'purpose' => 'nullable|string',
@@ -134,21 +116,22 @@ class ItemDistributionController extends Controller
         try {
             DB::beginTransaction();
 
-            // Check if item has enough quantity
-            $item = ToolEquipment::findOrFail($request->item_id);
-            if ($item->quantity_available < $request->quantity_distributed) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Insufficient quantity available. Available: ' . $item->quantity_available
-                ], 422);
+            $quantity = count($request->inventory_item_ids);
+            
+            // Check availability
+            $items = InventoryItem::whereIn('id', $request->inventory_item_ids)->get();
+            foreach ($items as $item) {
+                if ($item->status !== 'available') {
+                    return response()->json(['success' => false, 'message' => "Item {$item->serial_number} is not available"], 422);
+                }
             }
 
             // Create distribution
             $distribution = ItemDistribution::create([
-                'item_id' => $request->item_id,
+                'category_id' => $request->category_id,
                 'teacher_id' => $request->teacher_id,
                 'distributed_by' => auth()->id(),
-                'quantity_distributed' => $request->quantity_distributed,
+                'quantity_distributed' => $quantity,
                 'status' => 'active',
                 'distribution_date' => $request->distribution_date,
                 'expected_return_date' => $request->expected_return_date,
@@ -157,24 +140,19 @@ class ItemDistributionController extends Controller
                 'condition_on_distribution' => $request->condition_on_distribution,
             ]);
 
-            // Update item quantities
-            $item->quantity_available -= $request->quantity_distributed;
-            $item->save();
+            // Update item statuses and attach to pivot
+            InventoryItem::whereIn('id', $request->inventory_item_ids)->update(['status' => 'borrowed']);
+            
+            $syncData = [];
+            foreach ($request->inventory_item_ids as $itemId) {
+                $syncData[$itemId] = ['status' => 'distributed', 'created_at' => now(), 'updated_at' => now()];
+            }
+            $distribution->inventoryItems()->attach($syncData);
 
-            // Load relationships for notification
-            $distribution->load(['item', 'teacher']);
-
-            // Notify teacher about distribution
-            NotificationService::notifyItemDistributed($distribution);
-
-            // Broadcast inventory update
-            NotificationService::broadcastInventoryUpdate($item);
-
-            // Log the action
             SystemLog::create([
                 'log_type' => 'distribution',
                 'action' => 'created',
-                'description' => "Distributed {$request->quantity_distributed} units of {$item->item_name} to teacher",
+                'description' => "Distributed {$quantity} units to teacher",
                 'user_type' => 'admin',
                 'user_id' => auth()->id(),
                 'reference_id' => $distribution->id
@@ -185,7 +163,7 @@ class ItemDistributionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Item distributed successfully',
-                'data' => $distribution->load(['item', 'teacher', 'distributedBy'])
+                'data' => $distribution->load(['category', 'teacher', 'distributedBy', 'inventoryItems'])
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -197,31 +175,16 @@ class ItemDistributionController extends Controller
         }
     }
 
-    /**
-     * Get a specific distribution
-     */
     public function show($id)
     {
         try {
-            $distribution = ItemDistribution::with(['item', 'teacher', 'distributedBy'])
-                                           ->findOrFail($id);
-
-            return response()->json([
-                'success' => true,
-                'data' => $distribution
-            ]);
+            $distribution = ItemDistribution::with(['category', 'teacher', 'distributedBy', 'inventoryItems'])->findOrFail($id);
+            return response()->json(['success' => true, 'data' => $distribution]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Distribution not found',
-                'error' => $e->getMessage()
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Distribution not found', 'error' => $e->getMessage()], 404);
         }
     }
 
-    /**
-     * Update a distribution
-     */
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
@@ -231,23 +194,13 @@ class ItemDistributionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
         try {
             $distribution = ItemDistribution::findOrFail($id);
+            $distribution->update($request->only(['expected_return_date', 'admin_notes', 'status']));
 
-            $distribution->update($request->only([
-                'expected_return_date',
-                'admin_notes',
-                'status'
-            ]));
-
-            // Log the action
             SystemLog::create([
                 'log_type' => 'distribution',
                 'action' => 'updated',
@@ -257,78 +210,63 @@ class ItemDistributionController extends Controller
                 'reference_id' => $distribution->id
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Distribution updated successfully',
-                'data' => $distribution->load(['item', 'teacher', 'distributedBy'])
-            ]);
+            return response()->json(['success' => true, 'message' => 'Distribution updated successfully', 'data' => $distribution->load(['category', 'teacher', 'distributedBy', 'inventoryItems'])]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update distribution',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to update distribution', 'error' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Mark distribution as returned
-     */
     public function markAsReturned(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
             'actual_return_date' => 'required|date',
             'condition_on_return' => 'required|in:excellent,good,fair,poor',
             'admin_notes' => 'nullable|string',
+            'inventory_item_ids' => 'nullable|array',
+            'inventory_item_ids.*' => 'exists:inventory_items,id'
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
         try {
             DB::beginTransaction();
 
-            $distribution = ItemDistribution::findOrFail($id);
+            $distribution = ItemDistribution::with('inventoryItems')->findOrFail($id);
 
             if ($distribution->status !== 'active') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Distribution is not active'
-                ], 422);
+                return response()->json(['success' => false, 'message' => 'Distribution is not active'], 422);
             }
 
-            // Update distribution
-            $distribution->update([
-                'status' => 'returned',
-                'actual_return_date' => $request->actual_return_date,
-                'condition_on_return' => $request->condition_on_return,
-                'admin_notes' => $request->admin_notes,
-            ]);
+            $itemIdsToReturn = $request->inventory_item_ids ?? $distribution->inventoryItems->pluck('id')->toArray();
 
-            // Return quantity to inventory
-            $item = $distribution->item;
-            $item->quantity_available += $distribution->quantity_distributed;
-            $item->save();
+            // Update item statuses to available
+            InventoryItem::whereIn('id', $itemIdsToReturn)->update(['status' => 'available']);
+            
+            foreach ($itemIdsToReturn as $itemId) {
+                $distribution->inventoryItems()->updateExistingPivot($itemId, [
+                    'status' => 'returned',
+                    'returned_at' => $request->actual_return_date,
+                    'updated_at' => now()
+                ]);
+            }
 
-            // Load relationships for notification
-            $distribution->load(['item', 'teacher']);
+            $stillDistributedCount = $distribution->inventoryItems()->wherePivot('status', 'distributed')->whereNotIn('inventory_items.id', $itemIdsToReturn)->count();
 
-            // Notify teacher about return confirmation
-            NotificationService::notifyDistributionReturned($distribution);
+            if ($stillDistributedCount === 0) {
+                $distribution->update([
+                    'status' => 'returned',
+                    'actual_return_date' => $request->actual_return_date,
+                    'condition_on_return' => $request->condition_on_return,
+                    'admin_notes' => $request->admin_notes,
+                ]);
+            }
 
-            // Broadcast inventory update
-            NotificationService::broadcastInventoryUpdate($item);
-
-            // Log the action
             SystemLog::create([
                 'log_type' => 'distribution',
                 'action' => 'returned',
-                'description' => "Returned {$distribution->quantity_distributed} units of {$item->item_name}",
+                'description' => "Returned units for distribution #{$distribution->id}",
                 'user_type' => 'admin',
                 'user_id' => auth()->id(),
                 'reference_id' => $distribution->id
@@ -336,24 +274,13 @@ class ItemDistributionController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Distribution marked as returned successfully',
-                'data' => $distribution->load(['item', 'teacher', 'distributedBy'])
-            ]);
+            return response()->json(['success' => true, 'message' => 'Marked as returned successfully', 'data' => $distribution->fresh(['category', 'teacher', 'distributedBy', 'inventoryItems'])]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark as returned',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to mark as returned', 'error' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Cancel a distribution
-     */
     public function cancel(Request $request, $id)
     {
         try {
@@ -362,28 +289,22 @@ class ItemDistributionController extends Controller
             $distribution = ItemDistribution::findOrFail($id);
 
             if ($distribution->status !== 'active') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Distribution is not active'
-                ], 422);
+                return response()->json(['success' => false, 'message' => 'Distribution is not active'], 422);
             }
 
-            // Update distribution
+            // Update items back to available
+            $itemIds = $distribution->inventoryItems->pluck('id')->toArray();
+            InventoryItem::whereIn('id', $itemIds)->update(['status' => 'available']);
+            
             $distribution->update([
                 'status' => 'cancelled',
                 'admin_notes' => $request->admin_notes ?? 'Cancelled by admin',
             ]);
 
-            // Return quantity to inventory
-            $item = $distribution->item;
-            $item->quantity_available += $distribution->quantity_distributed;
-            $item->save();
-
-            // Log the action
             SystemLog::create([
                 'log_type' => 'distribution',
                 'action' => 'cancelled',
-                'description' => "Cancelled distribution of {$distribution->quantity_distributed} units of {$item->item_name}",
+                'description' => "Cancelled distribution #{$distribution->id}",
                 'user_type' => 'admin',
                 'user_id' => auth()->id(),
                 'reference_id' => $distribution->id
@@ -391,176 +312,24 @@ class ItemDistributionController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Distribution cancelled successfully',
-                'data' => $distribution->load(['item', 'teacher', 'distributedBy'])
-            ]);
+            return response()->json(['success' => true, 'message' => 'Distribution cancelled successfully', 'data' => $distribution->load(['category', 'teacher', 'distributedBy', 'inventoryItems'])]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to cancel distribution',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to cancel distribution', 'error' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Bulk distribute items to a group
-     */
-    public function bulkDistribute(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'item_id' => 'required|exists:tools_equipment,id',
-            'group_id' => 'nullable|exists:distribution_groups,id',
-            'teacher_ids' => 'required_without:group_id|array',
-            'teacher_ids.*' => 'exists:teachers,id',
-            'quantity_per_teacher' => 'required|integer|min:1',
-            'distribution_date' => 'required|date',
-            'purpose' => 'nullable|string',
-            'notes' => 'nullable|string',
-            'condition_on_distribution' => 'required|in:excellent,good,fair,poor',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            // Get the item
-            $item = ToolEquipment::findOrFail($request->item_id);
-
-            // Handle group distribution or individual teachers
-            $teachers = [];
-            $distributionDescription = '';
-
-            if ($request->has('group_id') && $request->group_id) {
-                // Group distribution
-                $group = \App\Models\DistributionGroup::with('teachers')->findOrFail($request->group_id);
-                $teachers = $group->teachers;
-                $distributionDescription = "Bulk distributed {$request->quantity_per_teacher} units of {$item->item_name} to {$group->teachers->count()} teachers in group '{$group->group_name}'";
-            } else {
-                // Individual teacher distribution
-                $teacherIds = $request->teacher_ids;
-                $teachers = \App\Models\Teacher::whereIn('id', $teacherIds)->get();
-                $distributionDescription = "Bulk distributed {$request->quantity_per_teacher} units of {$item->item_name} to " . count($teachers) . " selected teachers";
-            }
-
-            // Calculate total quantity needed
-            $totalQuantityNeeded = $request->quantity_per_teacher * $teachers->count();
-
-            // Check inventory availability
-            if ($item->quantity_available < $totalQuantityNeeded) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Insufficient inventory. Need {$totalQuantityNeeded} units but only {$item->quantity_available} available"
-                ], 422);
-            }
-
-            // Create distributions for each teacher
-            $distributions = [];
-            foreach ($teachers as $teacher) {
-                $distribution = ItemDistribution::create([
-                    'item_id' => $request->item_id,
-                    'teacher_id' => $teacher->id,
-                    'quantity_distributed' => $request->quantity_per_teacher,
-                    'distribution_date' => $request->distribution_date,
-                    'purpose' => $request->purpose,
-                    'notes' => $request->notes,
-                    'condition_on_distribution' => $request->condition_on_distribution,
-                    'status' => 'active',
-                    'distributed_by' => auth()->id(),
-                ]);
-
-                $distributions[] = $distribution;
-            }
-
-            // Update item inventory
-            $item->quantity_available -= $totalQuantityNeeded;
-            $item->quantity_borrowed += $totalQuantityNeeded;
-            $item->save();
-
-            // Log the action
-            SystemLog::create([
-                'admin_id' => auth()->id(),
-                'action' => 'bulk_distribution',
-                'description' => $distributionDescription,
-                'ip_address' => request()->ip(),
-            ]);
-
-            // Notify teachers (optional)
-            try {
-                if (isset($group)) {
-                    NotificationService::notifyBulkDistribution($group, $item, $request->quantity_per_teacher);
-                } else {
-                    // Individual teacher notifications
-                    foreach ($teachers as $teacher) {
-                        NotificationService::notifyDistributionCreated($teacher, $item, $request->quantity_per_teacher);
-                    }
-                }
-            } catch (\Exception $e) {
-                // Log notification error but don't fail the distribution
-                \Log::error('Bulk distribution notification failed: ' . $e->getMessage());
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => "Successfully distributed items to {$teachers->count()} teachers",
-                'data' => [
-                    'total_distributed' => $totalQuantityNeeded,
-                    'teachers_count' => $teachers->count(),
-                    'item_name' => $item->item_name,
-                    'group_name' => $group->group_name ?? null,
-                    'distributions' => $distributions
-                ]
-            ], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create bulk distribution',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Delete a distribution
-     */
     public function destroy($id)
     {
         try {
             $distribution = ItemDistribution::findOrFail($id);
-
             if ($distribution->status === 'active') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot delete active distribution. Please cancel it first.'
-                ], 422);
+                return response()->json(['success' => false, 'message' => 'Cannot delete active distribution. Please cancel it first.'], 422);
             }
-
             $distribution->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Distribution deleted successfully'
-            ]);
+            return response()->json(['success' => true, 'message' => 'Distribution deleted successfully']);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete distribution',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to delete distribution', 'error' => $e->getMessage()], 500);
         }
     }
 }

@@ -114,18 +114,37 @@
             <div class="type-badge">{{ $type }}</div>
             
             <h2>{{ $title }}</h2>
+
+            @php
+                $overdue_types = ['item_overdue', 'item_overdue_admin'];
+                $success_types = ['borrow_request_approved', 'distribution_approved', 'item_returned', 'distribution_returned'];
+                $warning_types = ['low_stock'];
+                $action_types  = ['borrow_request_created', 'distribution_request_created', 'low_stock'];
+
+                if (in_array($type, $overdue_types)) {
+                    $boxClass = 'urgent';
+                } elseif (in_array($type, $success_types)) {
+                    $boxClass = 'success';
+                } elseif (in_array($type, $warning_types)) {
+                    $boxClass = 'warning';
+                } else {
+                    $boxClass = '';
+                }
+
+                $showButton = in_array($type, $action_types);
+            @endphp
             
-            <div class="message-box {{ $this->getMessageBoxClass($type) }}">
+            <div class="message-box {{ $boxClass }}">
                 {{ $message }}
             </div>
 
-            @if($this->shouldShowActionButton($type))
+            @if($showButton)
                 <a href="{{ config('app.url') }}" class="action-button">
                     Go to OlineIMS
                 </a>
             @endif
 
-            @if($relatedId && $relatedType)
+            @if(isset($relatedId) && isset($relatedType) && $relatedId && $relatedType)
                 <p style="font-size: 12px; color: #666; margin-top: 20px;">
                     Reference: {{ $relatedType }} #{{ $relatedId }}
                 </p>
@@ -141,24 +160,3 @@
 </body>
 </html>
 
-@php
-    function getMessageBoxClass($type) {
-        if (in_array($type, ['item_overdue', 'item_overdue_admin'])) {
-            return 'urgent';
-        } elseif (in_array($type, ['borrow_request_approved', 'distribution_approved', 'item_returned', 'distribution_returned'])) {
-            return 'success';
-        } elseif (in_array($type, ['low_stock'])) {
-            return 'warning';
-        }
-        return '';
-    }
-
-    function shouldShowActionButton($type) {
-        return in_array($type, [
-            'borrow_request_created',
-            'distribution_request_created',
-            'low_stock',
-            'purchase_order_created'
-        ]);
-    }
-@endphp

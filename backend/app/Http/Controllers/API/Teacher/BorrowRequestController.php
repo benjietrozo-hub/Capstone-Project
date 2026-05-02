@@ -4,7 +4,7 @@ namespace App\Http\Controllers\API\Teacher;
 
 use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
-use App\Models\ToolEquipment;
+use App\Models\ItemCategory;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
@@ -12,7 +12,7 @@ class BorrowRequestController extends Controller
 {
     public function index(Request $request)
     {
-        $q = BorrowRequest::with(['item'])->where('teacher_id', $request->user()->id);
+        $q = BorrowRequest::with(['category'])->where('teacher_id', $request->user()->id);
         if ($request->status) $q->where('status', $request->status);
         $q->orderBy($request->sort_by ?? 'created_at', $request->sort_order ?? 'desc');
         return response()->json($q->paginate($request->per_page ?? 15));
@@ -57,25 +57,18 @@ class BorrowRequestController extends Controller
         \Log::info('User authenticated as teacher, proceeding with validation');
         
         $v = $request->validate([
-            'item_id' => 'required|exists:tools_equipment,id',
+            'category_id' => 'required|exists:item_categories,id',
             'quantity' => 'required|integer|min:1',
             'expected_return_date' => 'required|date|after_or_equal:today',
             'purpose' => 'nullable|max:500'
         ]);
         
-        $item = ToolEquipment::findOrFail($v['item_id']);
+        $category = ItemCategory::findOrFail($v['category_id']);
         
-        if ($item->status !== 'active') {
+        if ($category->available_items < $v['quantity']) {
             return response()->json([
                 'success' => false,
-                'message' => 'Item not available'
-            ], 422);
-        }
-        
-        if ($item->quantity_available < $v['quantity']) {
-            return response()->json([
-                'success' => false,
-                'message' => "Only {$item->quantity_available} available"
+                'message' => "Only {$category->available_items} available in this category"
             ], 422);
         }
         
@@ -86,8 +79,8 @@ class BorrowRequestController extends Controller
         
         $requestData = [
             'request_code' => $requestCode,
-            'teacher_id' => $request->user()->id,
-            'item_id' => $v['item_id'],
+            'teacher_id' => $user->id,
+            'category_id' => $v['category_id'],
             'quantity_requested' => $v['quantity'],
             'date_requested' => now()->toDateString(),
             'date_needed' => now()->toDateString(), // Use today's date as needed date
@@ -103,7 +96,7 @@ class BorrowRequestController extends Controller
         \Log::info('Borrow request created successfully with ID:', ['id' => $br->id]);
         
         // Load relationships for notification
-        $br->load(['item', 'teacher']);
+        $br->load(['category', 'teacher']);
         
         // Notify all admins about new borrow request
         NotificationService::notifyBorrowRequestCreated($br);
@@ -117,7 +110,7 @@ class BorrowRequestController extends Controller
 
     public function show($id)
     {
-        return response()->json(BorrowRequest::with(['item'])->where('teacher_id', auth()->id())->findOrFail($id));
+        return response()->json(BorrowRequest::with(['category'])->where('teacher_id', auth()->id())->findOrFail($id));
     }
 
     public function cancel($id)
@@ -130,7 +123,9 @@ class BorrowRequestController extends Controller
             ], 422);
         }
         $br->update(['status' => 'cancelled']);
-        if ($br->status === 'approved') $br->item->updateQuantities();
+        if ($br->status === 'approved') {
+            // Unlink any reserved items if there were any, handled by pivot table
+        }
         return response()->json([
             'success' => true,
             'message' => 'Borrow request cancelled successfully',

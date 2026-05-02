@@ -37,9 +37,16 @@ class ItemDistribution extends Model
     protected $appends = ['is_overdue'];
 
     // Relationships
-    public function item()
+    public function category()
     {
-        return $this->belongsTo(ToolEquipment::class, 'item_id');
+        return $this->belongsTo(ItemCategory::class, 'category_id');
+    }
+
+    public function inventoryItems()
+    {
+        return $this->belongsToMany(InventoryItem::class, 'item_distribution_items')
+                    ->withPivot('status', 'returned_at')
+                    ->withTimestamps();
     }
 
     public function teacher()

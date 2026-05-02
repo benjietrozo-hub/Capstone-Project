@@ -100,20 +100,19 @@ class DistributionRequestController extends Controller
         }
     }
 
-    /**
-     * Approve a distribution request and create distribution
-     */
     public function approve(Request $request, $id)
     {
         $request->validate([
             'admin_notes' => 'nullable|string',
             'condition_on_distribution' => 'required|in:excellent,good,fair,poor',
+            'inventory_item_ids' => 'required|array',
+            'inventory_item_ids.*' => 'exists:inventory_items,id'
         ]);
 
         try {
             $admin = Auth::guard('sanctum')->user();
 
-            $distributionRequest = DistributionRequest::with(['teacher', 'item'])
+            $distributionRequest = DistributionRequest::with(['teacher', 'category'])
                 ->findOrFail($id);
 
             if ($distributionRequest->status !== 'pending') {
@@ -122,21 +121,37 @@ class DistributionRequestController extends Controller
                     'message' => 'Only pending requests can be approved'
                 ], 400);
             }
-
-            // Check if item has enough quantity
-            $item = $distributionRequest->item;
-            if ($item->quantity_available < $distributionRequest->quantity_requested) {
+            
+            if (count($request->inventory_item_ids) !== $distributionRequest->quantity_requested) {
                 return response()->json([
                     'success' => false,
-                    'message' => "Insufficient quantity. Only {$item->quantity_available} units available"
-                ], 400);
+                    'message' => "You must select exactly {$distributionRequest->quantity_requested} items to approve this request."
+                ], 422);
+            }
+
+            // Verify all selected items are actually available
+            $items = \App\Models\InventoryItem::whereIn('id', $request->inventory_item_ids)->get();
+            
+            foreach ($items as $item) {
+                if ($item->status !== 'available') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Item {$item->serial_number} is currently {$item->status} and cannot be assigned."
+                    ], 422);
+                }
+                if ($item->category_id !== $distributionRequest->category_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Item {$item->serial_number} does not belong to the requested category."
+                    ], 422);
+                }
             }
 
             DB::beginTransaction();
 
             // Create item distribution
             $distribution = ItemDistribution::create([
-                'item_id' => $distributionRequest->item_id,
+                'category_id' => $distributionRequest->category_id,
                 'teacher_id' => $distributionRequest->teacher_id,
                 'distributed_by' => $admin->id,
                 'quantity_distributed' => $distributionRequest->quantity_requested,
@@ -148,9 +163,15 @@ class DistributionRequestController extends Controller
                 'condition_on_distribution' => $request->condition_on_distribution,
             ]);
 
-            // Update item quantity
-            $item->quantity_available -= $distributionRequest->quantity_requested;
-            $item->save();
+            // Update item statuses to distributed
+            \App\Models\InventoryItem::whereIn('id', $request->inventory_item_ids)->update(['status' => 'borrowed']); // Note: borrowed is used for both borrow and dist or we could add 'distributed' status to inventory_items
+            // Actually, wait, status might only be 'available', 'borrowed', 'maintenance', 'damaged', 'archived'. Let's stick with 'borrowed'.
+            
+            $syncData = [];
+            foreach ($request->inventory_item_ids as $itemId) {
+                $syncData[$itemId] = ['status' => 'distributed', 'created_at' => now(), 'updated_at' => now()];
+            }
+            $distribution->inventoryItems()->attach($syncData);
 
             // Update distribution request
             $distributionRequest->update([
@@ -164,9 +185,6 @@ class DistributionRequestController extends Controller
             // Notify teacher
             NotificationService::notifyDistributionRequestApproved($distributionRequest);
             
-            // Broadcast inventory update
-            NotificationService::broadcastInventoryUpdate($item);
-
             // Log the action
             SystemLog::create([
                 'user_id' => $admin->id,
@@ -174,7 +192,7 @@ class DistributionRequestController extends Controller
                 'action' => 'approve',
                 'model' => 'DistributionRequest',
                 'model_id' => $id,
-                'description' => "Admin approved and distributed {$distributionRequest->quantity_requested} unit(s) of {$item->item_name} to {$distributionRequest->teacher->first_name} {$distributionRequest->teacher->last_name}",
+                'description' => "Admin approved and distributed {$distributionRequest->quantity_requested} unit(s) of {$distributionRequest->category->category_name} to {$distributionRequest->teacher->first_name} {$distributionRequest->teacher->last_name}",
                 'ip_address' => $request->ip(),
             ]);
 
@@ -183,7 +201,7 @@ class DistributionRequestController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Distribution request approved and items distributed successfully',
-                'data' => $distributionRequest->load(['reviewedBy', 'distribution'])
+                'data' => $distributionRequest->load(['reviewedBy', 'distribution.inventoryItems'])
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

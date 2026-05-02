@@ -13,10 +13,12 @@ import NotificationProfile from '@/components/NotificationProfile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, ClipboardList } from 'lucide-react';
 
+import { useSearchParams } from 'react-router-dom';
+
 interface BorrowRequest {
   id: number;
-  item?: {
-    item_name: string;
+  category?: {
+    category_name: string;
   };
   quantity_requested: number;
   quantity_approved?: number;
@@ -30,13 +32,22 @@ interface BorrowRequest {
 }
 
 export function MyReservationsPage() {
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
   const [requests, setRequests] = useState<BorrowRequest[]>([]);
   const [borrowedItems, setBorrowedItems] = useState<BorrowRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [requestStatus, setRequestStatus] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<BorrowRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('borrowed');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'borrowed');
+
+  // Update active tab when URL parameter changes
+  useEffect(() => {
+    if (tabFromUrl && (tabFromUrl === 'borrowed' || tabFromUrl === 'requests')) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
 
   useEffect(() => {
     fetchData();
@@ -96,7 +107,7 @@ export function MyReservationsPage() {
 
   const borrowedColumns = [
     { key: 'id', label: 'Request ID', width: '100px', render: (value: number) => `#${value}` },
-    { key: 'item.item_name', label: 'Item', width: '150px', render: (_: any, row: BorrowRequest) => row.item?.item_name },
+    { key: 'category.category_name', label: 'Category', width: '150px', render: (_: any, row: BorrowRequest) => row.category?.category_name || 'N/A' },
     { 
       key: 'quantity_requested', 
       label: 'Quantity',
@@ -176,7 +187,7 @@ export function MyReservationsPage() {
 
   const requestColumns = [
     { key: 'id', label: 'Request ID', render: (value: number) => `#${value}` },
-    { key: 'item.item_name', label: 'Item', render: (_: any, row: BorrowRequest) => row.item?.item_name },
+    { key: 'category.category_name', label: 'Category', render: (_: any, row: BorrowRequest) => row.category?.category_name || 'N/A' },
     { key: 'quantity_requested', label: 'Quantity' },
     {
       key: 'status',
@@ -324,8 +335,8 @@ export function MyReservationsPage() {
                 <p className="text-gray-600">#{selectedRequest.id}</p>
               </div>
               <div>
-                <label className="font-semibold text-gray-700">Item</label>
-                <p className="text-gray-600">{selectedRequest.item?.item_name}</p>
+                <label className="font-semibold text-gray-700">Category</label>
+                <p className="text-gray-600">{selectedRequest.category?.category_name || 'N/A'}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

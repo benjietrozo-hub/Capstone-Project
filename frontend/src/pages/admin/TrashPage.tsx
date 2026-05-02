@@ -15,8 +15,6 @@ interface ArchivedItem {
 
 interface ArchiveStats {
   inventory: number;
-  suppliers: number;
-  purchase_orders: number;
   borrow_requests: number;
   distribution_groups: number;
   teachers: number;
@@ -33,8 +31,6 @@ const TrashPage = () => {
   const typeLabels: Record<string, string> = {
     all: 'All Items',
     inventory: 'Inventory',
-    supplier: 'Suppliers',
-    purchase_order: 'Purchase Orders',
     borrow_request: 'Borrow Requests',
     distribution_group: 'Distribution Groups',
     teacher: 'Teachers',
@@ -42,8 +38,6 @@ const TrashPage = () => {
 
   const typeBadgeColors: Record<string, string> = {
     inventory: 'bg-blue-100 text-blue-800',
-    supplier: 'bg-green-100 text-green-800',
-    purchase_order: 'bg-purple-100 text-purple-800',
     borrow_request: 'bg-orange-100 text-orange-800',
     distribution_group: 'bg-pink-100 text-pink-800',
     teacher: 'bg-teal-100 text-teal-800',
@@ -130,14 +124,6 @@ const TrashPage = () => {
               <div className="text-2xl font-bold text-blue-600">{stats.inventory}</div>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-              <div className="text-sm text-gray-600">Suppliers</div>
-              <div className="text-2xl font-bold text-green-600">{stats.suppliers}</div>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-              <div className="text-sm text-gray-600">Purchase Orders</div>
-              <div className="text-2xl font-bold text-purple-600">{stats.purchase_orders}</div>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
               <div className="text-sm text-gray-600">Borrow Requests</div>
               <div className="text-2xl font-bold text-orange-600">{stats.borrow_requests}</div>
             </div>
@@ -176,8 +162,6 @@ const TrashPage = () => {
               >
                 <option value="all">All Types</option>
                 <option value="inventory">Inventory</option>
-                <option value="suppliers">Suppliers</option>
-                <option value="purchase_orders">Purchase Orders</option>
                 <option value="borrow_requests">Borrow Requests</option>
                 <option value="distribution_groups">Distribution Groups</option>
                 <option value="teachers">Teachers</option>

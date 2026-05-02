@@ -49,7 +49,7 @@ class SystemLog extends Model
 
     public static function logActivity($type, $action, $description = null, $userId = null, $userType = null, $userName = null, $severity = 'info')
     {
-        return self::create([
+        return \App\Jobs\ProcessSystemLog::dispatch([
             'log_type' => $type,
             'user_type' => $userType,
             'user_id' => $userId,
@@ -62,6 +62,7 @@ class SystemLog extends Model
             'metadata' => [
                 'url' => request()->fullUrl(),
                 'method' => request()->method(),
+                'correlation_id' => request()->attributes->get('correlation_id'),
             ],
         ]);
     }

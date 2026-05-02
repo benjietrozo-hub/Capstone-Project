@@ -14,8 +14,8 @@ import NotificationProfile from '@/components/NotificationProfile';
 interface BorrowRequest {
   id: number;
   request_code: string;
-  item?: {
-    item_name: string;
+  category?: {
+    category_name: string;
   };
   quantity_requested: number;
   quantity_approved?: number;
@@ -71,7 +71,7 @@ export function MyRequestsPage() {
 
   const columns = [
     { key: 'request_code', label: 'Request Code' },
-    { key: 'item.item_name', label: 'Item', render: (_: any, row: BorrowRequest) => row.item?.item_name },
+    { key: 'category.category_name', label: 'Category', render: (_: any, row: BorrowRequest) => row.category?.category_name || 'N/A' },
     { key: 'quantity_requested', label: 'Quantity' },
     {
       key: 'status',
@@ -177,8 +177,8 @@ export function MyRequestsPage() {
               <p className="text-gray-600">{selectedRequest.request_code}</p>
             </div>
             <div>
-              <label className="font-semibold text-gray-700">Item</label>
-              <p className="text-gray-600">{selectedRequest.item?.item_name}</p>
+              <label className="font-semibold text-gray-700">Category</label>
+              <p className="text-gray-600">{selectedRequest.category?.category_name || 'N/A'}</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

@@ -23,9 +23,7 @@ import { ReservationsPage } from './pages/admin/ReservationsPage';
 import { TeachersPage } from './pages/admin/TeachersPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { LogsPage } from './pages/admin/LogsPage';
-import PurchaseOrdersPage from './pages/admin/PurchaseOrdersPage';
-import PurchaseOrderPrint from './pages/admin/PurchaseOrderPrint';
-import SuppliersPage from './pages/admin/SuppliersPage';
+
 import DistributionListPage from './pages/admin/DistributionListPage';
 import BulkDistributionsPage from './pages/admin/BulkDistributionsPage';
 import TrashPage from './pages/admin/TrashPage';
@@ -33,7 +31,7 @@ import TrashPage from './pages/admin/TrashPage';
 // Teacher Pages
 import { TeacherDashboard } from './pages/teacher/Dashboard';
 import { BrowseInventoryPage } from './pages/teacher/BrowseInventoryPage';
-import { MyRequestsPage } from './pages/teacher/MyRequestsPage';
+// import { MyRequestsPage } from './pages/teacher/MyRequestsPage'; // Removed as redundant with MyReservationsPage
 import { MyReservationsPage } from './pages/teacher/MyReservationsPage';
 import { ActivityLogsPage } from './pages/teacher/ActivityLogsPage';
 import DistributionGroupsPage from './pages/teacher/DistributionGroupsPage';
@@ -154,36 +152,7 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
-                    <Route
-                      path="purchase-orders/:id/print"
-                      element={
-                        <ProtectedRoute requiredRole="admin">
-                          <ProtectedLayout>
-                            <PurchaseOrderPrint />
-                          </ProtectedLayout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="purchase-orders"
-                      element={
-                        <ProtectedRoute requiredRole="admin">
-                          <ProtectedLayout>
-                            <PurchaseOrdersPage />
-                          </ProtectedLayout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="suppliers"
-                      element={
-                        <ProtectedRoute requiredRole="admin">
-                          <ProtectedLayout>
-                            <SuppliersPage />
-                          </ProtectedLayout>
-                        </ProtectedRoute>
-                      }
-                    />
+
                     <Route
                       path="distribution"
                       element={
@@ -284,16 +253,7 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
-                    <Route
-                      path="my-requests"
-                      element={
-                        <ProtectedRoute requiredRole="teacher">
-                          <ProtectedLayout>
-                            <MyRequestsPage />
-                          </ProtectedLayout>
-                        </ProtectedRoute>
-                      }
-                    />
+                    {/* my-requests removed as redundant with reservations?tab=requests */}
                     <Route path="*" element={<Navigate to="/teacher/dashboard" />} />
                   </Routes>
                 }

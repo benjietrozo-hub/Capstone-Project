@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Plus, Users, Lock, Globe, Trash2, UserPlus } from 'lucide-react';
 import { teacherAPI } from '@/api';
 import { Button } from '../../components/ui/button';
@@ -154,16 +155,16 @@ const DistributionGroupsPage: React.FC = () => {
         <p className="text-sm text-gray-600">Manage notification distribution lists for efficient communication</p>
       </div>
       
-      <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Header - Mobile friendly */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="hidden sm:block">
           <h1 className="text-2xl font-bold text-gray-900">Distribution Groups</h1>
           <p className="text-sm text-gray-600 mt-1">
             Manage notification distribution lists for efficient communication
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2">
+        <Button onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto flex items-center justify-center gap-2">
           <Plus className="w-4 h-4" />
           Create Group
         </Button>

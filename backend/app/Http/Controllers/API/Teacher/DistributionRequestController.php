@@ -4,7 +4,7 @@ namespace App\Http\Controllers\API\Teacher;
 
 use App\Http\Controllers\Controller;
 use App\Models\DistributionRequest;
-use App\Models\ToolEquipment;
+use App\Models\ItemCategory;
 use App\Models\Notification;
 use App\Models\SystemLog;
 use App\Services\NotificationService;
@@ -22,7 +22,7 @@ class DistributionRequestController extends Controller
         try {
             $teacher = Auth::guard('sanctum')->user();
 
-            $requests = DistributionRequest::with(['item', 'reviewedBy'])
+            $requests = DistributionRequest::with(['category', 'reviewedBy'])
                 ->where('teacher_id', $teacher->id)
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -46,10 +46,9 @@ class DistributionRequestController extends Controller
     public function availableItems()
     {
         try {
-            $items = ToolEquipment::where('quantity_available', '>', 0)
-                ->where('status', 'active')
-                ->select('id', 'item_code', 'item_name', 'category', 'quantity_available')
-                ->orderBy('item_name')
+            $items = ItemCategory::where('available_items', '>', 0)
+                ->select('id', 'category_name', 'description', 'available_items')
+                ->orderBy('category_name')
                 ->get();
 
             return response()->json([
@@ -71,7 +70,7 @@ class DistributionRequestController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'item_id' => 'required|exists:tools_equipment,id',
+            'category_id' => 'required|exists:item_categories,id',
             'quantity_requested' => 'required|integer|min:1',
             'reason' => 'required|string',
             'notes' => 'nullable|string',
@@ -81,11 +80,11 @@ class DistributionRequestController extends Controller
             $teacher = Auth::guard('sanctum')->user();
 
             // Check if item has enough quantity
-            $item = ToolEquipment::findOrFail($request->item_id);
-            if ($item->quantity_available < $request->quantity_requested) {
+            $category = ItemCategory::findOrFail($request->category_id);
+            if ($category->available_items < $request->quantity_requested) {
                 return response()->json([
                     'success' => false,
-                    'message' => "Only {$item->quantity_available} units available"
+                    'message' => "Only {$category->available_items} units available"
                 ], 400);
             }
 
@@ -94,7 +93,7 @@ class DistributionRequestController extends Controller
             // Create distribution request
             $distributionRequest = DistributionRequest::create([
                 'teacher_id' => $teacher->id,
-                'item_id' => $request->item_id,
+                'category_id' => $request->category_id,
                 'quantity_requested' => $request->quantity_requested,
                 'reason' => $request->reason,
                 'notes' => $request->notes,
@@ -102,7 +101,7 @@ class DistributionRequestController extends Controller
             ]);
 
             // Load relationships for notification
-            $distributionRequest->load(['item', 'teacher']);
+            $distributionRequest->load(['category', 'teacher']);
 
             // Notify all admins about new distribution request
             NotificationService::notifyDistributionRequestCreated($distributionRequest);
@@ -114,7 +113,7 @@ class DistributionRequestController extends Controller
                 'action' => 'create',
                 'model' => 'DistributionRequest',
                 'model_id' => $distributionRequest->id,
-                'description' => "Teacher requested distribution of {$request->quantity_requested} unit(s) of {$item->item_name}",
+                'description' => "Teacher requested distribution of {$request->quantity_requested} unit(s) of {$category->category_name}",
                 'ip_address' => $request->ip(),
             ]);
 
@@ -123,7 +122,7 @@ class DistributionRequestController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Distribution request submitted successfully',
-                'data' => $distributionRequest->load(['item', 'teacher'])
+                'data' => $distributionRequest->load(['category', 'teacher'])
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -192,7 +191,7 @@ class DistributionRequestController extends Controller
                 'action' => 'delete',
                 'model' => 'DistributionRequest',
                 'model_id' => $id,
-                'description' => "Teacher cancelled distribution request for {$request->item->item_name}",
+                'description' => "Teacher cancelled distribution request for category ID {$request->category_id}",
                 'ip_address' => request()->ip(),
             ]);
 

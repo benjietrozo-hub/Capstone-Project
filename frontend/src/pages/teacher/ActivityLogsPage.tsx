@@ -185,9 +185,9 @@ export function ActivityLogsPage() {
         <p className="text-sm text-gray-600">Track your equipment request history and activities</p>
       </div>
       
-      <div className="p-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-2">
           <Card className="p-4">
             <div className="flex items-center justify-between">
               <div>

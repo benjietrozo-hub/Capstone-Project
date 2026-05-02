@@ -13,19 +13,18 @@ interface RequestDistributionModalProps {
   onSuccess: () => void;
 }
 
-interface Item {
+interface Category {
   id: number;
-  item_code: string;
-  item_name: string;
-  category: string;
-  quantity_available: number;
+  category_name: string;
+  description: string;
+  available_items: number;
 }
 
 export default function RequestDistributionModal({ onClose, onSuccess }: RequestDistributionModalProps) {
-  const [items, setItems] = useState<Item[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    item_id: '',
+    category_id: '',
     quantity_requested: '',
     reason: '',
     notes: '',
@@ -42,14 +41,14 @@ export default function RequestDistributionModal({ onClose, onSuccess }: Request
         `${import.meta.env.VITE_API_URL}/teacher/distribution-requests/available-items`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setItems(response.data.data);
+      setCategories(response.data.data);
     } catch (error) {
-      toast.error('Failed to load available items');
+      toast.error('Failed to load available categories');
     }
   };
 
-  const selectedItem = items.find(i => i.id === parseInt(formData.item_id));
-  const maxQuantity = selectedItem?.quantity_available || 0;
+  const selectedCategory = categories.find(c => c.id === parseInt(formData.category_id));
+  const maxQuantity = selectedCategory?.available_items || 0;
 
   const handleQuantityChange = (value: string) => {
     const numValue = parseInt(value);
@@ -82,7 +81,7 @@ export default function RequestDistributionModal({ onClose, onSuccess }: Request
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.item_id || !formData.quantity_requested || !formData.reason) {
+    if (!formData.category_id || !formData.quantity_requested || !formData.reason) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -95,7 +94,7 @@ export default function RequestDistributionModal({ onClose, onSuccess }: Request
         `${import.meta.env.VITE_API_URL}/teacher/distribution-requests`,
         {
           ...formData,
-          item_id: parseInt(formData.item_id),
+          category_id: parseInt(formData.category_id),
           quantity_requested: parseInt(formData.quantity_requested),
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -126,26 +125,26 @@ export default function RequestDistributionModal({ onClose, onSuccess }: Request
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Item Selection */}
           <div className="space-y-2">
-            <Label htmlFor="item_id">
+            <Label htmlFor="category_id">
               <Package className="w-4 h-4 inline mr-2" />
-              Select Item *
+              Select Category *
             </Label>
-            <Select value={formData.item_id} onValueChange={(value) => setFormData({ ...formData, item_id: value, quantity_requested: '' })}>
+            <Select value={formData.category_id} onValueChange={(value) => setFormData({ ...formData, category_id: value, quantity_requested: '' })}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose an item" />
+                <SelectValue placeholder="Choose a category" />
               </SelectTrigger>
               <SelectContent>
-                {items.length === 0 ? (
+                {categories.length === 0 ? (
                   <div className="p-4 text-center text-sm text-gray-500">
-                    No items available
+                    No categories available
                   </div>
                 ) : (
-                  items.map((item) => (
-                    <SelectItem key={item.id} value={item.id.toString()}>
+                  categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
                       <div className="flex items-center justify-between w-full">
-                        <span className="font-medium">{item.item_name}</span>
+                        <span className="font-medium">{cat.category_name}</span>
                         <span className="text-xs text-gray-500 ml-2">
-                          ({item.item_code}) • {item.quantity_available} available
+                          {cat.available_items} available
                         </span>
                       </div>
                     </SelectItem>
@@ -153,13 +152,12 @@ export default function RequestDistributionModal({ onClose, onSuccess }: Request
                 )}
               </SelectContent>
             </Select>
-            {selectedItem && (
+            {selectedCategory && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-1">
-                <p className="text-sm font-medium text-blue-900">{selectedItem.item_name}</p>
+                <p className="text-sm font-medium text-blue-900">{selectedCategory.category_name}</p>
                 <div className="flex items-center justify-between text-xs text-blue-700">
-                  <span>Code: {selectedItem.item_code}</span>
-                  <span>Category: {selectedItem.category}</span>
-                  <span className="font-semibold">Available: {selectedItem.quantity_available}</span>
+                  <span>{selectedCategory.description}</span>
+                  <span className="font-semibold">Available: {selectedCategory.available_items}</span>
                 </div>
               </div>
             )}
@@ -199,21 +197,21 @@ export default function RequestDistributionModal({ onClose, onSuccess }: Request
                 variant="outline"
                 size="icon"
                 onClick={incrementQuantity}
-                disabled={!selectedItem || parseInt(formData.quantity_requested || '0') >= maxQuantity}
+                disabled={!selectedCategory || parseInt(formData.quantity_requested || '0') >= maxQuantity}
                 className="h-10 w-10 flex-shrink-0"
               >
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
             
-            {selectedItem && formData.quantity_requested && parseInt(formData.quantity_requested) > 0 && (
+            {selectedCategory && formData.quantity_requested && parseInt(formData.quantity_requested) > 0 && (
               <p className="text-sm text-gray-600">
-                Requesting <span className="font-semibold text-blue-600">{formData.quantity_requested}</span> of {selectedItem.quantity_available} available
+                Requesting <span className="font-semibold text-blue-600">{formData.quantity_requested}</span> of {selectedCategory.available_items} available
               </p>
             )}
             
             {/* Quick quantity buttons */}
-            {selectedItem && selectedItem.quantity_available > 1 && (
+            {selectedCategory && selectedCategory.available_items > 1 && (
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -224,7 +222,7 @@ export default function RequestDistributionModal({ onClose, onSuccess }: Request
                 >
                   1
                 </Button>
-                {selectedItem.quantity_available >= 5 && (
+                {selectedCategory.available_items >= 5 && (
                   <Button
                     type="button"
                     variant="outline"
@@ -235,7 +233,7 @@ export default function RequestDistributionModal({ onClose, onSuccess }: Request
                     5
                   </Button>
                 )}
-                {selectedItem.quantity_available >= 10 && (
+                {selectedCategory.available_items >= 10 && (
                   <Button
                     type="button"
                     variant="outline"

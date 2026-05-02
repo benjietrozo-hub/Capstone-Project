@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { TableSkeleton } from '../../components/common/Skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Table } from '../../components/common/Table';
@@ -50,8 +52,7 @@ interface FormErrors {
 }
 
 export function TeachersPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -73,24 +74,19 @@ export function TeachersPage() {
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
 
-  useEffect(() => {
-    fetchTeachers();
-  }, [search]);
+  const { 
+    data: teachersResponse, 
+    isLoading: loading 
+  } = useQuery({
+    queryKey: ['teachers', { search }],
+    queryFn: () => adminAPI.getTeachers({
+      search,
+      per_page: 50,
+    }),
+    placeholderData: (previousData: any) => previousData,
+  });
 
-  const fetchTeachers = async () => {
-    try {
-      setLoading(true);
-      const response = await adminAPI.getTeachers({
-        search,
-        per_page: 50,
-      });
-      setTeachers(response.data.data);
-    } catch (error) {
-      console.error('Failed to fetch teachers', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const teachers = teachersResponse?.data?.data || [];
 
   
   const handleOpenModal = (teacher: Teacher | null = null) => {
@@ -187,7 +183,7 @@ export function TeachersPage() {
       setShowModal(false);
       setFormErrors({});
       setGeneralError('');
-      fetchTeachers();
+      queryClient.invalidateQueries({ queryKey: ['teachers'] });
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || 'Failed to save teacher';
       const errors = error?.response?.data?.errors;
@@ -214,7 +210,7 @@ export function TeachersPage() {
     try {
       await adminAPI.deleteTeacher(id);
       toast.success('Teacher archived successfully');
-      fetchTeachers();
+      queryClient.invalidateQueries({ queryKey: ['teachers'] });
     } catch (error) {
       toast.error('Failed to archive teacher');
     }
@@ -312,7 +308,11 @@ export function TeachersPage() {
             </div>
           </div>
 
-        <Table columns={columns} data={teachers} loading={loading} />
+        {loading ? (
+          <TableSkeleton rows={8} cols={6} />
+        ) : (
+          <Table columns={columns} data={teachers} />
+        )}
       </Card>
 
       {/* Modern Modal */}

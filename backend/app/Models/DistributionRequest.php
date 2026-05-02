@@ -12,7 +12,7 @@ class DistributionRequest extends Model
 
     protected $fillable = [
         'teacher_id',
-        'item_id',
+        'category_id',
         'quantity_requested',
         'reason',
         'notes',
@@ -34,9 +34,9 @@ class DistributionRequest extends Model
         return $this->belongsTo(Teacher::class);
     }
 
-    public function item()
+    public function category()
     {
-        return $this->belongsTo(ToolEquipment::class, 'item_id');
+        return $this->belongsTo(ItemCategory::class, 'category_id');
     }
 
     public function reviewedBy()

@@ -85,15 +85,10 @@ class UnifiedAuthController extends Controller
             $loginAttempt->resetAttempts();
 
             // Create token with expiration
-            $token = $admin->createToken('admin-token', [
-                'expires_at' => now()->addHour(), // 1 hour expiration
-                'abilities' => ['*'], // Grant all abilities
-            ])->plainTextToken;
+            $token = $admin->createToken('admin-token', ['*'], now()->addHour())->plainTextToken;
 
             // Create refresh token (longer expiration)
-            $refreshToken = $admin->createToken('admin-refresh', [
-                'expires_at' => now()->addDays(7), // 7 days for refresh
-            ])->plainTextToken;
+            $refreshToken = $admin->createToken('admin-refresh', ['*'], now()->addDays(7))->plainTextToken;
 
             $admin->update(['last_login' => now()]);
 
@@ -142,15 +137,10 @@ class UnifiedAuthController extends Controller
             $loginAttempt->resetAttempts();
 
             // Create token with expiration
-            $token = $teacher->createToken('teacher-token', [
-                'expires_at' => now()->addHour(), // 1 hour expiration
-                'abilities' => ['*'], // Grant all abilities
-            ])->plainTextToken;
+            $token = $teacher->createToken('teacher-token', ['*'], now()->addHour())->plainTextToken;
 
             // Create refresh token (longer expiration)
-            $refreshToken = $teacher->createToken('teacher-refresh', [
-                'expires_at' => now()->addDays(7), // 7 days for refresh
-            ])->plainTextToken;
+            $refreshToken = $teacher->createToken('teacher-refresh', ['*'], now()->addDays(7))->plainTextToken;
 
             $teacher->update(['last_login' => now()]);
 

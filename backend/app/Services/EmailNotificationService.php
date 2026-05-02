@@ -26,8 +26,6 @@ class EmailNotificationService
         'distribution_returned',
         'low_stock',
         'item_overdue',
-        'purchase_order_created',
-        'purchase_order_received',
     ];
 
     /**
@@ -291,33 +289,5 @@ class EmailNotificationService
         );
     }
 
-    /**
-     * Send email for purchase order created
-     */
-    public static function notifyPurchaseOrderCreated($purchaseOrder)
-    {
-        self::broadcastEmail(
-            'admin',
-            'purchase_order_created',
-            'New Purchase Order',
-            "Purchase order #{$purchaseOrder->po_number} has been created for {$purchaseOrder->supplier->supplier_name}",
-            $purchaseOrder->id,
-            'purchase_order'
-        );
-    }
 
-    /**
-     * Send email for purchase order received
-     */
-    public static function notifyPurchaseOrderReceived($purchaseOrder)
-    {
-        self::broadcastEmail(
-            'admin',
-            'purchase_order_received',
-            'Purchase Order Received',
-            "Purchase order #{$purchaseOrder->po_number} has been received and inventory updated",
-            $purchaseOrder->id,
-            'purchase_order'
-        );
-    }
 }

@@ -4,9 +4,7 @@ namespace App\Http\Controllers\API\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ToolEquipment;
-use App\Models\Supplier;
 use App\Models\BorrowRequest;
-use App\Models\PurchaseOrder;
 use App\Models\DistributionGroup;
 use App\Models\Teacher;
 use Illuminate\Http\Request;
@@ -50,58 +48,6 @@ class ArchiveController extends Controller
                         ];
                     });
                 $archivedItems = array_merge($archivedItems, $inventory->toArray());
-            }
-
-            if ($type === 'all' || $type === 'suppliers') {
-                $suppliers = Supplier::onlyTrashed()
-                    ->when($search, function ($query) use ($search) {
-                        $query->where('name', 'like', "%{$search}%")
-                              ->orWhere('supplier_code', 'like', "%{$search}%");
-                    })
-                    ->with(['deletedByAdmin'])
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'id'          => $item->id,
-                            'type'        => 'supplier',
-                            'name'        => $item->name,
-                            'code'        => $item->supplier_code,
-                            'archived_at' => $item->deleted_at,
-                            'archived_by' => $item->deletedByAdmin ? $item->deletedByAdmin->full_name : 'Unknown',
-                            'details'     => [
-                                'contact_person' => $item->contact_person,
-                                'email'          => $item->email,
-                                'phone'          => $item->phone,
-                            ],
-                        ];
-                    });
-                $archivedItems = array_merge($archivedItems, $suppliers->toArray());
-            }
-
-            if ($type === 'all' || $type === 'purchase_orders') {
-                $purchaseOrders = PurchaseOrder::onlyTrashed()
-                    ->when($search, function ($query) use ($search) {
-                        $query->where('po_number', 'like', "%{$search}%")
-                              ->orWhere('supplier_name', 'like', "%{$search}%");
-                    })
-                    ->with(['deletedByAdmin'])
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'id'          => $item->id,
-                            'type'        => 'purchase_order',
-                            'name'        => "PO: {$item->po_number}",
-                            'code'        => $item->po_number,
-                            'archived_at' => $item->deleted_at,
-                            'archived_by' => $item->deletedByAdmin ? $item->deletedByAdmin->full_name : 'Unknown',
-                            'details'     => [
-                                'supplier'     => $item->supplier_name,
-                                'total_amount' => $item->total_amount,
-                                'status'       => $item->status,
-                            ],
-                        ];
-                    });
-                $archivedItems = array_merge($archivedItems, $purchaseOrders->toArray());
             }
 
             if ($type === 'all' || $type === 'borrow_requests') {
@@ -290,12 +236,7 @@ class ArchiveController extends Controller
             if ($type === 'all' || $type === 'inventory') {
                 $deleted += ToolEquipment::onlyTrashed()->forceDelete();
             }
-            if ($type === 'all' || $type === 'suppliers') {
-                $deleted += Supplier::onlyTrashed()->forceDelete();
-            }
-            if ($type === 'all' || $type === 'purchase_orders') {
-                $deleted += PurchaseOrder::onlyTrashed()->forceDelete();
-            }
+
             if ($type === 'all' || $type === 'borrow_requests') {
                 $deleted += BorrowRequest::onlyTrashed()->forceDelete();
             }
@@ -331,8 +272,6 @@ class ArchiveController extends Controller
         try {
             $stats = [
                 'inventory'          => ToolEquipment::onlyTrashed()->count(),
-                'suppliers'          => Supplier::onlyTrashed()->count(),
-                'purchase_orders'    => PurchaseOrder::onlyTrashed()->count(),
                 'borrow_requests'    => BorrowRequest::onlyTrashed()->count(),
                 'distribution_groups'=> DistributionGroup::onlyTrashed()->count(),
                 'teachers'           => Teacher::onlyTrashed()->count(),
@@ -361,8 +300,6 @@ class ArchiveController extends Controller
     {
         $models = [
             'inventory'          => ToolEquipment::class,
-            'supplier'           => Supplier::class,
-            'purchase_order'     => PurchaseOrder::class,
             'borrow_request'     => BorrowRequest::class,
             'distribution_group' => DistributionGroup::class,
             'teacher'            => Teacher::class,

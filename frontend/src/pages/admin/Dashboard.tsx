@@ -15,6 +15,8 @@ import {
 import NavHeader from "@/components/NavHeader";
 import NotificationProfile from "@/components/NotificationProfile";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { DashboardSkeleton } from "../../components/common/Skeleton";
 import { adminAPI } from "../../api";
 
 interface DashboardData {
@@ -30,7 +32,19 @@ interface DashboardData {
 
 export function AdminDashboard() {
   const navigate = useNavigate();
-  const [dashboardData, setDashboardData] = useState<DashboardData>({
+  const { 
+    data: dashboardDataResponse, 
+    isLoading: loading 
+  } = useQuery({
+    queryKey: ['admin-dashboard'],
+    queryFn: async () => {
+      const response = await adminAPI.getDashboard();
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  const dashboardData = dashboardDataResponse || {
     total_items: 0,
     available_items: 0,
     borrowed_items: 0,
@@ -39,29 +53,10 @@ export function AdminDashboard() {
     overdue_items: 0,
     total_logs: 0,
     total_reports: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  
+  };
+
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const response = await adminAPI.getDashboard();
-      if (response.data) {
-        setDashboardData(response.data);
-      }
-    } catch (error) {
-      console.error('Failed to load admin dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const dashboardStats = [
     {
@@ -195,10 +190,7 @@ export function AdminDashboard() {
       <div className="container mx-auto p-3 sm:p-6">
         {/* Stats Grid */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="mt-4 text-gray-600">Loading dashboard statistics...</p>
-          </div>
+          <DashboardSkeleton />
         ) : (
           <div className="grid gap-3 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {dashboardStats.map((stat) => (

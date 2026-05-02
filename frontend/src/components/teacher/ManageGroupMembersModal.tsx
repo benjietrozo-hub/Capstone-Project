@@ -157,7 +157,7 @@ const ManageGroupMembersModal: React.FC<ManageGroupMembersModalProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-2 divide-x">
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
             {/* Current Members */}
             <div className="p-6">
               <h3 className="font-semibold text-gray-900 mb-4">

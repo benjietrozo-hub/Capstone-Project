@@ -154,40 +154,24 @@ class WebSocketBroadcaster {
     private static function queueMessage($message) {
         self::init();
 
-        // Use file locking to prevent race conditions
-        $fp = fopen(self::$queueFile, 'c+');
-        if (!$fp) {
-            error_log('[WebSocketBroadcaster] Failed to open queue file: ' . self::$queueFile);
+        // Create a unique filename for this message
+        // msg_timestamp_microtime_random.json
+        $timestamp = time();
+        $microtime = str_replace('.', '', microtime(true));
+        $random = bin2hex(random_bytes(4));
+        $filename = "msg_{$timestamp}_{$microtime}_{$random}.json";
+        
+        $path = dirname(self::$queueFile) . '/' . $filename;
+
+        // Write the message to its own file
+        $written = file_put_contents($path, json_encode($message));
+        
+        if ($written === false) {
+            error_log('[WebSocketBroadcaster] Failed to write message file: ' . $path);
             return false;
         }
 
-        $result = false;
-        if (flock($fp, LOCK_EX)) {
-            $messages = [];
-
-            // Read existing messages
-            $content = stream_get_contents($fp);
-            if ($content) {
-                $messages = json_decode($content, true) ?: [];
-            }
-
-            // Add new message
-            $messages[] = $message;
-
-            // Write back to file
-            ftruncate($fp, 0);
-            rewind($fp);
-            $written = fwrite($fp, json_encode($messages));
-            fflush($fp);
-
-            flock($fp, LOCK_UN);
-            $result = $written !== false;
-        } else {
-            error_log('[WebSocketBroadcaster] Failed to acquire lock on queue file');
-        }
-
-        fclose($fp);
-        return $result;
+        return true;
     }
 
     /**
@@ -195,33 +179,33 @@ class WebSocketBroadcaster {
      */
     public static function getQueuedMessages() {
         self::init();
+        $queueDir = dirname(self::$queueFile);
 
-        if (!file_exists(self::$queueFile)) {
+        if (!is_dir($queueDir)) {
             return [];
         }
 
-        // Use file locking to prevent race conditions
-        $fp = fopen(self::$queueFile, 'r+');
-        if (!$fp) {
+        // Get all message files, sorted by name (which includes timestamp)
+        $files = glob($queueDir . '/msg_*.json');
+        if (empty($files)) {
             return [];
         }
 
-        if (flock($fp, LOCK_EX)) {
-            $content = stream_get_contents($fp);
-            $messages = json_decode($content, true) ?: [];
+        sort($files);
 
-            // Clear the file
-            ftruncate($fp, 0);
-            rewind($fp);
-            fwrite($fp, json_encode([]));
-            fflush($fp);
-
-            flock($fp, LOCK_UN);
-        } else {
-            $messages = [];
+        $messages = [];
+        foreach ($files as $file) {
+            $content = file_get_contents($file);
+            if ($content) {
+                $decoded = json_decode($content, true);
+                if ($decoded) {
+                    $messages[] = $decoded;
+                }
+            }
+            // Delete the file after reading
+            @unlink($file);
         }
 
-        fclose($fp);
         return $messages;
     }
 }

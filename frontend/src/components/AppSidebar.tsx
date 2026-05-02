@@ -43,11 +43,10 @@ interface MenuItem {
 }
 
 const adminItems: MenuItem[] = [
-  { title: "Dashboard", url: "/", icon: Home },
+  { title: "Dashboard", url: "/admin/dashboard", icon: Home },
   { title: "Inventory", url: "/admin/inventory", icon: Boxes },
   { title: "Reservations", url: "/admin/reservations", icon: Calendar },
-  { title: "Purchase Orders", url: "/admin/purchase-orders", icon: ShoppingCart },
-  { title: "Suppliers", url: "/admin/suppliers", icon: Truck },
+
   { title: "Distribution List", url: "/admin/distribution", icon: List },
   { title: "User Management", url: "/admin/teachers", icon: Users },
   { title: "Activity Logs", url: "/admin/logs", icon: Activity },
@@ -56,6 +55,7 @@ const adminItems: MenuItem[] = [
 ];
 
 const teacherItems: MenuItem[] = [
+  { title: "Dashboard", url: "/teacher/dashboard", icon: Home },
   { title: "Browse Inventory", url: "/teacher/inventory", icon: Boxes },
   { title: "My Reservations", url: "/teacher/reservations", icon: Calendar },
   { title: "Distribution Requests", url: "/teacher/distribution-requests", icon: Send },

@@ -8,8 +8,8 @@ interface BorrowRequestData {
   request_code?: string;
   teacher_name?: string;
   employee_id?: string;
-  item_name?: string;
-  item_code?: string;
+  category_name?: string;
+  category_code?: string;
   quantity?: number | string;
   status?: string;
   date_requested?: string;
@@ -100,8 +100,8 @@ export const generateRequestPDF = (reqData: BorrowRequestData) => {
       ['Request Code', reqData.request_code || `REQ-${reqData.id}`],
       ['Teacher Name', reqData.teacher_name || 'N/A'],
       ['Employee ID', reqData.employee_id || 'N/A'],
-      ['Item Name', reqData.item_name || 'N/A'],
-      ['Item Code', reqData.item_code || 'N/A'],
+      ['Category Name', reqData.category_name || 'N/A'],
+      ['Category Code', reqData.category_code || 'N/A'],
       ['Quantity', String(reqData.quantity || '0')],
       ['Date Requested', reqData.date_requested ? formatDate(reqData.date_requested) : 'N/A'],
       ['Expected Return', reqData.expected_return ? formatDate(reqData.expected_return) : 'N/A'],

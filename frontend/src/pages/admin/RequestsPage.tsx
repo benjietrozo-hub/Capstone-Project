@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { TableSkeleton } from '../../components/common/Skeleton';
 import { adminAPI } from '../../api';
 import { formatDate, formatDateTime } from '../../utils/formatters';
 import toast from 'react-hot-toast';
@@ -13,9 +15,9 @@ interface BorrowRequest {
   teacher?: {
     full_name: string;
   };
-  item?: {
-    item_name: string;
-    item_code?: string;
+  category_id: number;
+  category?: {
+    category_name: string;
   };
   quantity_requested: number;
   status: string;
@@ -26,7 +28,7 @@ interface BorrowRequest {
 }
 
 interface ApprovalForm {
-  quantity_approved: string | number;
+  inventory_item_ids: number[];
   expected_return_date: string;
   admin_notes: string;
 }
@@ -36,8 +38,7 @@ interface RejectionForm {
 }
 
 export function BorrowRequestsPage() {
-  const [requests, setRequests] = useState<BorrowRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<BorrowRequest | null>(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -45,7 +46,7 @@ export function BorrowRequestsPage() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedViewRequest, setSelectedViewRequest] = useState<BorrowRequest | null>(null);
   const [approvalForm, setApprovalForm] = useState<ApprovalForm>({
-    quantity_approved: '',
+    inventory_item_ids: [],
     expected_return_date: '',
     admin_notes: '',
   });
@@ -56,37 +57,50 @@ export function BorrowRequestsPage() {
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
 
-  useEffect(() => {
-    fetchRequests();
-  }, [status]);
+  const { 
+    data: requestsResponse, 
+    isLoading: loading 
+  } = useQuery({
+    queryKey: ['borrow-requests', { status }],
+    queryFn: () => adminAPI.getBorrowRequests({
+      status: status || undefined,
+      per_page: 50,
+    }),
+    placeholderData: (previousData: any) => previousData,
+  });
 
-  const fetchRequests = async () => {
-    try {
-      setLoading(true);
-      const response = await adminAPI.getBorrowRequests({
-        status: status || undefined,
-        per_page: 50,
-      });
-      setRequests(response.data.data);
-    } catch (error) {
-      toast.error('Failed to load requests');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const requests = requestsResponse?.data?.data || [];
+
+  const { data: availableItemsResponse } = useQuery({
+    queryKey: ['available-items', selectedRequest?.category_id],
+    queryFn: () => adminAPI.getInventoryItems({ 
+      category_id: selectedRequest?.category_id, 
+      status: 'available',
+      per_page: 500
+    }),
+    enabled: !!selectedRequest?.category_id && showApprovalModal,
+  });
+
+  const availableItems = availableItemsResponse?.data?.data || [];
 
   const handleApprove = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRequest) return;
+    
+    if (approvalForm.inventory_item_ids.length !== selectedRequest.quantity_requested) {
+      toast.error(`Please select exactly ${selectedRequest.quantity_requested} items.`);
+      return;
+    }
 
     try {
       await adminAPI.approveBorrowRequest(selectedRequest.id, approvalForm);
       toast.success('Request approved successfully');
       setShowApprovalModal(false);
-      setApprovalForm({ quantity_approved: '', expected_return_date: '', admin_notes: '' });
-      fetchRequests();
-    } catch (error) {
-      toast.error('Failed to approve request');
+      setApprovalForm({ inventory_item_ids: [], expected_return_date: '', admin_notes: '' });
+      queryClient.invalidateQueries({ queryKey: ['borrow-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['available-items'] });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to approve request');
     }
   };
 
@@ -99,7 +113,7 @@ export function BorrowRequestsPage() {
       toast.success('Request rejected successfully');
       setShowRejectionModal(false);
       setRejectionForm({ admin_notes: '' });
-      fetchRequests();
+      queryClient.invalidateQueries({ queryKey: ['borrow-requests'] });
     } catch (error) {
       toast.error('Failed to reject request');
     }
@@ -109,7 +123,7 @@ export function BorrowRequestsPage() {
     try {
       await adminAPI.issueBorrowRequest(id);
       toast.success('Item issued successfully');
-      fetchRequests();
+      queryClient.invalidateQueries({ queryKey: ['borrow-requests'] });
     } catch (error) {
       toast.error('Failed to issue item');
     }
@@ -117,9 +131,13 @@ export function BorrowRequestsPage() {
 
   const handleReturn = async (id: number) => {
     try {
-      await adminAPI.returnBorrowRequest(id, {});
+      // In a real implementation this should open a modal to confirm condition
+      await adminAPI.returnBorrowRequest(id, {
+        actual_return_date: new Date().toISOString().split('T')[0],
+        condition_on_return: 'good'
+      });
       toast.success('Item returned successfully');
-      fetchRequests();
+      queryClient.invalidateQueries({ queryKey: ['borrow-requests'] });
     } catch (error) {
       toast.error('Failed to process return');
     }
@@ -129,7 +147,7 @@ export function BorrowRequestsPage() {
     const formattedData = requests.map(req => ({
       'Request ID': req.request_code || `REQ-${req.id}`,
       'Teacher': req.teacher?.full_name || 'N/A',
-      'Item Name': req.item?.item_name || 'N/A',
+      'Category Name': req.category?.category_name || 'N/A',
       'Quantity': req.quantity_requested,
       'Status': req.status,
       'Date Requested': req.created_at ? formatDateTime(req.created_at) : 'N/A',
@@ -145,8 +163,7 @@ export function BorrowRequestsPage() {
       id: selectedViewRequest.id,
       request_code: selectedViewRequest.request_code,
       teacher_name: selectedViewRequest.teacher?.full_name,
-      item_name: selectedViewRequest.item?.item_name,
-      item_code: selectedViewRequest.item?.item_code,
+      category_name: selectedViewRequest.category?.category_name,
       quantity: selectedViewRequest.quantity_requested,
       status: selectedViewRequest.status,
       date_requested: selectedViewRequest.created_at,
@@ -165,6 +182,22 @@ export function BorrowRequestsPage() {
       case 'rejected': return 'badge-danger';
       default: return 'badge-secondary';
     }
+  };
+
+  // Function to toggle selection of an item
+  const toggleItemSelection = (itemId: number) => {
+    setApprovalForm(prev => {
+      const isSelected = prev.inventory_item_ids.includes(itemId);
+      if (isSelected) {
+        return { ...prev, inventory_item_ids: prev.inventory_item_ids.filter(id => id !== itemId) };
+      } else {
+        if (prev.inventory_item_ids.length >= (selectedRequest?.quantity_requested || 0)) {
+          toast.error(`You can only select up to ${selectedRequest?.quantity_requested} items.`);
+          return prev;
+        }
+        return { ...prev, inventory_item_ids: [...prev.inventory_item_ids, itemId] };
+      }
+    });
   };
 
   return (
@@ -227,7 +260,7 @@ export function BorrowRequestsPage() {
                 }}>
                   <th style={{ padding: '12px', textAlign: 'left', borderRadius: '10px 0 0 0' }}>Code</th>
                   <th style={{ padding: '12px', textAlign: 'left' }}>Teacher</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Item</th>
+                  <th style={{ padding: '12px', textAlign: 'left' }}>Category</th>
                   <th style={{ padding: '12px', textAlign: 'center' }}>Qty</th>
                   <th style={{ padding: '12px', textAlign: 'center' }}>Status</th>
                   <th style={{ padding: '12px', textAlign: 'center' }}>Date</th>
@@ -235,14 +268,20 @@ export function BorrowRequestsPage() {
                 </tr>
               </thead>
               <tbody>
-                {requests.map((req) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '20px' }}>
+                      <TableSkeleton rows={5} cols={7} />
+                    </td>
+                  </tr>
+                ) : requests.map((req) => (
                   <tr key={req.id} style={{
                     borderBottom: '1px solid #e9ecef',
                     transition: 'background 0.3s ease'
                   }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
                     <td style={{ padding: '12px', fontWeight: '600', color: '#667eea' }}>{req.request_code}</td>
                     <td style={{ padding: '12px' }}>{req.teacher?.full_name || 'N/A'}</td>
-                    <td style={{ padding: '12px' }}>{req.item?.item_name || 'N/A'}</td>
+                    <td style={{ padding: '12px' }}>{req.category?.category_name || 'N/A'}</td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>{req.quantity_requested}</td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
                       <span className={`badge ${getStatusColor(req.status)}`}>
@@ -270,7 +309,7 @@ export function BorrowRequestsPage() {
                               onClick={() => {
                                 setSelectedRequest(req);
                                 setApprovalForm({
-                                  quantity_approved: req.quantity_requested,
+                                  inventory_item_ids: [],
                                   expected_return_date: '',
                                   admin_notes: '',
                                 });
@@ -342,10 +381,10 @@ export function BorrowRequestsPage() {
           padding: '10px'
         }}>
           <div className="card" style={{ 
-            maxWidth: '420px', 
+            maxWidth: '500px', 
             width: '100%',
             height: 'auto',
-            maxHeight: '600px',
+            maxHeight: '80vh',
             display: 'flex',
             flexDirection: 'column',
             backgroundColor: '#f8f9fa',
@@ -358,7 +397,7 @@ export function BorrowRequestsPage() {
               padding: '10px 14px',
               borderBottom: '1px solid #e9ecef'
             }}>
-              <h5 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Approve Request</h5>
+              <h5 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Approve Request ({selectedRequest?.category?.category_name})</h5>
               <button
                 onClick={() => setShowApprovalModal(false)}
                 style={{
@@ -367,12 +406,7 @@ export function BorrowRequestsPage() {
                   fontSize: '18px',
                   cursor: 'pointer',
                   color: '#666',
-                  padding: '0',
-                  width: '24px',
-                  height: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  padding: '0'
                 }}
               >
                 ×
@@ -381,40 +415,75 @@ export function BorrowRequestsPage() {
             
             {/* Form Fields */}
             <div style={{ 
-              padding: '12px 14px',
+              padding: '16px',
               overflowY: 'auto',
-              flex: 1,
-              maxHeight: '450px'
+              flex: 1
             }}>
               <form onSubmit={handleApprove} id="approveForm">
-                <div style={{ marginBottom: '12px' }}>
-                  <div>
-                    <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '12px' }}>
-                      Quantity <span style={{ color: '#dc3545' }}>*</span>
-                    </label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      min={1}
-                      max={selectedRequest?.quantity_requested ?? undefined}
-                      value={approvalForm.quantity_approved}
-                      onChange={(e) =>
-                        setApprovalForm({ ...approvalForm, quantity_approved: e.target.value })
-                      }
-                      required
-                      style={{ fontSize: '12px', padding: '5px 8px' }}
-                    />
-                    {selectedRequest?.quantity_requested ? (
-                      <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
-                        Max: {selectedRequest.quantity_requested}
+                
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontWeight: '600', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Select Specific Serial Numbers <span style={{ color: '#dc3545' }}>*</span></span>
+                    <span className="badge badge-primary">{approvalForm.inventory_item_ids.length} / {selectedRequest?.quantity_requested} Selected</span>
+                  </label>
+                  
+                  <div style={{ 
+                    border: '1px solid #dee2e6', 
+                    borderRadius: '8px', 
+                    maxHeight: '200px', 
+                    overflowY: 'auto',
+                    backgroundColor: '#fff' 
+                  }}>
+                    {availableItems.length === 0 ? (
+                      <div style={{ padding: '16px', textAlign: 'center', color: '#dc3545', fontWeight: '500' }}>
+                        No available items in this category!
                       </div>
-                    ) : null}
+                    ) : (
+                      availableItems.map((item: any) => (
+                        <label 
+                          key={item.id} 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            padding: '10px 12px', 
+                            borderBottom: '1px solid #f1f3f5',
+                            cursor: 'pointer',
+                            backgroundColor: approvalForm.inventory_item_ids.includes(item.id) ? '#e6f2ff' : 'transparent',
+                            transition: 'background-color 0.2s'
+                          }}
+                        >
+                          <input 
+                            type="checkbox"
+                            checked={approvalForm.inventory_item_ids.includes(item.id)}
+                            onChange={() => toggleItemSelection(item.id)}
+                            style={{ marginRight: '12px', width: '16px', height: '16px', cursor: 'pointer' }}
+                          />
+                          <div>
+                            <div style={{ fontWeight: '600', fontSize: '13px' }}>{item.serial_number}</div>
+                            <div style={{ fontSize: '11px', color: '#6c757d' }}>{item.item_name} - {item.condition}</div>
+                          </div>
+                        </label>
+                      ))
+                    )}
                   </div>
                 </div>
 
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '13px' }}>
+                    Expected Return Date
+                  </label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={approvalForm.expected_return_date}
+                    onChange={(e) => setApprovalForm({...approvalForm, expected_return_date: e.target.value})}
+                    style={{ fontSize: '13px' }}
+                  />
+                </div>
+
                 <div style={{ marginBottom: '12px' }}>
-                  <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '12px' }}>
-                    Notes
+                  <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '13px' }}>
+                    Admin Notes
                   </label>
                   <textarea
                     className="form-control"
@@ -424,7 +493,7 @@ export function BorrowRequestsPage() {
                     }
                     rows={2}
                     placeholder="Optional..."
-                    style={{ fontSize: '12px', padding: '5px 8px', resize: 'vertical' }}
+                    style={{ fontSize: '13px', resize: 'vertical' }}
                   />
                 </div>
               </form>
@@ -646,8 +715,8 @@ export function BorrowRequestsPage() {
                       <strong style={{ color: '#333' }}>{selectedViewRequest.teacher?.full_name || 'N/A'}</strong>
                     </div>
                     <div>
-                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Item</span>
-                      <strong style={{ color: '#333' }}>{selectedViewRequest.item?.item_name || 'N/A'}</strong>
+                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Category</span>
+                      <strong style={{ color: '#333' }}>{selectedViewRequest.category?.category_name || 'N/A'}</strong>
                     </div>
                     <div>
                       <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Quantity</span>

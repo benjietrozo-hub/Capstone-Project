@@ -41,8 +41,10 @@ while (true) {
     $write = null;
     $except = null;
     
-    // Select with timeout
-    if (socket_select($read, $write, $except, 1) < 1) {
+    // Select with short timeout (100ms) for responsiveness
+    if (socket_select($read, $write, $except, 0, 100000) < 1) {
+        // Still process queued messages even if no socket activity
+        processQueuedMessages($users);
         continue;
     }
     
@@ -209,13 +211,14 @@ function handleMessage($message, $client, &$users) {
  */
 function processQueuedMessages(&$users) {
     static $lastCheck = 0;
+    $now = microtime(true);
     
-    // Only check once per second
-    if (time() - $lastCheck < 1) {
+    // Check every 100ms
+    if ($now - $lastCheck < 0.1) {
         return;
     }
     
-    $lastCheck = time();
+    $lastCheck = $now;
     
     try {
         $messages = App\WebSocket\WebSocketBroadcaster::getQueuedMessages();

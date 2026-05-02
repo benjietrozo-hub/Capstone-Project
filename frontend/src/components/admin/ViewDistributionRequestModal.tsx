@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Package, User, Calendar, FileText, CheckCircle, XCircle } from 'lucide-react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
@@ -17,14 +17,61 @@ interface ViewDistributionRequestModalProps {
 export default function ViewDistributionRequestModal({ request, onClose, onSuccess }: ViewDistributionRequestModalProps) {
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState<'approve' | 'reject' | null>(null);
+  
+  const [availableItems, setAvailableItems] = useState<any[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
+  
   const [formData, setFormData] = useState({
     admin_notes: '',
     condition_on_distribution: 'good',
+    inventory_item_ids: [] as number[]
   });
+
+  // Fetch available items when action changes to approve
+  useEffect(() => {
+    if (action === 'approve' && request.category_id) {
+      const fetchItems = async () => {
+        setLoadingItems(true);
+        try {
+          const token = localStorage.getItem('token');
+          const res = await axios.get(
+            `${import.meta.env.VITE_API_URL}/admin/inventory-items?category_id=${request.category_id}&status=available&per_page=500`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setAvailableItems(res.data.data.data || []);
+        } catch (err) {
+          toast.error("Failed to load available items for this category");
+        } finally {
+          setLoadingItems(false);
+        }
+      };
+      fetchItems();
+    }
+  }, [action, request.category_id]);
+
+  const toggleItemSelection = (itemId: number) => {
+    setFormData(prev => {
+      const isSelected = prev.inventory_item_ids.includes(itemId);
+      if (isSelected) {
+        return { ...prev, inventory_item_ids: prev.inventory_item_ids.filter(id => id !== itemId) };
+      } else {
+        if (prev.inventory_item_ids.length >= request.quantity_requested) {
+          toast.error(`You can only select up to ${request.quantity_requested} items.`);
+          return prev;
+        }
+        return { ...prev, inventory_item_ids: [...prev.inventory_item_ids, itemId] };
+      }
+    });
+  };
 
   const handleApprove = async () => {
     if (!formData.condition_on_distribution) {
       toast.error('Please select item condition');
+      return;
+    }
+    
+    if (formData.inventory_item_ids.length !== request.quantity_requested) {
+      toast.error(`Please select exactly ${request.quantity_requested} serialized units to distribute.`);
       return;
     }
 
@@ -84,8 +131,8 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+      <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="bg-white border-b px-6 py-4 flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Distribution Request Details</h2>
             <p className="text-sm text-gray-600 mt-1">Review and process request</p>
@@ -95,7 +142,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 flex-1 overflow-y-auto">
           {/* Status */}
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">Status:</span>
@@ -109,28 +156,16 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Package className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-semibold text-blue-900">Item Details</h3>
+                  <h3 className="font-semibold text-blue-900">Category Details</h3>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-blue-700">Item:</span>
-                    <p className="font-medium text-blue-900">{request.item.item_name}</p>
-                  </div>
-                  <div>
-                    <span className="text-blue-700">Code:</span>
-                    <p className="font-medium text-blue-900">{request.item.item_code}</p>
-                  </div>
-                  <div>
                     <span className="text-blue-700">Category:</span>
-                    <p className="font-medium text-blue-900">{request.item.category}</p>
+                    <p className="font-medium text-blue-900">{request.category?.category_name || request.item?.category || 'N/A'}</p>
                   </div>
                   <div>
                     <span className="text-blue-700">Quantity Requested:</span>
                     <p className="font-medium text-blue-900">{request.quantity_requested} units</p>
-                  </div>
-                  <div>
-                    <span className="text-blue-700">Available:</span>
-                    <p className="font-medium text-blue-900">{request.item.quantity_available} units</p>
                   </div>
                 </div>
               </div>
@@ -146,15 +181,11 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
                 <div className="space-y-2 text-sm">
                   <div>
                     <span className="text-green-700">Name:</span>
-                    <p className="font-medium text-green-900">{request.teacher.full_name}</p>
+                    <p className="font-medium text-green-900">{request.teacher?.full_name}</p>
                   </div>
                   <div>
                     <span className="text-green-700">Email:</span>
-                    <p className="font-medium text-green-900">{request.teacher.email}</p>
-                  </div>
-                  <div>
-                    <span className="text-green-700">Department:</span>
-                    <p className="font-medium text-green-900">{request.teacher.department}</p>
+                    <p className="font-medium text-green-900">{request.teacher?.email}</p>
                   </div>
                   <div>
                     <span className="text-green-700">Requested:</span>
@@ -177,41 +208,6 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
               <p className="text-sm text-gray-900">{request.reason}</p>
             </div>
           </div>
-
-          {/* Additional Notes */}
-          {request.notes && (
-            <div className="space-y-2">
-              <Label>Additional Notes</Label>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <p className="text-sm text-gray-900">{request.notes}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Review Information (if reviewed) */}
-          {request.reviewed_by && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
-              <h3 className="font-semibold text-gray-900">Review Information</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Reviewed By:</span>
-                  <p className="font-medium text-gray-900">{request.reviewed_by?.full_name || 'N/A'}</p>
-                </div>
-                <div>
-                  <span className="text-gray-600">Reviewed At:</span>
-                  <p className="font-medium text-gray-900">
-                    {request.reviewed_at ? new Date(request.reviewed_at).toLocaleString() : 'N/A'}
-                  </p>
-                </div>
-              </div>
-              {request.admin_notes && (
-                <div>
-                  <span className="text-gray-600">Admin Notes:</span>
-                  <p className="font-medium text-gray-900 mt-1">{request.admin_notes}</p>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Action Section (only for pending requests) */}
           {request.status === 'pending' && (
@@ -241,12 +237,40 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
                   <h3 className="font-semibold text-green-900">Approve & Distribute</h3>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="condition">Item Condition *</Label>
+                    <Label className="flex justify-between items-center">
+                      <span>Select Serial Numbers ({formData.inventory_item_ids.length} / {request.quantity_requested}) *</span>
+                    </Label>
+                    <div className="bg-white border border-green-200 rounded-md max-h-48 overflow-y-auto">
+                      {loadingItems ? (
+                        <div className="p-4 text-center text-sm text-gray-500">Loading units...</div>
+                      ) : availableItems.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-red-500 font-medium">No available units in this category.</div>
+                      ) : (
+                        availableItems.map((item) => (
+                          <label key={item.id} className={`flex items-center px-3 py-2 cursor-pointer border-b last:border-0 ${formData.inventory_item_ids.includes(item.id) ? 'bg-green-100' : 'hover:bg-gray-50'}`}>
+                            <input 
+                              type="checkbox" 
+                              className="mr-3" 
+                              checked={formData.inventory_item_ids.includes(item.id)}
+                              onChange={() => toggleItemSelection(item.id)}
+                            />
+                            <div>
+                              <div className="font-medium text-sm text-gray-900">{item.serial_number}</div>
+                              <div className="text-xs text-gray-500">{item.item_name} - {item.condition}</div>
+                            </div>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="condition">Initial Condition of Distribution *</Label>
                     <Select 
                       value={formData.condition_on_distribution} 
                       onValueChange={(value) => setFormData({ ...formData, condition_on_distribution: value })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -265,24 +289,16 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
                       value={formData.admin_notes}
                       onChange={(e) => setFormData({ ...formData, admin_notes: e.target.value })}
                       placeholder="Any notes about this distribution..."
-                      rows={3}
+                      rows={2}
+                      className="bg-white"
                     />
                   </div>
 
-                  <div className="flex gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setAction(null)}
-                      className="flex-1"
-                    >
+                  <div className="flex gap-3 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setAction(null)} className="flex-1 bg-white">
                       Cancel
                     </Button>
-                    <Button
-                      onClick={handleApprove}
-                      disabled={loading}
-                      className="flex-1 bg-gradient-to-r from-green-500 to-green-600"
-                    >
+                    <Button onClick={handleApprove} disabled={loading} className="flex-1 bg-gradient-to-r from-green-500 to-green-600">
                       {loading ? 'Processing...' : 'Confirm Approval'}
                     </Button>
                   </div>
@@ -302,37 +318,20 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
                       placeholder="Explain why this request is being rejected..."
                       rows={4}
                       required
+                      className="bg-white"
                     />
                   </div>
 
-                  <div className="flex gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setAction(null)}
-                      className="flex-1"
-                    >
+                  <div className="flex gap-3 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setAction(null)} className="flex-1 bg-white">
                       Cancel
                     </Button>
-                    <Button
-                      onClick={handleReject}
-                      disabled={loading}
-                      className="flex-1 bg-gradient-to-r from-red-500 to-red-600"
-                    >
+                    <Button onClick={handleReject} disabled={loading} className="flex-1 bg-gradient-to-r from-red-500 to-red-600">
                       {loading ? 'Processing...' : 'Confirm Rejection'}
                     </Button>
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Close button for non-pending requests */}
-          {request.status !== 'pending' && (
-            <div className="flex justify-end pt-4 border-t">
-              <Button onClick={onClose} variant="outline">
-                Close
-              </Button>
             </div>
           )}
         </div>

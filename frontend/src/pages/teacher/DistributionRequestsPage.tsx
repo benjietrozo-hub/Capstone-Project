@@ -14,7 +14,7 @@ import NotificationProfile from '@/components/NotificationProfile';
 interface DistributionRequest {
   id: number;
   teacher_id: number;
-  item_id: number;
+  category_id: number;
   quantity_requested: number;
   reason: string;
   notes: string | null;
@@ -23,12 +23,10 @@ interface DistributionRequest {
   admin_notes: string | null;
   reviewed_at: string | null;
   created_at: string;
-  item: {
+  category?: {
     id: number;
-    item_code: string;
-    item_name: string;
-    category: string;
-    quantity_available: number;
+    category_name: string;
+    description: string;
   };
   reviewed_by_admin?: {
     id: number;
@@ -122,8 +120,7 @@ export default function DistributionRequestsPage() {
 
   const filteredRequests = requests.filter(req => {
     const matchesSearch = searchQuery === '' ||
-      req.item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.item.item_code.toLowerCase().includes(searchQuery.toLowerCase());
+      req.category?.category_name.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
     
@@ -162,16 +159,15 @@ export default function DistributionRequestsPage() {
         <p className="text-sm text-gray-600">Request items you need for your teaching</p>
       </div>
       
-      <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Header - Mobile friendly layout */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="hidden sm:block">
-          <h1 className="text-3xl font-bold text-gray-900">Distribution Requests</h1>
-          <p className="text-gray-600 mt-1">Request items you need for your teaching</p>
+          <h1 className="text-2xl font-bold text-gray-900">Distribution Requests</h1>
         </div>
         <Button 
           onClick={() => setShowRequestModal(true)} 
-          className="gap-2 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7]"
+          className="w-full sm:w-auto gap-2 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7]"
         >
           <Plus className="w-4 h-4" />
           New Request
@@ -180,7 +176,7 @@ export default function DistributionRequestsPage() {
 
       {/* Statistics Cards */}
       {statistics && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Total Requests</CardTitle>
@@ -295,8 +291,7 @@ export default function DistributionRequestsPage() {
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{request.item.item_name}</h3>
-                        <p className="text-sm text-gray-600">Code: {request.item.item_code} • Category: {request.item.category}</p>
+                        <h3 className="text-lg font-semibold text-gray-900">{request.category?.category_name || 'N/A'}</h3>
                       </div>
                       {getStatusBadge(request.status)}
                     </div>

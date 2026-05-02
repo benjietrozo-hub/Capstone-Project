@@ -108,7 +108,7 @@ const NotificationProfile: React.FC<NotificationProfileProps> = ({
         case 'item_returned':
         case 'return_reminder':
         case 'item_overdue':
-          navigate('/teacher/my-requests');
+          navigate('/teacher/reservations?tab=requests');
           break;
         
         case 'distribution_approved':

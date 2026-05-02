@@ -3,36 +3,36 @@
 namespace App\Http\Controllers\API\Teacher;
 
 use App\Http\Controllers\Controller;
-use App\Models\ToolEquipment;
+use App\Models\ItemCategory;
 use Illuminate\Http\Request;
 
 class InventoryController extends Controller
 {
     public function index(Request $request)
     {
-        $q = ToolEquipment::where('status', 'active');
+        $q = ItemCategory::query();
         if ($request->search) {
             $s = $request->search;
-            $q->where(fn($q) => $q->where('item_name', 'like', "%{$s}%")->orWhere('item_code', 'like', "%{$s}%")->orWhere('description', 'like', "%{$s}%"));
+            $q->where(fn($query) => 
+                $query->where('category_name', 'like', "%{$s}%")
+                      ->orWhere('description', 'like', "%{$s}%")
+            );
         }
-        if ($request->category) $q->where('category', $request->category);
-        if ($request->available_only) $q->where('quantity_available', '>', 0);
-        $sortBy = $request->sort_by ?? 'item_name';
+        
+        $sortBy = $request->sort_by ?? 'category_name';
         $sortOrder = $request->sort_order ?? 'asc';
         
-        // Handle year-based sorting with alphabetical secondary sort
-        if ($sortBy === 'acquisition_year') {
-            $q->byYearAndName($sortOrder, 'asc');
-        } elseif ($sortBy === 'name_year') {
-            $q->orderBy('item_name', $sortOrder)
-              ->orderByRaw('YEAR(acquisition_date) desc');
-        } elseif ($sortBy === 'year_name_combined') {
-            $primarySort = $request->primary_sort ?? 'acquisition_year';
-            $secondarySort = $request->secondary_sort ?? 'item_name';
-            $primaryOrder = $request->primary_order ?? 'desc';
-            $secondaryOrder = $request->secondary_order ?? 'asc';
-            $q->combinedSort($primarySort, $secondarySort, $primaryOrder, $secondaryOrder);
+        // Handle sorting by virtual/appended columns
+        if ($sortBy === 'available_items') {
+            $q->withCount(['inventoryItems as available_items_count' => function($query) {
+                $query->where('status', 'available');
+            }])->orderBy('available_items_count', $sortOrder);
+        } elseif ($sortBy === 'total_items') {
+            $q->withCount('inventoryItems as total_items_count')
+              ->orderBy('total_items_count', $sortOrder);
         } else {
+            // Map legacy field names if any
+            if ($sortBy === 'item_name') $sortBy = 'category_name';
             $q->orderBy($sortBy, $sortOrder);
         }
         
@@ -41,11 +41,15 @@ class InventoryController extends Controller
 
     public function show($id)
     {
-        return response()->json(ToolEquipment::where('status', 'active')->findOrFail($id));
+        $category = ItemCategory::with(['inventoryItems' => function($query) {
+            $query->where('status', 'available');
+        }])->findOrFail($id);
+        
+        return response()->json($category);
     }
 
     public function categories()
     {
-        return response()->json(ToolEquipment::where('status', 'active')->distinct('category')->pluck('category')->filter()->values());
+        return response()->json(ItemCategory::pluck('category_name')->filter()->values());
     }
 }

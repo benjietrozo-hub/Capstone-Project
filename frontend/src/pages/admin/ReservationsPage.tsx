@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { TableSkeleton } from '../../components/common/Skeleton';
 import { adminAPI } from '../../api';
 import { toast } from '@/hooks/use-toast';
 import NavHeader from '@/components/NavHeader';
@@ -19,9 +21,10 @@ interface BorrowRequest {
     full_name: string;
     employee_id?: string;
   };
-  item?: {
-    item_name: string;
-    item_code: string;
+  category_id?: number;
+  category?: {
+    category_name: string;
+    description: string;
   };
   quantity_requested: number;
   status: string;
@@ -46,12 +49,10 @@ interface RejectionForm {
 }
 
 export function ReservationsPage() {
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'borrowed');
-  const [borrowedItems, setBorrowedItems] = useState<BorrowRequest[]>([]);
-  const [requests, setRequests] = useState<BorrowRequest[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<BorrowRequest | null>(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
@@ -76,38 +77,37 @@ export function ReservationsPage() {
     }
   }, [tabFromUrl]);
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab]);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      if (activeTab === 'borrowed') {
-        // Fetch borrowed items (status: borrowed)
-        const response = await adminAPI.getBorrowRequests({
-          status: 'borrowed',
-          per_page: 100,
-        });
-        setBorrowedItems(response.data.data);
-      } else {
-        // Fetch pending requests
-        const response = await adminAPI.getBorrowRequests({
-          status: 'pending',
-          per_page: 100,
-        });
-        setRequests(response.data.data);
-      }
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load data',
-        variant: 'destructive',
+  const { 
+    data: borrowedItems = [], 
+    isLoading: loadingBorrowed 
+  } = useQuery({
+    queryKey: ['borrowed-items'],
+    queryFn: async () => {
+      const response = await adminAPI.getBorrowRequests({
+        status: 'borrowed',
+        per_page: 100,
       });
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.data.data;
+    },
+    enabled: activeTab === 'borrowed',
+  });
+
+  const { 
+    data: requests = [], 
+    isLoading: loadingRequests 
+  } = useQuery({
+    queryKey: ['pending-requests'],
+    queryFn: async () => {
+      const response = await adminAPI.getBorrowRequests({
+        status: 'pending,approved', // Show both pending and approved
+        per_page: 100,
+      });
+      return response.data.data;
+    },
+    enabled: activeTab === 'requests',
+  });
+
+  const loading = activeTab === 'borrowed' ? loadingBorrowed : loadingRequests;
 
   const handleApprove = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +121,8 @@ export function ReservationsPage() {
       });
       setShowApprovalModal(false);
       setApprovalForm({ quantity_approved: 0, expected_return_date: '', admin_notes: '' });
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['borrowed-items'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
     } catch (error: any) {
       console.error('Approval error:', error);
 
@@ -147,6 +148,24 @@ export function ReservationsPage() {
     }
   };
 
+  const handleIssue = async (id: number) => {
+    try {
+      await adminAPI.issueBorrowRequest(id);
+      toast({
+        title: 'Success',
+        description: 'Item issued successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['borrowed-items'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to issue item',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleReject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRequest) return;
@@ -159,7 +178,7 @@ export function ReservationsPage() {
       });
       setShowRejectionModal(false);
       setRejectionForm({ admin_notes: '' });
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
     } catch (error) {
       toast({
         title: 'Error',
@@ -174,8 +193,7 @@ export function ReservationsPage() {
       'Request ID': `REQ-${req.id}`,
       'Teacher': req.teacher?.full_name || 'N/A',
       'Employee ID': req.teacher?.employee_id || 'N/A',
-      'Item Name': req.item?.item_name || 'N/A',
-      'Item Code': req.item?.item_code || 'N/A',
+      'Category Name': req.category?.category_name || 'N/A',
       'Quantity': req.quantity_requested,
       'Status': req.status,
       'Date Requested': req.created_at ? new Date(req.created_at).toLocaleString() : 'N/A',
@@ -191,8 +209,7 @@ export function ReservationsPage() {
       id: selectedViewRequest.id,
       teacher_name: selectedViewRequest.teacher?.full_name,
       employee_id: selectedViewRequest.teacher?.employee_id,
-      item_name: selectedViewRequest.item?.item_name,
-      item_code: selectedViewRequest.item?.item_code,
+      category_name: selectedViewRequest.category?.category_name,
       quantity: selectedViewRequest.quantity_requested,
       status: selectedViewRequest.status,
       date_requested: selectedViewRequest.created_at,
@@ -211,7 +228,7 @@ export function ReservationsPage() {
         title: 'Success',
         description: 'Item returned successfully',
       });
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['borrowed-items'] });
     } catch (error) {
       toast({
         title: 'Error',
@@ -275,9 +292,7 @@ export function ReservationsPage() {
             <TabsContent value="borrowed" className="space-y-4">
               <div className="card-body">
                 {loading ? (
-                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>
-                    Loading...
-                  </div>
+                  <TableSkeleton rows={8} cols={7} />
                 ) : (
                   <div>
                     <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -309,7 +324,7 @@ export function ReservationsPage() {
                       }}>
                         <th style={{ padding: '12px', textAlign: 'left', borderRadius: '10px 0 0 0' }}>Request ID</th>
                         <th style={{ padding: '12px', textAlign: 'left' }}>Teacher</th>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Item</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Category</th>
                         <th style={{ padding: '12px', textAlign: 'center' }}>Qty</th>
                         <th style={{ padding: '12px', textAlign: 'center' }}>Borrowed Date</th>
                         <th style={{ padding: '12px', textAlign: 'center' }}>Expected Return</th>
@@ -337,12 +352,7 @@ export function ReservationsPage() {
                           </td>
                           <td style={{ padding: '12px' }}>
                             <div>
-                              <div style={{ fontWeight: '600' }}>{item.item?.item_name || 'N/A'}</div>
-                              {item.item?.item_code && (
-                                <div style={{ fontSize: '12px', color: '#666' }}>
-                                  {item.item.item_code}
-                                </div>
-                              )}
+                              <div style={{ fontWeight: '600' }}>{item.category?.category_name || 'N/A'}</div>
                             </div>
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: '600' }}>
@@ -428,9 +438,7 @@ export function ReservationsPage() {
             <TabsContent value="requests" className="space-y-4">
               <div className="card-body">
                 {loading ? (
-                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>
-                    Loading...
-                  </div>
+                  <TableSkeleton rows={8} cols={6} />
                 ) : (
                   <div>
                     <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -462,7 +470,7 @@ export function ReservationsPage() {
                       }}>
                         <th style={{ padding: '12px', textAlign: 'left', borderRadius: '10px 0 0 0' }}>Request ID</th>
                         <th style={{ padding: '12px', textAlign: 'left' }}>Teacher</th>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Item</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Category</th>
                         <th style={{ padding: '12px', textAlign: 'center' }}>Qty</th>
                         <th style={{ padding: '12px', textAlign: 'center' }}>Date Requested</th>
                         <th style={{ padding: '12px', textAlign: 'center', borderRadius: '0 10px 0 0' }}>Actions</th>
@@ -489,12 +497,7 @@ export function ReservationsPage() {
                           </td>
                           <td style={{ padding: '12px' }}>
                             <div>
-                              <div style={{ fontWeight: '600' }}>{req.item?.item_name || 'N/A'}</div>
-                              {req.item?.item_code && (
-                                <div style={{ fontSize: '12px', color: '#666' }}>
-                                  {req.item.item_code}
-                                </div>
-                              )}
+                              <div style={{ fontWeight: '600' }}>{req.category?.category_name || 'N/A'}</div>
                             </div>
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: '600' }}>
@@ -517,33 +520,46 @@ export function ReservationsPage() {
                               >
                                 <Eye className="w-3 h-3" /> View
                               </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedRequest(req);
-                                  setApprovalForm({
-                                    quantity_approved: req.quantity_requested,
-                                    expected_return_date: '',
-                                    admin_notes: '',
-                                  });
-                                  setShowApprovalModal(true);
-                                }}
-                                className="btn btn-success"
-                                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedRequest(req);
-                                  setShowRejectionModal(true);
-                                }}
-                                className="btn btn-danger"
-                                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                              >
-                                <XCircle className="w-4 h-4" />
-                                Reject
-                              </button>
+                              {req.status === 'pending' && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedRequest(req);
+                                      setApprovalForm({
+                                        quantity_approved: req.quantity_requested,
+                                        expected_return_date: '',
+                                        admin_notes: '',
+                                      });
+                                      setShowApprovalModal(true);
+                                    }}
+                                    className="btn btn-success"
+                                    style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                  >
+                                    <CheckCircle className="w-4 h-4" />
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedRequest(req);
+                                      setShowRejectionModal(true);
+                                    }}
+                                    className="btn btn-danger"
+                                    style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                    Reject
+                                  </button>
+                                </>
+                              )}
+                              {req.status === 'approved' && (
+                                <button
+                                  onClick={() => handleIssue(req.id)}
+                                  className="btn btn-info"
+                                  style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px' }}
+                                >
+                                  📤 Issue
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -594,12 +610,8 @@ export function ReservationsPage() {
                         <p className="font-semibold text-gray-900">{selectedRequest.teacher?.full_name || 'N/A'}</p>
                       </div>
                       <div>
-                        <span className="text-gray-600">Item:</span>
-                        <p className="font-semibold text-gray-900">{selectedRequest.item?.item_name || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Item Code:</span>
-                        <p className="font-semibold text-gray-900">{selectedRequest.item?.item_code || 'N/A'}</p>
+                        <span className="text-gray-600">Category:</span>
+                        <p className="font-semibold text-gray-900">{selectedRequest.category?.category_name || 'N/A'}</p>
                       </div>
                       <div>
                         <span className="text-gray-600">Quantity Requested:</span>
@@ -719,12 +731,8 @@ export function ReservationsPage() {
                     <p className="font-semibold text-gray-900">{selectedRequest.teacher?.full_name || 'N/A'}</p>
                   </div>
                   <div>
-                    <span className="text-gray-600">Item:</span>
-                    <p className="font-semibold text-gray-900">{selectedRequest.item?.item_name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Item Code:</span>
-                    <p className="font-semibold text-gray-900">{selectedRequest.item?.item_code || 'N/A'}</p>
+                    <span className="text-gray-600">Category:</span>
+                    <p className="font-semibold text-gray-900">{selectedRequest.category?.category_name || 'N/A'}</p>
                   </div>
                   <div>
                     <span className="text-gray-600">Quantity Requested:</span>
@@ -819,12 +827,8 @@ export function ReservationsPage() {
                       <span className="font-medium text-gray-900">{selectedViewRequest.teacher?.employee_id || 'N/A'}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500 block mb-1">Item</span>
-                      <span className="font-medium text-gray-900">{selectedViewRequest.item?.item_name || 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block mb-1">Item Code</span>
-                      <span className="font-medium text-gray-900">{selectedViewRequest.item?.item_code || 'N/A'}</span>
+                      <span className="text-gray-500 block mb-1">Category</span>
+                      <span className="font-medium text-gray-900">{selectedViewRequest.category?.category_name || 'N/A'}</span>
                     </div>
                     <div>
                       <span className="text-gray-500 block mb-1">Quantity</span>

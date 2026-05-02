@@ -10,6 +10,7 @@ interface NavHeaderProps {
   showBackButton?: boolean;
   showMenuButton?: boolean;
   showHomeButton?: boolean;
+  onBack?: () => void;
   children?: React.ReactNode;
 }
 
@@ -19,6 +20,7 @@ const NavHeader: React.FC<NavHeaderProps> = ({
   showBackButton = false, 
   showMenuButton = false, 
   showHomeButton = false, 
+  onBack,
   children 
 }) => {
   const navigate = useNavigate();
@@ -33,7 +35,7 @@ const NavHeader: React.FC<NavHeaderProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate(-1)}
+                onClick={onBack ? onBack : () => navigate(-1)}
                 className="text-white hover:bg-white/20 border border-white/30 flex-shrink-0 h-9 px-2 sm:px-3"
               >
                 <ArrowLeft className="w-4 h-4 sm:mr-2" />

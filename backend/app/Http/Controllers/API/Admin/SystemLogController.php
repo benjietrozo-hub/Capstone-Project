@@ -60,38 +60,40 @@ class SystemLogController extends Controller
 
     public function statistics()
     {
-        $stats = [
-            'total_logs' => SystemLog::count(),
-            'today_logs' => SystemLog::whereDate('created_at', today())->count(),
-            'login_attempts' => SystemLog::where('log_type', 'auth')
-                ->where('action', 'login')
-                ->count(),
-            'failed_logins' => SystemLog::where('log_type', 'auth')
-                ->where('action', 'login_failed')
-                ->count(),
-            'by_type' => SystemLog::selectRaw('log_type, COUNT(*) as count')
-                ->groupBy('log_type')
-                ->get()
-                ->pluck('count', 'log_type'),
-            'by_action' => SystemLog::selectRaw('action, COUNT(*) as count')
-                ->groupBy('action')
-                ->orderByDesc('count')
-                ->limit(10)
-                ->get()
-                ->pluck('count', 'action'),
-            'by_severity' => SystemLog::selectRaw('severity, COUNT(*) as count')
-                ->groupBy('severity')
-                ->get()
-                ->pluck('count', 'severity'),
-            'recent_critical' => SystemLog::where('severity', 'critical')
-                ->orderBy('created_at', 'desc')
-                ->limit(5)
-                ->get(),
-            'recent_failed_logins' => SystemLog::where('action', 'login_failed')
-                ->orderBy('created_at', 'desc')
-                ->limit(10)
-                ->get(),
-        ];
+        $stats = \Illuminate\Support\Facades\Cache::remember('system_log_stats', 300, function () {
+            return [
+                'total_logs' => SystemLog::count(),
+                'today_logs' => SystemLog::whereDate('created_at', today())->count(),
+                'login_attempts' => SystemLog::where('log_type', 'auth')
+                    ->where('action', 'login')
+                    ->count(),
+                'failed_logins' => SystemLog::where('log_type', 'auth')
+                    ->where('action', 'login_failed')
+                    ->count(),
+                'by_type' => SystemLog::selectRaw('log_type, COUNT(*) as count')
+                    ->groupBy('log_type')
+                    ->get()
+                    ->pluck('count', 'log_type'),
+                'by_action' => SystemLog::selectRaw('action, COUNT(*) as count')
+                    ->groupBy('action')
+                    ->orderByDesc('count')
+                    ->limit(10)
+                    ->get()
+                    ->pluck('count', 'action'),
+                'by_severity' => SystemLog::selectRaw('severity, COUNT(*) as count')
+                    ->groupBy('severity')
+                    ->get()
+                    ->pluck('count', 'severity'),
+                'recent_critical' => SystemLog::where('severity', 'critical')
+                    ->orderBy('created_at', 'desc')
+                    ->limit(5)
+                    ->get(),
+                'recent_failed_logins' => SystemLog::where('action', 'login_failed')
+                    ->orderBy('created_at', 'desc')
+                    ->limit(10)
+                    ->get(),
+            ];
+        });
 
         return response()->json($stats);
     }

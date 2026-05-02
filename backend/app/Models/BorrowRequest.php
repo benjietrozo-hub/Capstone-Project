@@ -13,7 +13,7 @@ class BorrowRequest extends Model
     protected $fillable = [
         'request_code',
         'teacher_id',
-        'item_id',
+        'category_id',
         'quantity_requested',
         'purpose',
         'date_requested',
@@ -39,9 +39,16 @@ class BorrowRequest extends Model
         return $this->belongsTo(Teacher::class);
     }
 
-    public function item()
+    public function category()
     {
-        return $this->belongsTo(ToolEquipment::class, 'item_id');
+        return $this->belongsTo(ItemCategory::class, 'category_id');
+    }
+
+    public function inventoryItems()
+    {
+        return $this->belongsToMany(InventoryItem::class, 'borrow_request_items')
+                    ->withPivot('status', 'returned_at')
+                    ->withTimestamps();
     }
 
     // Scopes

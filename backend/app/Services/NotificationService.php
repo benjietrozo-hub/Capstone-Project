@@ -301,35 +301,7 @@ class NotificationService
         );
     }
 
-    /**
-     * Notify about purchase order creation
-     */
-    public static function notifyPurchaseOrderCreated($purchaseOrder)
-    {
-        self::broadcast(
-            'admin',
-            'purchase_order_created',
-            'New Purchase Order',
-            "Purchase order #{$purchaseOrder->po_number} has been created for {$purchaseOrder->supplier->supplier_name}",
-            $purchaseOrder->id,
-            'purchase_order'
-        );
-    }
 
-    /**
-     * Notify about purchase order received
-     */
-    public static function notifyPurchaseOrderReceived($purchaseOrder)
-    {
-        self::broadcast(
-            'admin',
-            'purchase_order_received',
-            'Purchase Order Received',
-            "Purchase order #{$purchaseOrder->po_number} has been received and inventory updated",
-            $purchaseOrder->id,
-            'purchase_order'
-        );
-    }
 
     /**
      * Broadcast inventory update

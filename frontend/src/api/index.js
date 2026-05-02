@@ -46,6 +46,46 @@ export const adminAPI = {
   deleteInventory: (id) =>
     axiosInstance.delete(`/admin/inventory/${id}`),
 
+  // --- New Serialized Inventory System ---
+  getItemCategories: () =>
+    axiosInstance.get('/admin/item-categories'),
+    
+  createItemCategory: (data) =>
+    axiosInstance.post('/admin/item-categories', data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    
+  updateItemCategory: (id, data) =>
+    axiosInstance.post(`/admin/item-categories/${id}`, data, { // using post for multipart form data with _method=PUT
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    
+  deleteItemCategory: (id) =>
+    axiosInstance.delete(`/admin/item-categories/${id}`),
+
+  addCustomField: (categoryId, data) =>
+    axiosInstance.post(`/admin/item-categories/${categoryId}/custom-fields`, data),
+    
+  deleteCustomField: (categoryId, fieldId) =>
+    axiosInstance.delete(`/admin/item-categories/${categoryId}/custom-fields/${fieldId}`),
+
+  getInventoryItems: (params) =>
+    axiosInstance.get('/admin/inventory-items', { params }),
+    
+  createInventoryItem: (data) =>
+    axiosInstance.post('/admin/inventory-items', data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    
+  updateInventoryItem: (id, data) =>
+    axiosInstance.post(`/admin/inventory-items/${id}`, data, { // using post for multipart form data with _method=PUT
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    
+  deleteInventoryItem: (id) =>
+    axiosInstance.delete(`/admin/inventory-items/${id}`),
+  // ---------------------------------------
+
   getInventoryCategories: () =>
     axiosInstance.get('/admin/inventory-categories'),
 
@@ -212,6 +252,9 @@ export const teacherAPI = {
     axiosInstance.get('/teacher/inventory', { params }),
 
   getInventoryItem: (id) =>
+    axiosInstance.get(`/teacher/inventory/${id}`),
+
+  getCategoryDetails: (id) =>
     axiosInstance.get(`/teacher/inventory/${id}`),
 
   getInventoryCategories: () =>

@@ -68,7 +68,7 @@ export function TeacherDashboard() {
       title: "Total Requests",
       description: "All borrow requests",
       icon: ClipboardList,
-      url: "/teacher/reservations",
+      url: "/teacher/reservations?tab=requests",
       color: "from-blue-500 to-cyan-500",
       value: stats.total_requests.toString(),
       change: "+0%",
@@ -78,7 +78,7 @@ export function TeacherDashboard() {
       title: "Pending Requests",
       description: "Awaiting approval",
       icon: Clock,
-      url: "/teacher/reservations",
+      url: "/teacher/reservations?tab=requests",
       color: "from-yellow-500 to-orange-500",
       value: stats.pending_requests.toString(),
       change: "0%",
@@ -88,7 +88,7 @@ export function TeacherDashboard() {
       title: "Approved Requests",
       description: "Ready to collect",
       icon: CheckCircle,
-      url: "/teacher/reservations",
+      url: "/teacher/reservations?tab=requests",
       color: "from-green-500 to-emerald-500",
       value: stats.approved_requests.toString(),
       change: "+0%",
@@ -98,7 +98,7 @@ export function TeacherDashboard() {
       title: "Borrowed Items",
       description: "Currently with you",
       icon: Archive,
-      url: "/teacher/reservations",
+      url: "/teacher/reservations?tab=borrowed",
       color: "from-purple-500 to-pink-500",
       value: stats.borrowed_items.toString(),
       change: "0%",
@@ -108,7 +108,7 @@ export function TeacherDashboard() {
       title: "Returned Items",
       description: "Successfully returned",
       icon: CheckCircle,
-      url: "/teacher/reservations",
+      url: "/teacher/reservations?tab=requests",
       color: "from-teal-500 to-green-500",
       value: stats.returned_items.toString(),
       change: "+0%",
@@ -172,7 +172,7 @@ export function TeacherDashboard() {
         <p className="text-sm text-gray-600">Lab Management - Access your resources and track your requests</p>
       </div>
       
-      <div className="container mx-auto p-6">
+      <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Welcome Card */}
         <Card className="mb-6 border-2 border-primary/20">
           <CardHeader>

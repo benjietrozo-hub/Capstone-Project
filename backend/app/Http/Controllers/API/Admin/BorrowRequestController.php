@@ -4,173 +4,199 @@ namespace App\Http\Controllers\API\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
+use App\Models\InventoryItem;
 use App\Services\NotificationService;
 use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BorrowRequestController extends Controller
 {
     use LogsActivity;
+    
     public function index(Request $request)
     {
-        $query = BorrowRequest::with(['teacher', 'item']);
+        $query = BorrowRequest::with(['teacher', 'category', 'inventoryItems']);
+        
         if ($request->status) $query->where('status', $request->status);
-        if ($request->date_from) $query->whereDate('borrow_date', '>=', $request->date_from);
-        if ($request->date_to) $query->whereDate('borrow_date', '<=', $request->date_to);
+        if ($request->date_from) $query->whereDate('date_requested', '>=', $request->date_from);
+        if ($request->date_to) $query->whereDate('date_requested', '<=', $request->date_to);
         if ($request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->whereHas('teacher', fn($q) => $q->where('first_name', 'like', "%{$search}%")
                                                       ->orWhere('last_name', 'like', "%{$search}%"))
-                  ->orWhereHas('item', fn($q) => $q->where('item_name', 'like', "%{$search}%"));
+                  ->orWhereHas('category', fn($q) => $q->where('category_name', 'like', "%{$search}%"));
             });
         }
+        
         $query->orderBy($request->sort_by ?? 'created_at', $request->sort_order ?? 'desc');
         return response()->json($query->paginate($request->per_page ?? 15));
     }
 
     public function approve(Request $request, $id)
     {
-        $br = BorrowRequest::with(['item', 'teacher'])->findOrFail($id);
-        if ($br->status !== 'pending') return response()->json(['message' => 'Only pending requests can be approved'], 422);
+        $br = BorrowRequest::with(['category', 'teacher'])->findOrFail($id);
         
-        // Check if item is still available
-        if (!$br->item->isAvailable) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This item is currently not available for borrowing',
-                'details' => [
-                    'item_name' => $br->item->item_name,
-                    'item_code' => $br->item->item_code,
-                    'quantity_available' => $br->item->quantity_available,
-                    'quantity_requested' => $br->quantity_requested
-                ]
-            ], 422);
-        }
-        
-        // Check if requested quantity is available
-        if ($br->quantity_requested > $br->item->quantity_available) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Insufficient quantity available for this request',
-                'details' => [
-                    'item_name' => $br->item->item_name,
-                    'item_code' => $br->item->item_code,
-                    'quantity_requested' => $br->quantity_requested,
-                    'quantity_available' => $br->item->quantity_available
-                ]
-            ], 422);
-        }
-        
-        // Check if there are already approved requests for this item that haven't been returned
-        $existingBorrowed = BorrowRequest::where('item_id', $br->item_id)
-            ->where('status', 'borrowed')
-            ->exists();
-            
-        if ($existingBorrowed) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This item is currently borrowed by another user. Please wait for it to be returned before approving new requests.',
-                'details' => [
-                    'item_name' => $br->item->item_name,
-                    'item_code' => $br->item->item_code,
-                    'status' => 'Currently Borrowed'
-                ]
-            ], 422);
+        if ($br->status !== 'pending') {
+            return response()->json(['message' => 'Only pending requests can be approved'], 422);
         }
         
         $v = $request->validate([
-            'admin_notes' => 'nullable'
+            'admin_notes' => 'nullable|string',
+            'inventory_item_ids' => 'required|array',
+            'inventory_item_ids.*' => 'exists:inventory_items,id'
         ]);
         
-        // Update status to 'borrowed' directly - item is immediately issued to teacher
-        $br->update([
-            'status' => 'borrowed',
-            'admin_notes' => $v['admin_notes'] ?? null
-        ]);
+        if (count($v['inventory_item_ids']) !== $br->quantity_requested) {
+            return response()->json([
+                'success' => false,
+                'message' => "You must select exactly {$br->quantity_requested} items to approve this request."
+            ], 422);
+        }
         
-        $br->item->updateQuantities();
+        // Verify all selected items are actually available and belong to the correct category
+        $items = InventoryItem::whereIn('id', $v['inventory_item_ids'])->get();
+        
+        foreach ($items as $item) {
+            if ($item->status !== 'available') {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Item {$item->serial_number} is currently {$item->status} and cannot be assigned."
+                ], 422);
+            }
+            if ($item->category_id !== $br->category_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Item {$item->serial_number} does not belong to the requested category."
+                ], 422);
+            }
+        }
+        
+        DB::beginTransaction();
+        try {
+            // Update items to 'borrowed'
+            InventoryItem::whereIn('id', $v['inventory_item_ids'])->update(['status' => 'borrowed']);
+            
+            // Attach items to the pivot table
+            $syncData = [];
+            foreach ($v['inventory_item_ids'] as $itemId) {
+                $syncData[$itemId] = ['status' => 'borrowed', 'created_at' => now(), 'updated_at' => now()];
+            }
+            $br->inventoryItems()->attach($syncData);
+            
+            // Update request status
+            $br->update([
+                'status' => 'borrowed',
+                'admin_notes' => $v['admin_notes'] ?? null,
+                'approved_by' => auth()->id(),
+                'issued_by' => auth()->id()
+            ]);
+            
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to process approval', 'error' => $e->getMessage()], 500);
+        }
         
         // Log activity
         $this->logActivity(
             'borrow_request_approved',
-            "Approved borrow request for {$br->item->item_name} by {$br->teacher->first_name} {$br->teacher->last_name}",
+            "Approved borrow request for {$br->category->category_name} by {$br->teacher->first_name} {$br->teacher->last_name}",
             'info'
         );
         
-        // Send notification to teacher
+        // Send notification
         NotificationService::notifyBorrowRequestApproved($br);
         
-        // Broadcast inventory update
-        NotificationService::broadcastInventoryUpdate($br->item);
-        
-        return response()->json($br->load(['item', 'teacher']));
+        return response()->json($br->load(['category', 'teacher', 'inventoryItems']));
     }
 
     public function reject(Request $request, $id)
     {
-        $br = BorrowRequest::with(['item', 'teacher'])->findOrFail($id);
-        if ($br->status !== 'pending') return response()->json(['message' => 'Only pending requests can be rejected'], 422);
+        $br = BorrowRequest::with(['category', 'teacher'])->findOrFail($id);
+        
+        if ($br->status !== 'pending') {
+            return response()->json(['message' => 'Only pending requests can be rejected'], 422);
+        }
+        
         $v = $request->validate(['admin_notes' => 'required']);
         $br->update(['status' => 'rejected', 'admin_notes' => $v['admin_notes']]);
         
-        // Log activity
         $this->logActivity(
             'borrow_request_rejected',
-            "Rejected borrow request for {$br->item->item_name} by {$br->teacher->first_name} {$br->teacher->last_name}",
+            "Rejected borrow request for {$br->category->category_name} by {$br->teacher->first_name} {$br->teacher->last_name}",
             'warning'
         );
         
-        // Send notification to teacher
         NotificationService::notifyBorrowRequestRejected($br);
         
-        return response()->json($br->load(['item', 'teacher']));
-    }
-
-    public function issue(Request $request, $id)
-    {
-        $br = BorrowRequest::findOrFail($id);
-        if ($br->status !== 'approved') return response()->json(['message' => 'Only approved requests can be issued'], 422);
-        $br->update(['status' => 'borrowed']);
-        return response()->json($br->load(['item', 'teacher']));
+        return response()->json($br->load(['category', 'teacher']));
     }
 
     public function return(Request $request, $id)
     {
-        $br = BorrowRequest::with(['item', 'teacher'])->findOrFail($id);
+        $br = BorrowRequest::with(['category', 'teacher', 'inventoryItems'])->findOrFail($id);
+        
         if ($br->status !== 'borrowed') {
             return response()->json([
                 'success' => false,
-                'message' => 'Only borrowed items can be returned',
+                'message' => 'Only borrowed requests can be returned',
                 'current_status' => $br->status
             ], 422);
         }
         
-        $v = $request->validate(['return_notes' => 'nullable|string']);
-        
-        $br->update([
-            'status' => 'returned',
-            'actual_return_date' => now()->toDateString(),
-            'admin_notes' => $v['return_notes'] ?? $br->admin_notes
+        $v = $request->validate([
+            'return_notes' => 'nullable|string',
+            // Allow returning partial items or all at once. If not provided, assumes all items.
+            'inventory_item_ids' => 'nullable|array',
+            'inventory_item_ids.*' => 'exists:inventory_items,id'
         ]);
-        $br->item->updateQuantities();
         
-        // Log activity
+        $itemIdsToReturn = $v['inventory_item_ids'] ?? $br->inventoryItems->pluck('id')->toArray();
+        
+        DB::beginTransaction();
+        try {
+            // Update the items back to available
+            InventoryItem::whereIn('id', $itemIdsToReturn)->update(['status' => 'available']);
+            
+            // Update the pivot table
+            foreach ($itemIdsToReturn as $itemId) {
+                $br->inventoryItems()->updateExistingPivot($itemId, [
+                    'status' => 'returned',
+                    'returned_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+            
+            // Check if ALL items have been returned
+            $stillBorrowedCount = $br->inventoryItems()->wherePivot('status', 'borrowed')->whereNotIn('inventory_items.id', $itemIdsToReturn)->count();
+            
+            if ($stillBorrowedCount === 0) {
+                $br->update([
+                    'status' => 'returned',
+                    'admin_notes' => $v['return_notes'] ?? $br->admin_notes,
+                    'received_by' => auth()->id()
+                ]);
+            }
+            
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to process return', 'error' => $e->getMessage()], 500);
+        }
+        
         $this->logActivity(
             'item_returned',
-            "Item returned: {$br->item->item_name} by {$br->teacher->first_name} {$br->teacher->last_name}",
+            "Items returned for {$br->category->category_name} by {$br->teacher->first_name} {$br->teacher->last_name}",
             'info'
         );
         
-        // Send notification to teacher
         NotificationService::notifyItemReturned($br);
-        
-        // Broadcast inventory update
-        NotificationService::broadcastInventoryUpdate($br->item);
         
         return response()->json([
             'success' => true,
-            'data' => $br->load(['item', 'teacher'])
+            'data' => $br->fresh(['category', 'teacher', 'inventoryItems'])
         ]);
     }
 
@@ -184,7 +210,8 @@ class BorrowRequestController extends Controller
                 ->where('expected_return_date', '<', now()->toDateString())
                 ->count(),
             'returned_today' => BorrowRequest::where('status', 'returned')
-                ->whereDate('actual_return_date', today())
+                // Note: previously actual_return_date, we now check updated_at or if you want to add a column
+                ->whereDate('updated_at', today()) 
                 ->count(),
             'total_this_month' => BorrowRequest::whereMonth('created_at', now()->month)->count()
         ]);

@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatusBadge } from '../../components/common/StatusBadge';
-import { Table } from '../../components/common/Table';
+import { Card } from '@/components/ui/card';
 import { Button, FormField } from '../../components/common/FormElements';
-import { PageLoader } from '../../components/common/Loader';
 import { Modal } from '../../components/common/Modal';
 import { teacherAPI } from '../../api';
-import { formatCurrency } from '../../utils/formatters';
 import { toast } from '@/hooks/use-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
+import { Package, Layers } from 'lucide-react';
 
-interface InventoryItem {
+interface ItemCategory {
   id: number;
-  item_code: string;
-  item_name: string;
-  description?: string;
-  category: string;
-  quantity_available: number;
-  quantity_total: number;
-  condition: string;
-  location?: string;
-  unit_price?: number;
+  category_name: string;
+  description: string;
+  category_image: string | null;
+  total_items: number;
+  available_items: number;
+  inventory_items?: Array<{
+    id: number;
+    item_name: string;
+    serial_number: string;
+    property_number: string | null;
+    condition: string;
+    status: string;
+  }>;
 }
 
 interface RequestForm {
@@ -31,67 +32,70 @@ interface RequestForm {
 }
 
 export function BrowseInventoryPage() {
-  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
-  const [categories, setCategories] = useState<string[]>([]);
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [sortBy, setSortBy] = useState('category_name');
+  const [sortOrder, setSortOrder] = useState('asc');
+  
+  const [selectedCategory, setSelectedCategory] = useState<ItemCategory | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card'); // Default to card view
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [requestForm, setRequestForm] = useState<RequestForm>({
     quantity: 1,
     purpose: '',
     expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Tomorrow
   });
 
-  // Sorting state variables
-  const [sortBy, setSortBy] = useState('item_name');
-  const [sortOrder, setSortOrder] = useState('asc');
+  const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const currentUser = storedUser ? JSON.parse(storedUser) : null;
 
   useEffect(() => {
-    fetchItems();
     fetchCategories();
-  }, [search, category, sortBy, sortOrder]);
+  }, [search, sortBy, sortOrder]);
 
-  const fetchItems = async () => {
+  const fetchCategories = async () => {
     try {
       setLoading(true);
       const response = await teacherAPI.getInventory({
         search,
-        category,
-        available_only: true,
-        per_page: 50,
         sort_by: sortBy,
         sort_order: sortOrder,
+        per_page: 50,
       });
-      setItems(response.data.data);
+      setCategories(response.data.data);
     } catch (error) {
-      console.error('Failed to load inventory:', error);
-      // Don't show error toast to avoid confusing users after successful operations
+      console.error('Failed to load inventory categories:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchCategories = async () => {
+  const handleViewDetails = async (id: number) => {
     try {
-      const response = await teacherAPI.getInventoryCategories();
-      setCategories(response.data);
+      setLoadingDetails(true);
+      setShowDetailsModal(true);
+      const response = await teacherAPI.getCategoryDetails(id);
+      setSelectedCategory(response.data);
     } catch (error) {
-      console.error('Failed to load categories');
+      toast({
+        title: 'Error',
+        description: 'Failed to load category details',
+        variant: 'destructive',
+      });
+      setShowDetailsModal(false);
+    } finally {
+      setLoadingDetails(false);
     }
   };
 
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedItem) return;
+    if (!selectedCategory) return;
     
-    // 🔍 Check if user is authenticated
     const token = localStorage.getItem('token');
     if (!token) {
-      console.error("🔥 NO TOKEN - User not logged in");
       toast({
         title: 'Authentication Required',
         description: 'Please login to submit borrow requests.',
@@ -100,51 +104,22 @@ export function BrowseInventoryPage() {
       });
       return;
     }
-    
-    console.log("🔍 User Token:", token ? 'Present' : 'Missing');
-
-    // Test API connectivity first
-    try {
-      console.log("Testing API connectivity...");
-      const testResponse = await teacherAPI.getBorrowRequests({ per_page: 1 });
-      console.log("API Test Response:", testResponse);
-    } catch (testError) {
-      console.error("API Test Failed:", testError);
-      toast({
-        title: 'API Connection Error',
-        description: 'Cannot connect to the server. Please check your connection.',
-        variant: 'destructive',
-        duration: 5000,
-      });
-      return;
-    }
 
     try {
-      // 🔍 DEBUG: Log the data being sent
       const requestData = {
-        item_id: selectedItem.id,
+        category_id: selectedCategory.id,
         ...requestForm
       };
-      console.log("🔍 Sending request data:", requestData);
-      console.log("🔍 Selected item:", selectedItem);
-      console.log("🔍 Request form:", requestForm);
-      console.log("🔍 Today's date:", new Date().toISOString().split('T')[0]);
       
-      // Step 1: Submit borrow request
       const response = await teacherAPI.createBorrowRequest(requestData);
       
-      // 🔥 IMPORTANT CHECK - Verify success response format
-      console.log("🔍 API Response:", response);
-      
       if (response?.data?.success) {
-        // Success message for borrow request submission
         toast({
           title: 'Request Submitted Successfully!',
-          description: response?.data?.message || `Your borrow request for ${selectedItem.item_name} has been submitted. Please wait for admin approval.`,
+          description: response?.data?.message || `Your borrow request for ${selectedCategory.category_name} has been submitted. Please wait for admin approval.`,
           duration: 5000,
         });
         
-        // Close modal and reset form
         setShowRequestModal(false);
         setRequestForm({ 
           quantity: 1, 
@@ -152,39 +127,13 @@ export function BrowseInventoryPage() {
           expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         });
         
-        // Step 2: Refresh inventory list (separate from main success)
-        await fetchItems(); // Silent refresh - no error toast shown
+        await fetchCategories();
       } else {
         throw new Error(response?.data?.message || "Unknown error occurred");
       }
       
     } catch (error: any) {
-      // 🔍 DEBUG LOG - Add detailed error logging
-      console.error("🚨 FULL ERROR:", error);
-      console.error("🚨 Error Response:", error.response);
-      console.error("🚨 Error Data:", error.response?.data);
-      console.error("🚨 Error Status:", error.response?.status);
-      console.error("🚨 Error Code:", error.code);
-      
-      // Check specific error types
-      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
-        console.error("🔥 NETWORK ERROR - Backend might be down");
-        toast({
-          title: 'Network Error',
-          description: 'Cannot connect to server. Please check if backend is running.',
-          variant: 'destructive',
-          duration: 5000,
-        });
-      } else if (error.response?.status === 401) {
-        console.error("🔥 AUTH ERROR - User not logged in");
-        toast({
-          title: 'Authentication Error',
-          description: 'Please login to submit borrow requests.',
-          variant: 'destructive',
-          duration: 5000,
-        });
-      } else if (error.response?.status === 422) {
-        console.error("🔥 VALIDATION ERROR:", error.response?.data);
+      if (error.response?.status === 422) {
         toast({
           title: 'Validation Error',
           description: error.response?.data?.message || 'Please check your input.',
@@ -192,13 +141,9 @@ export function BrowseInventoryPage() {
           duration: 5000,
         });
       } else {
-        // Error message for borrow request submission only
         toast({
           title: 'Failed to Submit Request',
-          description: 
-            error.response?.data?.message || 
-            error.message || 
-            'An error occurred while submitting your request. Please try again.',
+          description: error.response?.data?.message || 'An error occurred while submitting your request. Please try again.',
           variant: 'destructive',
           duration: 5000,
         });
@@ -206,331 +151,268 @@ export function BrowseInventoryPage() {
     }
   };
 
-  const columns = [
-    { key: 'item_code', label: 'Code', width: '80px' },
-    { key: 'item_name', label: 'Name' },
-    { key: 'category', label: 'Category' },
-    {
-      key: 'quantity_available',
-      label: 'Available',
-      render: (value: number) => value > 0 ? <span className="text-green-600 font-semibold">{value}</span> : <span className="text-red-600">0</span>,
-    },
-    {
-      key: 'unit_price',
-      label: 'Unit Price',
-      render: (value: number) => formatCurrency(value),
-    },
-    {
-      key: 'condition',
-      label: 'Condition',
-      render: (value: string) => <StatusBadge label={value} status={value} />,
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (_: any, row: InventoryItem) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setSelectedItem(row);
-              setShowDetailModal(true);
-            }}
-            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
-          >
-            Details
-          </button>
-          {row.quantity_available > 0 && (
-            <button
-              onClick={() => {
-                setSelectedItem(row);
-                setRequestForm({
-                  quantity: Math.min(1, row.quantity_available),
-                  purpose: '',
-                  expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                });
-                setShowRequestModal(true);
-              }}
-              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-            >
-              Borrow
-            </button>
-          )}
-        </div>
-      ),
-    },
-  ];
-
-  const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
-  const currentUser = storedUser ? JSON.parse(storedUser) : null;
-
   return (
-    <div>
+    <div className="bg-gray-50 min-h-screen">
       <NavHeader 
         title="Browse Inventory" 
-        subtitle="View and request available equipment"
+        subtitle="View and request available equipment categories"
         showBackButton={true}
         showHomeButton={true}
         showMenuButton={true}
       >
-        <NotificationProfile 
-          currentUser={currentUser}
-        />
+        <NotificationProfile currentUser={currentUser} />
       </NavHeader>
       
-      {/* Mobile Subtitle */}
       <div className="sm:hidden bg-white border-b px-4 py-3">
         <h1 className="text-lg font-bold text-gray-900 mb-1">Browse Inventory</h1>
-        <p className="text-sm text-gray-600">View and request available equipment</p>
+        <p className="text-sm text-gray-600">View and request available equipment categories</p>
       </div>
       
-      <div className="p-6">
-        <Card>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <FormField
-            label="Search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search items..."
-          />
-          <FormField
-            label="Category"
-            type="select"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            options={[
-              { value: '', label: 'All Categories' },
-              ...categories.map(c => ({ value: c, label: c }))
-            ]}
-          />
-          <FormField
-            label="Sort By"
-            type="select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            options={[
-              { value: 'item_name', label: 'Item Name (A-Z)' },
-              { value: 'acquisition_year', label: 'Acquisition Year (Newest First)' },
-              { value: 'name_year', label: 'Name (A-Z)' },
-              { value: 'category', label: 'Category' },
-              { value: 'quantity_available', label: 'Available Quantity' }
-            ]}
-          />
-          <FormField
-            label="Order"
-            type="select"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            options={[
-              { value: 'asc', label: 'Ascending' },
-              { value: 'desc', label: 'Descending' }
-            ]}
-          />
-          <div className="pt-6">
-            {/* View Mode Toggle */}
-            <div className="flex gap-1 border rounded-lg p-1 bg-gray-50 w-fit">
-              <button
-                onClick={() => setViewMode('card')}
-                className={`px-3 py-1 rounded text-sm transition-all ${
-                  viewMode === 'card'
-                    ? 'bg-white shadow text-primary font-semibold'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                title="Card View"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-1 rounded text-sm transition-all ${
-                  viewMode === 'list'
-                    ? 'bg-white shadow text-primary font-semibold'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                title="List View"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-            </div>
+      <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        <Card className="p-4 sm:p-6 bg-white rounded-2xl shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <FormField
+              label="Search Categories"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="e.g. Projectors, Laptops..."
+            />
+            <FormField
+              label="Sort By"
+              type="select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              options={[
+                { value: 'category_name', label: 'Category Name' },
+                { value: 'available_items', label: 'Available Quantity' }
+              ]}
+            />
+            <FormField
+              label="Order"
+              type="select"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              options={[
+                { value: 'asc', label: 'Ascending' },
+                { value: 'desc', label: 'Descending' }
+              ]}
+            />
           </div>
-        </div>
 
-        {viewMode === 'card' ? (
-          // Card View
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="border rounded-lg p-4 hover:shadow-lg transition-all bg-white"
-                style={{ borderLeft: '4px solid #2d7a3e' }}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-900">{item.item_name}</h3>
-                    <p className="text-sm text-primary font-medium">{item.item_code}</p>
+          {loading ? (
+            <div className="text-center py-20 text-gray-500">Loading categories...</div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-20 bg-gray-50 rounded-xl border border-gray-100">
+              <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900">No Categories Found</h3>
+              <p className="text-gray-500 mt-1">Check back later for available inventory.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {categories.map((cat) => (
+                <div 
+                  key={cat.id} 
+                  className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer group"
+                  onClick={() => handleViewDetails(cat.id)}
+                >
+                  <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
+                    {cat.category_image ? (
+                      <img 
+                        src={`http://localhost:8000/storage/${cat.category_image}`} 
+                        alt={cat.category_name} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Layers className="w-12 h-12 text-gray-300" />
+                    )}
                   </div>
-                  <StatusBadge label={item.condition} status={item.condition} />
-                </div>
-                
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Category:</span>
-                    <span className="font-medium">{item.category}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Available:</span>
-                    <span className={`font-semibold ${item.quantity_available > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {item.quantity_available}/{item.quantity_total}
-                    </span>
-                  </div>
-                  {item.location && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Location:</span>
-                      <span className="font-medium">{item.location}</span>
+                  
+                  <div className="p-5 flex-1 flex flex-col">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{cat.category_name}</h3>
+                    <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-1">
+                      {cat.description || 'No description provided.'}
+                    </p>
+                    
+                    <div className="flex items-center justify-between mb-4 pt-4 border-t border-gray-100">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-500 font-medium uppercase">Available</span>
+                        <span className={`text-lg font-bold ${cat.available_items > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                          {cat.available_items}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs text-gray-500 font-medium uppercase">Total</span>
+                        <span className="text-lg font-bold text-gray-700">{cat.total_items}</span>
+                      </div>
                     </div>
-                  )}
-                  {item.unit_price && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Price:</span>
-                      <span className="font-medium">{formatCurrency(item.unit_price)}</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex gap-2 pt-3 border-t">
-                  <button
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setShowDetailModal(true);
-                    }}
-                    className="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
-                  >
-                    Details
-                  </button>
-                  {item.quantity_available > 0 && (
-                    <button
-                      onClick={() => {
-                        setSelectedItem(item);
+
+                    <Button 
+                      className="w-full"
+                      disabled={cat.available_items === 0}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent opening details modal
+                        setSelectedCategory(cat);
                         setRequestForm({
-                          quantity: Math.min(1, item.quantity_available),
+                          quantity: 1,
                           purpose: '',
-                          expected_return_date: '',
+                          expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                         });
                         setShowRequestModal(true);
                       }}
-                      className="flex-1 bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition-colors"
                     >
-                      Borrow
-                    </button>
+                      {cat.available_items > 0 ? 'Request to Borrow' : 'Out of Stock'}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Request Modal */}
+        <Modal
+          isOpen={showRequestModal}
+          onClose={() => setShowRequestModal(false)}
+          title={`Borrow Request - ${selectedCategory?.category_name}`}
+        >
+          <form onSubmit={handleSubmitRequest} className="space-y-4">
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+              <p className="text-sm text-blue-800">
+                You are requesting units from the <strong>{selectedCategory?.category_name}</strong> category. 
+                The administrator will allocate specific serial numbers upon approval.
+              </p>
+            </div>
+            
+            <FormField
+              label={`Quantity (Max: ${selectedCategory?.available_items})`}
+              type="number"
+              value={requestForm.quantity.toString()}
+              onChange={(e) => setRequestForm({ ...requestForm, quantity: parseInt(e.target.value) || 1 })}
+              required
+              min="1"
+              max={selectedCategory?.available_items?.toString()}
+            />
+            <FormField
+              label="Purpose"
+              type="textarea"
+              value={requestForm.purpose}
+              onChange={(e) => setRequestForm({ ...requestForm, purpose: e.target.value })}
+              placeholder="State your purpose for borrowing this equipment"
+            />
+            <FormField
+              label="Expected Return Date"
+              type="date"
+              value={requestForm.expected_return_date}
+              onChange={(e) => setRequestForm({ ...requestForm, expected_return_date: e.target.value })}
+              required
+              min={new Date().toISOString().split('T')[0]}
+            />
+            <div className="flex gap-4 pt-4">
+              <Button type="button" variant="secondary" onClick={() => setShowRequestModal(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white">
+                Submit Request
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Details Modal */}
+        <Modal
+          isOpen={showDetailsModal}
+          onClose={() => {
+            setShowDetailsModal(false);
+            if (!showRequestModal) setSelectedCategory(null);
+          }}
+          title={`Category Details: ${selectedCategory?.category_name || 'Loading...'}`}
+        >
+          {loadingDetails ? (
+            <div className="py-10 text-center text-gray-500">Loading details...</div>
+          ) : selectedCategory && (
+            <div className="space-y-6">
+              <div className="flex gap-6 items-start">
+                <div className="w-32 h-32 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+                  {selectedCategory.category_image ? (
+                    <img 
+                      src={`http://localhost:8000/storage/${selectedCategory.category_image}`} 
+                      alt={selectedCategory.category_name} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Layers className="w-12 h-12 text-gray-300" />
                   )}
                 </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{selectedCategory.category_name}</h3>
+                  <p className="text-gray-600 mt-2">{selectedCategory.description || 'No description available.'}</p>
+                  <div className="flex gap-4 mt-4">
+                    <div className="bg-green-50 px-3 py-1 rounded-full border border-green-100">
+                      <span className="text-xs text-green-600 font-bold uppercase">Available: {selectedCategory.available_items}</span>
+                    </div>
+                    <div className="bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                      <span className="text-xs text-gray-600 font-bold uppercase">Total: {selectedCategory.total_items}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            ))}
-            {items.length === 0 && (
-              <div className="col-span-full text-center py-12 text-gray-500">
-                No items found
-              </div>
-            )}
-          </div>
-        ) : (
-          // List View
-          <Table columns={columns} data={items} loading={loading} />
-        )}
-      </Card>
 
-      {/* Detail Modal */}
-      <Modal
-        isOpen={showDetailModal}
-        onClose={() => setShowDetailModal(false)}
-        title="Item Details"
-      >
-        {selectedItem && (
-          <div className="space-y-4">
-            <div>
-              <label className="font-semibold text-gray-700">Item Code</label>
-              <p className="text-gray-600">{selectedItem.item_code}</p>
-            </div>
-            <div>
-              <label className="font-semibold text-gray-700">Item Name</label>
-              <p className="text-gray-600">{selectedItem.item_name}</p>
-            </div>
-            <div>
-              <label className="font-semibold text-gray-700">Description</label>
-              <p className="text-gray-600">{selectedItem.description}</p>
-            </div>
-            <div>
-              <label className="font-semibold text-gray-700">Category</label>
-              <p className="text-gray-600">{selectedItem.category}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="font-semibold text-gray-700">Available</label>
-                <p className="text-gray-600">{selectedItem.quantity_available} / {selectedItem.quantity_total}</p>
+                <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Package className="w-4 h-4 text-blue-500" />
+                  Available Units ({selectedCategory.inventory_items?.length || 0})
+                </h4>
+                
+                {(!selectedCategory.inventory_items || selectedCategory.inventory_items.length === 0) ? (
+                  <div className="p-8 bg-gray-50 rounded-xl text-center text-gray-500 italic">
+                    No individual units are currently available for this category.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                    {selectedCategory.inventory_items.map((item) => (
+                      <div key={item.id} className="p-3 bg-white border border-gray-200 rounded-xl flex justify-between items-center hover:border-blue-300 transition-colors">
+                        <div>
+                          <p className="font-mono text-sm font-bold text-blue-600">{item.serial_number}</p>
+                          <p className="text-xs text-gray-500">Property #: {item.property_number || 'N/A'}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            item.condition === 'excellent' ? 'bg-green-100 text-green-700' :
+                            item.condition === 'good' ? 'bg-blue-100 text-blue-700' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {item.condition}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="font-semibold text-gray-700">Condition</label>
-                <StatusBadge label={selectedItem.condition} status={selectedItem.condition} />
-              </div>
-            </div>
-            <div>
-              <label className="font-semibold text-gray-700">Location</label>
-              <p className="text-gray-600">{selectedItem.location}</p>
-            </div>
-            <div>
-              <label className="font-semibold text-gray-700">Unit Price</label>
-              <p className="text-gray-600">{selectedItem.unit_price ? formatCurrency(selectedItem.unit_price) : 'N/A'}</p>
-            </div>
-          </div>
-        )}
-      </Modal>
 
-      {/* Request Modal */}
-      <Modal
-        isOpen={showRequestModal}
-        onClose={() => setShowRequestModal(false)}
-        title={`Borrow Request - ${selectedItem?.item_name}`}
-      >
-        <form onSubmit={handleSubmitRequest} className="space-y-4">
-          <div>
-            <label className="font-semibold text-gray-700">Item Name</label>
-            <p className="text-gray-600 bg-gray-50 p-2 rounded">{selectedItem?.item_name}</p>
-          </div>
-          <FormField
-            label="Quantity"
-            type="number"
-            value={requestForm.quantity}
-            onChange={(e) => setRequestForm({ ...requestForm, quantity: parseInt(e.target.value) || 1 })}
-            required
-            min="1"
-          />
-          <FormField
-            label="Purpose"
-            type="textarea"
-            value={requestForm.purpose}
-            onChange={(e) => setRequestForm({ ...requestForm, purpose: e.target.value })}
-            placeholder="State your purpose for borrowing this item"
-          />
-          <FormField
-            label="Expected Return Date"
-            type="date"
-            value={requestForm.expected_return_date}
-            onChange={(e) => setRequestForm({ ...requestForm, expected_return_date: e.target.value })}
-            required
-            min={new Date().toISOString().split('T')[0]}
-          />
-          <div className="flex gap-4">
-            <Button type="submit">Submit Request</Button>
-            <Button variant="secondary" onClick={() => setShowRequestModal(false)}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </Modal>
+              <div className="flex gap-4 pt-4 border-t">
+                <Button 
+                  variant="secondary" 
+                  onClick={() => setShowDetailsModal(false)} 
+                  className="flex-1"
+                >
+                  Close
+                </Button>
+                <Button 
+                  disabled={selectedCategory.available_items === 0}
+                  className="flex-1"
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setShowRequestModal(true);
+                  }}
+                >
+                  Request Units
+                </Button>
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     </div>
   );
 }
-

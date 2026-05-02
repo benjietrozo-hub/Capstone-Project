@@ -26,10 +26,8 @@ class DashboardController extends Controller
             ->whereDate('expected_return_date', '<=', now()->toDateString())
             ->count();
         
-        // Get available items count (items with quantity_available > 0)
-        $availableItems = \App\Models\ToolEquipment::where('quantity_available', '>', 0)
-            ->where('status', 'active')
-            ->count();
+        // Get available items count (items with status = 'available')
+        $availableItems = \App\Models\InventoryItem::where('status', 'available')->count();
         
         return response()->json([
             'total_requests' => $totalRequests,
@@ -40,7 +38,7 @@ class DashboardController extends Controller
             'rejected_requests' => $rejectedRequests,
             'overdue_items' => $overdueItems,
             'available_items' => $availableItems,
-            'recent_requests' => BorrowRequest::with(['item'])->where('teacher_id', $tid)->latest()->limit(5)->get(),
+            'recent_requests' => BorrowRequest::with(['category'])->where('teacher_id', $tid)->latest()->limit(5)->get(),
         ]);
     }
 }

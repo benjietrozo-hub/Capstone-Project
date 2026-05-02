@@ -200,7 +200,9 @@ class InventoryController extends Controller
         $this->logActivity(
             'inventory_update',
             "Updated inventory item: {$item->item_name} ({$item->item_code})",
-            'info'
+            'info',
+            [],
+            $item
         );
 
         return response()->json($item);

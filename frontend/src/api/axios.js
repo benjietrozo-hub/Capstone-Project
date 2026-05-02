@@ -11,13 +11,17 @@ const axiosInstance = axios.create({
   },
 });
 
-// Add token to requests
+// Add token and correlation ID to requests
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Add unique request ID for tracing (Correlation ID)
+    config.headers['X-Correlation-ID'] = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+    
     return config;
   },
   (error) => Promise.reject(error)

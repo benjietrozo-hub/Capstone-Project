@@ -1,6 +1,8 @@
 
-import { useState, useEffect } from "react";
-import { Search, Download, Users, Filter, Plus, Mail, Phone, Building2, UserCheck, UserX, Package, Calendar, AlertCircle, CheckCircle, XCircle, Eye, Clock } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { TableSkeleton, DashboardSkeleton } from "../../components/common/Skeleton";
+import { Search, Download, Users, Filter, Plus, Mail, Phone, Building2, UserCheck, UserX, Package, Calendar, AlertCircle, CheckCircle, XCircle, Eye, Clock, ClipboardList } from "lucide-react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -177,12 +179,9 @@ interface DistributionRequestStats {
 }
 
 export default function DistributionListPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [groups, setGroups] = useState<DistributionGroup[]>([]);
-  const [allGroups, setAllGroups] = useState<DistributionGroup[]>([]);
-  const [statistics, setStatistics] = useState<Statistics | null>(null);
-  const [departments, setDepartments] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  
+  // Teachers state (non-cached filters)
   
   // Pagination state for Teachers
   const [teacherPagination, setTeacherPagination] = useState({
@@ -213,9 +212,6 @@ export default function DistributionListPage() {
   const [selectedGroupData, setSelectedGroupData] = useState<DistributionGroup | null>(null);
 
   // Item Distributions state
-  const [distributions, setDistributions] = useState<any[]>([]);
-  const [bulkDistributions, setBulkDistributions] = useState<BulkDistribution[]>([]);
-  const [distributionStats, setDistributionStats] = useState<DistributionStats | null>(null);
   const [distributionSearch, setDistributionSearch] = useState("");
   const [distributionStatus, setDistributionStatus] = useState("all");
   const [showCreateDistributionModal, setShowCreateDistributionModal] = useState(false);
@@ -223,29 +219,15 @@ export default function DistributionListPage() {
   const [selectedDistribution, setSelectedDistribution] = useState<ItemDistribution | null>(null);
 
   // Distribution Requests state
-  const [distributionRequests, setDistributionRequests] = useState<DistributionRequest[]>([]);
-  const [distributionRequestStats, setDistributionRequestStats] = useState<DistributionRequestStats | null>(null);
   const [requestSearch, setRequestSearch] = useState("");
   const [requestStatus, setRequestStatus] = useState("all");
   const [showViewRequestModal, setShowViewRequestModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<DistributionRequest | null>(null);
 
-  useEffect(() => {
-    fetchTeachers();
-  }, [debouncedSearch, selectedDepartment, selectedStatus, selectedGroup, teacherPagination.currentPage]);
-
-  useEffect(() => {
-    fetchGroups();
-  }, [groupPagination.currentPage]);
-
-  useEffect(() => {
-    fetchStatsAndDepts();
-    fetchDistributions();
-    fetchDistributionRequests();
-  }, []);
-
-  const fetchStatsAndDepts = async () => {
-    try {
+  // React Query - Statistics and Departments
+  const { data: statsData } = useQuery({
+    queryKey: ['distribution-stats'],
+    queryFn: async () => {
       const token = localStorage.getItem("token");
       const [statsRes, deptRes, allGroupsRes] = await Promise.all([
         axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution/statistics`, {
@@ -259,17 +241,29 @@ export default function DistributionListPage() {
           params: { all: true }
         })
       ]);
-      setStatistics(statsRes.data.data);
-      setDepartments(deptRes.data.data);
-      setAllGroups(allGroupsRes.data.data);
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-    }
-  };
+      return {
+        statistics: statsRes.data.data,
+        departments: deptRes.data.data,
+        allGroups: allGroupsRes.data.data
+      };
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
-  const fetchTeachers = async () => {
-    try {
-      setLoading(true);
+  const statistics = statsData?.statistics;
+  const departments = statsData?.departments || [];
+  const allGroups = statsData?.allGroups || [];
+
+  // React Query - Teachers (Paginated)
+  const { data: teachersData, isLoading: loadingTeachers } = useQuery({
+    queryKey: ['distribution-teachers', { 
+      page: teacherPagination.currentPage, 
+      search: debouncedSearch, 
+      department: selectedDepartment, 
+      status: selectedStatus, 
+      group: selectedGroup 
+    }],
+    queryFn: async () => {
       const token = localStorage.getItem("token");
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -282,20 +276,27 @@ export default function DistributionListPage() {
           group_id: selectedGroup || undefined
         }
       });
-      
-      const { data, current_page, last_page, total } = response.data.data;
-      setTeachers(data);
-      setTeacherPagination(prev => ({ ...prev, currentPage: current_page, lastPage: last_page, total }));
-    } catch (error: any) {
-      console.error("Error fetching teachers:", error);
-      toast.error("Failed to load teachers");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.data.data;
+    },
+    placeholderData: (previousData) => previousData,
+  });
 
-  const fetchGroups = async () => {
-    try {
+  const teachers = (teachersData as any)?.data || [];
+  // Sync pagination if needed
+  useEffect(() => {
+    if (teachersData && ((teacherPagination.lastPage !== (teachersData as any).last_page) || (teacherPagination.total !== (teachersData as any).total))) {
+      setTeacherPagination(prev => ({
+        ...prev,
+        lastPage: (teachersData as any).last_page,
+        total: (teachersData as any).total
+      }));
+    }
+  }, [teachersData, teacherPagination.lastPage, teacherPagination.total]);
+
+  // React Query - Groups (Paginated)
+  const { data: groupsData, isLoading: loadingGroups } = useQuery({
+    queryKey: ['distribution-groups', { page: groupPagination.currentPage }],
+    queryFn: async () => {
       const token = localStorage.getItem("token");
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution/groups`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -304,22 +305,122 @@ export default function DistributionListPage() {
           per_page: groupPagination.perPage
         }
       });
-      
-      const { data, current_page, last_page, total } = response.data.data;
-      setGroups(data);
-      setGroupPagination(prev => ({ ...prev, currentPage: current_page, lastPage: last_page, total }));
-    } catch (error) {
-      console.error("Error fetching groups:", error);
-    }
-  };
+      return response.data.data;
+    },
+    placeholderData: (previousData) => previousData,
+  });
 
-  
+  const groups = (groupsData as any)?.data || [];
+  useEffect(() => {
+    if (groupsData && ((groupPagination.lastPage !== (groupsData as any).last_page) || (groupPagination.total !== (groupsData as any).total))) {
+      setGroupPagination(prev => ({
+        ...prev,
+        lastPage: (groupsData as any).last_page,
+        total: (groupsData as any).total
+      }));
+    }
+  }, [groupsData, groupPagination.lastPage, groupPagination.total]);
+
+  // React Query - Item Distributions
+  const { data: distributionsData, isLoading: loadingDistributions } = useQuery({
+    queryKey: ['item-distributions', { status: distributionStatus }],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const [distRes, bulkDistRes, statsRes] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_API_URL}/admin/distributions`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { status: distributionStatus !== 'all' ? distributionStatus : undefined }
+        }),
+        axios.get(`${import.meta.env.VITE_API_URL}/admin/bulk-distributions`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { status: distributionStatus !== 'all' ? distributionStatus : undefined }
+        }),
+        axios.get(`${import.meta.env.VITE_API_URL}/admin/distributions/statistics`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      return {
+        distributions: normalizeApiArray(distRes.data),
+        bulkDistributions: normalizeApiArray(bulkDistRes.data),
+        stats: statsRes.data.data
+      };
+    },
+  });
+
+  const distributions = distributionsData?.distributions || [];
+  const bulkDistributions = distributionsData?.bulkDistributions || [];
+  const distributionStats = distributionsData?.stats;
+
+  // Combine individual and bulk distributions for the table view
+  const allDistributions = useMemo(() => {
+    const individual = distributions.map(d => ({ ...d, type: 'individual' }));
+    const bulk = bulkDistributions.map(d => ({ ...d, type: 'bulk' }));
+    return [...individual, ...bulk].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [distributions, bulkDistributions]);
+
+  // Filter distributions based on search query
+  const filteredAllDistributions = useMemo(() => {
+    return allDistributions.filter(dist => {
+      const search = distributionSearch.toLowerCase();
+      const itemName = dist.item?.item_name?.toLowerCase() || '';
+      const teacherName = dist.teacher?.full_name?.toLowerCase() || '';
+      const controlNo = dist.control_no?.toLowerCase() || '';
+      const groupName = dist.group?.group_name?.toLowerCase() || '';
+      
+      return itemName.includes(search) || 
+             teacherName.includes(search) || 
+             controlNo.includes(search) ||
+             groupName.includes(search);
+    });
+  }, [allDistributions, distributionSearch]);
+
+  // React Query - Distribution Requests
+  const { data: requestsData, isLoading: loadingRequests } = useQuery({
+    queryKey: ['distribution-requests', { status: requestStatus }],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const [reqRes, statsRes] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution-requests`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { status: requestStatus !== 'all' ? requestStatus : undefined }
+        }),
+        axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution-requests/statistics`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      return {
+        requests: reqRes.data.data,
+        stats: statsRes.data.data
+      };
+    },
+  });
+
+  const distributionRequests = requestsData?.requests || [];
+  const distributionRequestStats = requestsData?.stats;
+
+  // Filter requests based on search query
+  const filteredRequests = useMemo(() => {
+    return distributionRequests.filter((req: any) => {
+      const search = requestSearch.toLowerCase();
+      const itemName = req.item?.item_name?.toLowerCase() || '';
+      const teacherName = req.teacher?.full_name?.toLowerCase() || '';
+      const controlNo = req.control_no?.toLowerCase() || '';
+      
+      return itemName.includes(search) || 
+             teacherName.includes(search) || 
+             controlNo.includes(search);
+    });
+  }, [distributionRequests, requestSearch]);
+
+  const loading = loadingTeachers || loadingGroups || loadingDistributions || loadingRequests;
+
   const handleExport = async () => {
     try {
-      setLoading(true);
       const token = localStorage.getItem("token");
       
-      // Fetch ALL matching teachers for export
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution`, {
         headers: { Authorization: `Bearer ${token}` },
         params: {
@@ -332,130 +433,28 @@ export default function DistributionListPage() {
       });
 
       const dataToExport = response.data.data;
-      
       if (!dataToExport || dataToExport.length === 0) {
         toast.error("No data to export");
         return;
       }
 
-      // Create professional CSV with proper formatting
-      const timestamp = new Date().toLocaleString();
-      const filterInfo = [];
-      
-      if (selectedDepartment !== "all") filterInfo.push(`Department: ${selectedDepartment}`);
-      if (selectedStatus !== "all") filterInfo.push(`Status: ${selectedStatus}`);
-      if (selectedGroup) {
-        const group = groups.find(g => g.id === selectedGroup);
-        if (group) filterInfo.push(`Group: ${group.group_name}`);
-      }
-
-      // Build CSV with header section
-      const csvLines = [];
-      
-      // Title and metadata
-      csvLines.push("DISTRIBUTION LIST EXPORT");
-      csvLines.push(`Generated: ${timestamp}`);
-      csvLines.push(`Total Records: ${dataToExport.length}`);
-      if (filterInfo.length > 0) {
-        csvLines.push(`Filters Applied: ${filterInfo.join(", ")}`);
-      }
-      csvLines.push(""); // Empty line
-      csvLines.push(""); // Empty line
-      
-      // Column headers
-      const headers = [
-        "No.",
-        "Employee ID",
-        "Full Name",
-        "First Name",
-        "Middle Initial",
-        "Last Name",
-        "Email Address",
-        "Phone Number",
-        "Department",
-        "Status",
-        "Active Borrows",
-        "Last Login",
-        "Account Created"
-      ];
+      const csvLines = ["DISTRIBUTION LIST EXPORT", `Generated: ${new Date().toLocaleString()}`, `Total Records: ${dataToExport.length}`, "", ""];
+      const headers = ["No.", "Employee ID", "Full Name", "Email", "Phone", "Department", "Status"];
       csvLines.push(headers.join(","));
       
-      // Data rows
-      dataToExport.forEach((teacher, index) => {
-        const row = [
-          index + 1,
-          `"${teacher.employee_id || 'N/A'}"`,
-          `"${teacher.full_name || 'N/A'}"`,
-          `"${teacher.first_name || 'N/A'}"`,
-          `"${teacher.middle_initial || 'N/A'}"`,
-          `"${teacher.last_name || 'N/A'}"`,
-          `"${teacher.email || 'N/A'}"`,
-          `"${teacher.phone || 'N/A'}"`,
-          `"${teacher.department || 'N/A'}"`,
-          `"${teacher.status || 'N/A'}"`,
-          teacher.active_borrows_count || 0,
-          `"${teacher.last_login ? new Date(teacher.last_login).toLocaleString() : 'Never'}"`,
-          `"${new Date().toLocaleDateString()}"` // You can replace with actual created_at if available
-        ];
-        csvLines.push(row.join(","));
+      dataToExport.forEach((teacher: any, index: number) => {
+        csvLines.push([index + 1, teacher.employee_id, teacher.full_name, teacher.email, teacher.phone, teacher.department, teacher.status].join(","));
       });
       
-      // Add footer section
-      csvLines.push(""); // Empty line
-      csvLines.push(""); // Empty line
-      csvLines.push("SUMMARY");
-      csvLines.push(`Total Teachers: ${dataToExport.length}`);
-      csvLines.push(`Active: ${dataToExport.filter(t => t.status === 'active').length}`);
-      csvLines.push(`Inactive: ${dataToExport.filter(t => t.status === 'inactive').length}`);
-      
-      // Department breakdown
-      const deptCounts: Record<string, number> = {};
-      dataToExport.forEach(t => {
-        deptCounts[t.department] = (deptCounts[t.department] || 0) + 1;
-      });
-      csvLines.push(""); // Empty line
-      csvLines.push("DEPARTMENT BREAKDOWN");
-      Object.entries(deptCounts).forEach(([dept, count]) => {
-        csvLines.push(`"${dept}",${count}`);
-      });
-      
-      // Add notes section
-      csvLines.push(""); // Empty line
-      csvLines.push(""); // Empty line
-      csvLines.push("NOTES");
-      csvLines.push("This distribution list was generated from the Online Inventory Management System");
-      csvLines.push("For questions or updates, please contact the system administrator");
-      csvLines.push(`Export Date: ${new Date().toLocaleDateString()}`);
-      csvLines.push(`Export Time: ${new Date().toLocaleTimeString()}`);
-      
-      const csv = csvLines.join("\n");
-
-      // Create and download file with BOM for Excel compatibility
-      const BOM = "\uFEFF";
-      const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob(["\uFEFF" + csvLines.join("\n")], { type: "text/csv;charset=utf-8;" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      
-      // Generate filename with filters
-      let filename = "Distribution_List";
-      if (selectedDepartment !== "all") filename += `_${selectedDepartment}`;
-      if (selectedGroup) {
-        const group = groups.find(g => g.id === selectedGroup);
-        if (group) filename += `_${group.group_name.replace(/\s+/g, "_")}`;
-      }
-      filename += `_${new Date().toISOString().split("T")[0]}.csv`;
-      
-      a.download = filename;
-      document.body.appendChild(a);
+      a.download = `Distribution_List_${new Date().toISOString().split("T")[0]}.csv`;
       a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success(`Distribution list exported successfully (${dataToExport.length} records)`);
-    } catch (error: any) {
-      console.error("Error exporting:", error);
-      toast.error("Failed to export distribution list");
+      toast.success("Export successful");
+    } catch (error) {
+      toast.error("Export failed");
     }
   };
 
@@ -473,54 +472,9 @@ export default function DistributionListPage() {
     );
   };
 
-  const handleViewGroup = (group: DistributionGroup) => {
-    setSelectedGroupData(group);
-    setShowViewGroupModal(true);
-  };
-
-  const handleManageMembers = (group: DistributionGroup) => {
-    setSelectedGroupData(group);
-    setShowManageMembersModal(true);
-  };
-
   const handleGroupCreated = () => {
-    fetchData();
+    queryClient.invalidateQueries({ queryKey: ['distribution-groups'] });
     setShowCreateGroupModal(false);
-  };
-
-  const normalizeApiArray = (payload: any) => {
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.data)) return payload.data;
-    if (Array.isArray(payload?.data?.data)) return payload.data.data;
-    return [];
-  };
-
-  // Item Distribution functions
-  const fetchDistributions = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      
-      const [distRes, bulkDistRes, statsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distributions`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { status: distributionStatus !== 'all' ? distributionStatus : undefined }
-        }),
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/bulk-distributions`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { status: distributionStatus !== 'all' ? distributionStatus : undefined }
-        }),
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distributions/statistics`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
-
-      setDistributions(normalizeApiArray(distRes.data));
-      setBulkDistributions(normalizeApiArray(bulkDistRes.data));
-      setDistributionStats(statsRes.data.data);
-    } catch (error: any) {
-      console.error("Error fetching distributions:", error);
-      toast.error("Failed to load distributions");
-    }
   };
 
   const handleReturnDistribution = (distribution: ItemDistribution) => {
@@ -529,147 +483,16 @@ export default function DistributionListPage() {
   };
 
   const handleCancelDistribution = async (id: number) => {
-    if (!confirm("Are you sure you want to cancel this distribution? The quantity will be returned to inventory.")) return;
-
+    if (!confirm("Are you sure?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/distributions/${id}/cancel`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      toast.success("Distribution cancelled successfully");
-      fetchDistributions();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to cancel distribution");
-    }
-  };
-
-  const handleProcessBulkDistribution = async (bulkId: number) => {
-    if (!confirm("Process this bulk distribution now? This will create individual distributions for each group member and deduct inventory.")) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/bulk-distributions/${bulkId}/process`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      toast.success("Bulk distribution processed successfully");
-      fetchDistributions();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to process bulk distribution");
-    }
-  };
-
-  const handleReportDamaged = async (distribution: any) => {
-    const notes = prompt("Report item as damaged. Please provide details about the damage:");
-    if (!notes) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/distributions/${distribution.id}/report-damaged`,
-        { notes },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      toast.success("Item reported as damaged");
-      fetchDistributions();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to report damaged item");
-    }
-  };
-
-  const handleReportLost = async (distribution: any) => {
-    if (!confirm("Report this item as lost? This will mark the recipient as accountable for replacement.")) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/distributions/${distribution.id}/report-lost`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      toast.success("Item reported as lost");
-      fetchDistributions();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to report lost item");
-    }
-  };
-
-  const getStatusBadge = (status: string, isOverdue: boolean) => {
-    if (isOverdue && status === 'active') {
-      return <Badge className="bg-red-100 text-red-800">Overdue</Badge>;
-    }
-    
-    const variants: Record<string, any> = {
-      active: <Badge className="bg-blue-100 text-blue-800">Issued</Badge>,
-      returned: <Badge className="bg-green-100 text-green-800">Returned</Badge>,
-      cancelled: <Badge className="bg-gray-100 text-gray-800">Cancelled</Badge>,
-      damaged: <Badge className="bg-orange-100 text-orange-800">Damaged</Badge>,
-      lost: <Badge className="bg-red-100 text-red-800">Lost</Badge>,
-      pending: <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>,
-      processing: <Badge className="bg-purple-100 text-purple-800">Processing</Badge>,
-      completed: <Badge className="bg-green-100 text-green-800">Completed</Badge>,
-    };
-    return variants[status] || <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
-  };
-
-  const safeDistributions = Array.isArray(distributions) ? distributions : [];
-  const safeBulkDistributions = Array.isArray(bulkDistributions) ? bulkDistributions : [];
-
-  const filteredDistributions = safeDistributions.filter(d => {
-    const matchesSearch = distributionSearch === "" || 
-      d.item.item_name.toLowerCase().includes(distributionSearch.toLowerCase()) ||
-      d.teacher.full_name.toLowerCase().includes(distributionSearch.toLowerCase()) ||
-      d.item.item_code.toLowerCase().includes(distributionSearch.toLowerCase());
-    
-    const matchesStatus = distributionStatus === "all" || d.status === distributionStatus;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  // Combined list of individual and bulk distributions
-  const individualDistributions = safeDistributions.map(d => ({ ...d, type: 'individual' as const }));
-  const bulkDistributionsMapped = safeBulkDistributions.map(d => ({ ...d, type: 'bulk' as const }));
-  const allDistributions = [...individualDistributions, ...bulkDistributionsMapped];
-
-  const filteredAllDistributions = allDistributions.filter(d => {
-    const matchesSearch = distributionSearch === "" || 
-      d.item.item_name.toLowerCase().includes(distributionSearch.toLowerCase()) ||
-      (d.type === 'individual' && d.teacher.full_name.toLowerCase().includes(distributionSearch.toLowerCase())) ||
-      (d.type === 'bulk' && d.group.group_name.toLowerCase().includes(distributionSearch.toLowerCase())) ||
-      d.item.item_code.toLowerCase().includes(distributionSearch.toLowerCase());
-    
-    const matchesStatus = distributionStatus === "all" || d.status === distributionStatus;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  // Distribution Request functions
-  const fetchDistributionRequests = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      
-      const [reqRes, statsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution-requests`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { status: requestStatus !== 'all' ? requestStatus : undefined }
-        }),
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution-requests/statistics`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
-
-      setDistributionRequests(reqRes.data.data);
-      setDistributionRequestStats(statsRes.data.data);
-    } catch (error: any) {
-      console.error("Error fetching distribution requests:", error);
-      toast.error("Failed to load distribution requests");
+      await axios.post(`${import.meta.env.VITE_API_URL}/admin/distributions/${id}/cancel`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success("Cancelled");
+      queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
+    } catch (error) {
+      toast.error("Failed");
     }
   };
 
@@ -688,23 +511,86 @@ export default function DistributionListPage() {
     return variants[status] || <Badge>{status}</Badge>;
   };
 
-  const filteredRequests = distributionRequests.filter(r => {
-    const matchesSearch = requestSearch === "" || 
-      r.item.item_name.toLowerCase().includes(requestSearch.toLowerCase()) ||
-      r.teacher.full_name.toLowerCase().includes(requestSearch.toLowerCase()) ||
-      r.item.item_code.toLowerCase().includes(requestSearch.toLowerCase());
-    
-    const matchesStatus = requestStatus === "all" || r.status === requestStatus;
-    
-    return matchesSearch && matchesStatus;
-  });
+  const getStatusBadge = (status: string, isOverdue: boolean = false) => {
+    if (isOverdue) return <Badge className="bg-red-100 text-red-800">Overdue</Badge>;
+    const variants: Record<string, any> = {
+      active: <Badge className="bg-blue-100 text-blue-800">Active</Badge>,
+      returned: <Badge className="bg-green-100 text-green-800">Returned</Badge>,
+      cancelled: <Badge className="bg-gray-100 text-gray-800">Cancelled</Badge>,
+      damaged: <Badge className="bg-orange-100 text-orange-800">Damaged</Badge>,
+      lost: <Badge className="bg-red-100 text-red-800">Lost</Badge>,
+    };
+    return variants[status] || <Badge>{status}</Badge>;
+  };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+  const handleViewGroup = (group: DistributionGroup) => {
+    setSelectedGroupData(group);
+    setShowViewGroupModal(true);
+  };
+
+  const handleManageMembers = (group: DistributionGroup) => {
+    setSelectedGroupData(group);
+    setShowManageMembersModal(true);
+  };
+
+  const handleReportDamaged = async (dist: ItemDistribution) => {
+    if (!confirm("Report this item as damaged?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(`${import.meta.env.VITE_API_URL}/admin/distributions/${dist.id}/damaged`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success("Item reported as damaged");
+      queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const handleReportLost = async (dist: ItemDistribution) => {
+    if (!confirm("Report this item as lost?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(`${import.meta.env.VITE_API_URL}/admin/distributions/${dist.id}/lost`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success("Item reported as lost");
+      queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const handleProcessBulkDistribution = async (id: number) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(`${import.meta.env.VITE_API_URL}/admin/bulk-distributions/${id}/process`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success("Bulk distribution processed");
+      queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
+    } catch (error) {
+      toast.error("Failed to process");
+    }
+  };
+
+  const fetchDistributionRequests = () => {
+    queryClient.invalidateQueries({ queryKey: ['distribution-requests'] });
+  };
+
+  const fetchData = () => {
+    queryClient.invalidateQueries({ queryKey: ['distribution-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['distribution-teachers'] });
+    queryClient.invalidateQueries({ queryKey: ['distribution-groups'] });
+  };
+
+  const fetchDistributions = () => {
+    queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
+  };
+
+
+  if (!statsData) {
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -848,7 +734,10 @@ export default function DistributionListPage() {
           </Card>
 
           {/* Teachers Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {loadingTeachers ? (
+            <TableSkeleton rows={6} cols={1} />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {teachers.map((teacher) => (
               <Card key={teacher.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
@@ -896,7 +785,8 @@ export default function DistributionListPage() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+            </div>
+          )}
 
           {teachers.length === 0 && (
             <Card>
@@ -950,8 +840,13 @@ export default function DistributionListPage() {
 
         {/* Distribution Groups Tab */}
         <TabsContent value="groups" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {groups.map((group) => (
+          {loadingGroups ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => <TableSkeleton key={i} rows={4} cols={1} />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {groups.map((group) => (
               <Card key={group.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -998,7 +893,8 @@ export default function DistributionListPage() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+            </div>
+          )}
 
           {/* Group Pagination */}
           {groupPagination.lastPage > 1 && (
@@ -1114,7 +1010,7 @@ export default function DistributionListPage() {
                     />
                   </div>
 
-                  <Select value={distributionStatus} onValueChange={(v) => { setDistributionStatus(v); fetchDistributions(); }}>
+                  <Select value={distributionStatus} onValueChange={(v) => setDistributionStatus(v)}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="All Status" />
                     </SelectTrigger>
@@ -1161,7 +1057,13 @@ export default function DistributionListPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredAllDistributions.length === 0 ? (
+                    {loadingDistributions ? (
+                      <tr>
+                        <td colSpan={10} className="px-4 py-8">
+                          <TableSkeleton rows={8} cols={10} />
+                        </td>
+                      </tr>
+                    ) : filteredAllDistributions.length === 0 ? (
                       <tr>
                         <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                           <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -1435,19 +1337,25 @@ export default function DistributionListPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Details</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teacher</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredRequests.length === 0 ? (
+                    {loadingRequests ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8">
+                          <TableSkeleton rows={5} cols={6} />
+                        </td>
+                      </tr>
+                    ) : filteredRequests.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                          <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          <ClipboardList className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                           <p>No distribution requests found</p>
                         </td>
                       </tr>
@@ -1552,8 +1460,10 @@ export default function DistributionListPage() {
           onSuccess={() => {
             setShowViewRequestModal(false);
             setSelectedRequest(null);
-            fetchDistributionRequests();
-            fetchDistributions(); // Refresh distributions as well
+            setShowViewRequestModal(false);
+            setSelectedRequest(null);
+            queryClient.invalidateQueries({ queryKey: ['distribution-requests'] });
+            queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
           }}
         />
       )}
@@ -1569,7 +1479,10 @@ export default function DistributionListPage() {
           onSuccess={() => {
             setShowManageMembersModal(false);
             setSelectedGroupData(null);
-            fetchData();
+            setShowManageMembersModal(false);
+            setSelectedGroupData(null);
+            queryClient.invalidateQueries({ queryKey: ['distribution-groups'] });
+            queryClient.invalidateQueries({ queryKey: ['distribution-teachers'] });
           }}
           group={selectedGroupData}
         />
@@ -1577,3 +1490,10 @@ export default function DistributionListPage() {
     </div>
   );
 }
+
+const normalizeApiArray = (response: any) => {
+  if (!response) return [];
+  if (Array.isArray(response)) return response;
+  if (response.data && Array.isArray(response.data)) return response.data;
+  return [];
+};

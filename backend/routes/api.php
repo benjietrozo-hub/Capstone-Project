@@ -13,8 +13,9 @@ use App\Http\Controllers\API\Admin\SystemLogController;
 use App\Http\Controllers\API\Admin\DistributionListController;
 use App\Http\Controllers\API\Admin\ArchiveController;
 use App\Http\Controllers\API\DistributionGroupController;
-use App\Http\Controllers\API\PurchaseOrderController;
-use App\Http\Controllers\API\SupplierController;
+use App\Http\Controllers\API\Admin\ItemCategoryController;
+use App\Http\Controllers\API\Admin\InventoryItemController;
+
 use App\Http\Controllers\API\Teacher\InventoryController as TeacherInventoryController;
 use App\Http\Controllers\API\Teacher\BorrowRequestController as TeacherBorrowRequestController;
 use App\Http\Controllers\API\Teacher\DashboardController as TeacherDashboardController;
@@ -61,6 +62,14 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::apiResource('inventory', AdminInventoryController::class);
     Route::get('/inventory-categories', [AdminInventoryController::class, 'categories']);
     
+    // New Serialized Category System
+    Route::apiResource('item-categories', ItemCategoryController::class);
+    Route::post('/item-categories/{id}/custom-fields', [ItemCategoryController::class, 'addCustomField']);
+    Route::delete('/item-categories/{id}/custom-fields/{fieldId}', [ItemCategoryController::class, 'deleteCustomField']);
+    
+    // New Serialized Individual Items
+    Route::apiResource('inventory-items', InventoryItemController::class);
+    
     Route::get('/requests', [AdminBorrowRequestController::class, 'index']);
     Route::get('/requests/statistics', [AdminBorrowRequestController::class, 'statistics']);
     Route::post('/requests/{id}/approve', [AdminBorrowRequestController::class, 'approve']);
@@ -78,25 +87,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::get('/logs/statistics', [SystemLogController::class, 'statistics']);
     Route::get('/logs/{id}', [SystemLogController::class, 'show']);
     
-    // Purchase Orders
-    Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
-    Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
-    Route::get('/purchase-orders/statistics', [PurchaseOrderController::class, 'statistics']);
-    Route::get('/purchase-orders/{id}', [PurchaseOrderController::class, 'show']);
-    Route::put('/purchase-orders/{id}', [PurchaseOrderController::class, 'update']);
-    Route::delete('/purchase-orders/{id}', [PurchaseOrderController::class, 'destroy']);
-    Route::post('/purchase-orders/{id}/approve', [PurchaseOrderController::class, 'approve']);
-    Route::post('/purchase-orders/{id}/cancel', [PurchaseOrderController::class, 'cancel']);
-    Route::post('/purchase-orders/{id}/receive', [PurchaseOrderController::class, 'receiveItems']);
-    Route::get('/purchase-orders/{id}/export-pdf', [PurchaseOrderController::class, 'exportPDF']);
-    
-    // Suppliers
-    Route::get('/suppliers', [SupplierController::class, 'index']);
-    Route::post('/suppliers', [SupplierController::class, 'store']);
-    Route::get('/suppliers/list', [SupplierController::class, 'list']);
-    Route::get('/suppliers/{id}', [SupplierController::class, 'show']);
-    Route::put('/suppliers/{id}', [SupplierController::class, 'update']);
-    Route::delete('/suppliers/{id}', [SupplierController::class, 'destroy']);
+
     
     // Distribution List
     Route::get('/distribution', [DistributionListController::class, 'index']);
