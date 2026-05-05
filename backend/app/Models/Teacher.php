@@ -24,6 +24,7 @@ class Teacher extends Authenticatable
         'phone',
         'profile_image',
         'status',
+        'role',
         'last_login',
     ];
 

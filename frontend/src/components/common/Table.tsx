@@ -21,22 +21,21 @@ export function Table({ columns, data, loading = false, onRowClick }: TableProps
   }, 0);
 
   return (
-    <div className="overflow-x-auto -mx-3 sm:mx-0 rounded-lg shadow-sm" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <div className="overflow-x-auto rounded-xl border border-gray-100 shadow-sm" style={{ WebkitOverflowScrolling: 'touch' }}>
       <div className="inline-block min-w-full align-middle">
         <table 
-          className="border-collapse bg-white" 
+          className="border-collapse bg-white w-full" 
           style={{ 
             tableLayout: 'fixed', 
-            width: `${totalWidth}px`,
             minWidth: `${totalWidth}px`
           }}
         >
-          <thead className="bg-gray-100 border-b">
-            <tr>
+          <thead>
+            <tr className="bg-gray-50/50 border-b border-gray-100">
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="px-4 py-3 text-left font-semibold text-gray-700 text-xs"
+                  className="px-6 py-4 text-left font-black text-gray-400 text-[10px] uppercase tracking-widest"
                   style={{ 
                     width: column.width || '100px',
                     minWidth: column.width || '100px',
@@ -48,30 +47,36 @@ export function Table({ columns, data, loading = false, onRowClick }: TableProps
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-50">
             {loading ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-600 text-sm">
-                  Loading...
+                <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500 text-sm">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="font-medium">Fetching records...</span>
+                  </div>
                 </td>
               </tr>
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-600 text-sm">
-                  No data found
+                <td colSpan={columns.length} className="px-6 py-16 text-center text-gray-400">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="text-4xl">📂</div>
+                    <p className="text-sm font-medium">No records available yet</p>
+                  </div>
                 </td>
               </tr>
             ) : (
               data.map((row, idx) => (
                 <tr
                   key={idx}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="hover:bg-blue-50/30 cursor-pointer transition-all duration-200 group"
                   onClick={() => onRowClick?.(row)}
                 >
                   {columns.map((column) => (
                     <td 
                       key={column.key} 
-                      className="px-4 py-3 text-gray-800 text-xs"
+                      className="px-6 py-4 text-gray-700 text-xs font-medium"
                       style={{ 
                         width: column.width || '100px',
                         minWidth: column.width || '100px',
@@ -79,7 +84,9 @@ export function Table({ columns, data, loading = false, onRowClick }: TableProps
                         overflow: 'hidden'
                       }}
                     >
-                      {column.render ? column.render(row[column.key], row) : row[column.key]}
+                      {column.render ? column.render(row[column.key], row) : (
+                        <span className="truncate block">{row[column.key]}</span>
+                      )}
                     </td>
                   ))}
                 </tr>

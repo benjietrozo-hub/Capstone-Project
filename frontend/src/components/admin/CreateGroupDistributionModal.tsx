@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Package, Users, Calendar, FileText, Plus, Minus } from 'lucide-react';
-import axios from 'axios';
+import axiosInstance from '@/api/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,12 +52,8 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
     try {
       const token = localStorage.getItem('token');
       const [itemsRes, groupsRes] = await Promise.all([
-        axios.get('http://127.0.0.1:8000/api/admin/inventory', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get('http://127.0.0.1:8000/api/admin/distribution/groups', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        axiosInstance.get('/admin/inventory'),
+        axiosInstance.get('/admin/distribution/groups')
       ]);
 
       setItems(itemsRes.data.data.filter((item: Item) => item.quantity_available > 0));
@@ -90,15 +86,14 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      await axios.post(
-        'http://127.0.0.1:8000/api/admin/distributions/bulk',
+      await axiosInstance.post(
+        '/admin/distributions/bulk',
         {
           ...formData,
           item_id: parseInt(formData.item_id),
           group_id: parseInt(formData.group_id),
           quantity_per_teacher: parseInt(formData.quantity_per_teacher),
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+        }
       );
 
       toast.success(`Items distributed to ${selectedGroup?.teachers_count} teachers successfully`);

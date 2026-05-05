@@ -30,7 +30,9 @@ const TrashPage = () => {
 
   const typeLabels: Record<string, string> = {
     all: 'All Items',
-    inventory: 'Inventory',
+    inventory: 'Legacy Inventory',
+    inventory_item: 'Unit (Serialized)',
+    item_category: 'Category',
     borrow_request: 'Borrow Requests',
     distribution_group: 'Distribution Groups',
     teacher: 'Teachers',
@@ -38,6 +40,8 @@ const TrashPage = () => {
 
   const typeBadgeColors: Record<string, string> = {
     inventory: 'bg-blue-100 text-blue-800',
+    inventory_item: 'bg-indigo-100 text-indigo-800',
+    item_category: 'bg-purple-100 text-purple-800',
     borrow_request: 'bg-orange-100 text-orange-800',
     distribution_group: 'bg-pink-100 text-pink-800',
     teacher: 'bg-teal-100 text-teal-800',

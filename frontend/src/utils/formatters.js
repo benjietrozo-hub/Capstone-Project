@@ -55,6 +55,10 @@ export const getStatusBadgeColor = (status) => {
     in_progress: 'bg-yellow-100 text-yellow-800',
     reviewed: 'bg-orange-100 text-orange-800',
     resolved: 'bg-green-100 text-green-800',
+    available: 'bg-green-500 text-white', // Make available stand out more as green
+    archived: 'bg-amber-100 text-amber-800',
+    maintenance: 'bg-blue-100 text-blue-800',
+    damaged: 'bg-red-500 text-white',
     closed: 'bg-gray-100 text-gray-800',
   };
   return colors[status] || 'bg-gray-100 text-gray-800';

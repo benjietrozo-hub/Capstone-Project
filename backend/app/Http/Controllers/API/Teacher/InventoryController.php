@@ -19,6 +19,16 @@ class InventoryController extends Controller
             );
         }
         
+        if ($request->has('parent_category')) {
+            $parentCat = $request->parent_category;
+            if ($parentCat === 'Uncategorized') {
+                $q->whereNull('parent_category');
+            } else {
+                $q->where('parent_category', $parentCat);
+            }
+        }
+
+        
         $sortBy = $request->sort_by ?? 'category_name';
         $sortOrder = $request->sort_order ?? 'asc';
         
@@ -42,8 +52,17 @@ class InventoryController extends Controller
     public function show($id)
     {
         $category = ItemCategory::with(['inventoryItems' => function($query) {
-            $query->where('status', 'available');
+            $query->whereIn('status', ['available', 'borrowed', 'maintenance']);
         }])->findOrFail($id);
+        
+        // Map the pending requests count manually to avoid complex nested withCount issues
+        $category->inventoryItems->each(function($item) {
+            $item->pending_requests_count = \DB::table('borrow_request_items')
+                ->join('borrow_requests', 'borrow_request_items.borrow_request_id', '=', 'borrow_requests.id')
+                ->where('borrow_request_items.inventory_item_id', $item->id)
+                ->where('borrow_requests.status', 'pending')
+                ->count();
+        });
         
         return response()->json($category);
     }
@@ -51,5 +70,17 @@ class InventoryController extends Controller
     public function categories()
     {
         return response()->json(ItemCategory::pluck('category_name')->filter()->values());
+    }
+
+    public function parentCategories()
+    {
+        $parents = \DB::table('item_categories')
+            ->selectRaw('COALESCE(parent_category, "Uncategorized") as parent_category')
+            ->selectRaw('COUNT(id) as kind_count')
+            ->selectRaw('SUM((SELECT COUNT(*) FROM inventory_items WHERE inventory_items.category_id = item_categories.id)) as item_count')
+            ->groupBy('parent_category')
+            ->get();
+            
+        return response()->json($parents);
     }
 }

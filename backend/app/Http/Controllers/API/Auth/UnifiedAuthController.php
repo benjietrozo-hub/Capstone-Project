@@ -361,4 +361,26 @@ class UnifiedAuthController extends Controller
             'message' => 'Password has been reset successfully. You can now login with your new password.'
         ]);
     }
+
+    /**
+     * Verify the current user's password for secure actions
+     */
+    public function verifyPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = $request->user();
+        
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'message' => 'The provided password is incorrect.'
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Password verified successfully.'
+        ]);
+    }
 }

@@ -4,9 +4,12 @@ namespace App\Http\Controllers\API\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ToolEquipment;
+use App\Models\InventoryItem;
+use App\Models\ItemCategory;
 use App\Models\BorrowRequest;
 use App\Models\DistributionGroup;
 use App\Models\Teacher;
+use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -44,10 +47,60 @@ class ArchiveController extends Controller
                                 'quantity'  => $item->quantity_total,
                                 'condition' => $item->condition_status,
                                 'location'  => $item->location,
+                                'source'    => 'legacy'
                             ],
                         ];
                     });
-                $archivedItems = array_merge($archivedItems, $inventory->toArray());
+
+                $serializedItems = InventoryItem::onlyTrashed()
+                    ->when($search, function ($query) use ($search) {
+                        $query->where('item_name', 'like', "%{$search}%")
+                              ->orWhere('serial_number', 'like', "%{$search}%");
+                    })
+                    ->get()
+                    ->map(function ($item) {
+                        $deletedBy = 'System';
+                        if ($item->deleted_by) {
+                            $admin = Admin::find($item->deleted_by);
+                            $deletedBy = $admin ? $admin->full_name : 'Unknown';
+                        }
+                        return [
+                            'id'          => $item->id,
+                            'type'        => 'inventory_item',
+                            'name'        => $item->item_name,
+                            'code'        => $item->serial_number,
+                            'category'    => $item->category ? $item->category->category_name : 'N/A',
+                            'archived_at' => $item->deleted_at,
+                            'archived_by' => $deletedBy,
+                            'details'     => [
+                                'condition' => $item->condition,
+                                'status'    => $item->status,
+                                'asset_id'  => $item->property_number,
+                                'source'    => 'serialized'
+                            ],
+                        ];
+                    });
+
+                $categories = ItemCategory::onlyTrashed()
+                    ->when($search, function ($query) use ($search) {
+                        $query->where('category_name', 'like', "%{$search}%");
+                    })
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id'          => $item->id,
+                            'type'        => 'item_category',
+                            'name'        => $item->category_name,
+                            'code'        => 'CAT-' . $item->id,
+                            'archived_at' => $item->deleted_at,
+                            'archived_by' => 'System',
+                            'details'     => [
+                                'description' => $item->description,
+                            ],
+                        ];
+                    });
+
+                $archivedItems = array_merge($archivedItems, $inventory->toArray(), $serializedItems->toArray(), $categories->toArray());
             }
 
             if ($type === 'all' || $type === 'borrow_requests') {
@@ -235,6 +288,8 @@ class ArchiveController extends Controller
 
             if ($type === 'all' || $type === 'inventory') {
                 $deleted += ToolEquipment::onlyTrashed()->forceDelete();
+                $deleted += InventoryItem::onlyTrashed()->forceDelete();
+                $deleted += ItemCategory::onlyTrashed()->forceDelete();
             }
 
             if ($type === 'all' || $type === 'borrow_requests') {
@@ -271,7 +326,7 @@ class ArchiveController extends Controller
     {
         try {
             $stats = [
-                'inventory'          => ToolEquipment::onlyTrashed()->count(),
+                'inventory'          => ToolEquipment::onlyTrashed()->count() + InventoryItem::onlyTrashed()->count() + ItemCategory::onlyTrashed()->count(),
                 'borrow_requests'    => BorrowRequest::onlyTrashed()->count(),
                 'distribution_groups'=> DistributionGroup::onlyTrashed()->count(),
                 'teachers'           => Teacher::onlyTrashed()->count(),
@@ -300,6 +355,8 @@ class ArchiveController extends Controller
     {
         $models = [
             'inventory'          => ToolEquipment::class,
+            'inventory_item'     => InventoryItem::class,
+            'item_category'      => ItemCategory::class,
             'borrow_request'     => BorrowRequest::class,
             'distribution_group' => DistributionGroup::class,
             'teacher'            => Teacher::class,

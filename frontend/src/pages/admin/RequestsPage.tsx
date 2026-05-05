@@ -6,7 +6,8 @@ import { formatDate, formatDateTime } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
-import { Eye, Download, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Eye, Download, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { exportToCSV, generateRequestPDF } from '../../utils/exportUtils';
 
 interface BorrowRequest {
@@ -201,10 +202,10 @@ export function BorrowRequestsPage() {
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-[#f8fafc]">
       <NavHeader 
-        title="Borrow Requests" 
-        subtitle="Review and manage equipment borrow requests"
+        title="Borrow Requests Queue" 
+        subtitle="Manage and monitor all equipment borrow requests in one place"
         showBackButton={true}
         showHomeButton={true}
         showMenuButton={true}
@@ -214,589 +215,405 @@ export function BorrowRequestsPage() {
         />
       </NavHeader>
       
-      {/* Mobile Subtitle */}
-      <div className="sm:hidden bg-white border-b px-4 py-3">
-        <h1 className="text-lg font-bold text-gray-900 mb-1">Borrow Requests</h1>
-        <p className="text-sm text-gray-600">Review and manage equipment borrow requests</p>
+      {/* Mobile Title Section */}
+      <div className="sm:hidden bg-white border-b px-4 py-4 mb-4">
+        <h1 className="text-xl font-black text-gray-900 tracking-tight">Requests Queue</h1>
+        <p className="text-sm text-gray-500 font-medium">Review and process requests</p>
       </div>
       
-      <div className="p-6">
-        <div className="card" style={{ marginBottom: '24px' }}>
-          <div className="card-body">
-          <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <div>
-              <label className="form-label">Filter by Status</label>
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex-1 w-full sm:w-auto">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors">
+                <FileText className="w-4 h-4" />
+              </div>
               <select
-                className="form-control"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 block pl-10 pr-4 py-3 font-bold transition-all outline-none"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                style={{ maxWidth: '250px' }}
               >
-                <option value="">All Requests</option>
-                <option value="pending">⏳ Pending</option>
-                <option value="approved">✓ Approved</option>
+                <option value="">All Statuses</option>
+                <option value="pending">⏳ Pending Review</option>
+                <option value="approved">✅ Approved</option>
                 <option value="borrowed">📤 Borrowed</option>
                 <option value="returned">📥 Returned</option>
-                <option value="rejected">✕ Rejected</option>
+                <option value="rejected">❌ Rejected</option>
               </select>
             </div>
-            <button
+          </div>
+          
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Button
+              variant="outline"
               onClick={handleExportCSV}
-              className="btn btn-outline-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '14px', border: '1px solid #667eea', color: '#667eea', borderRadius: '6px', background: 'transparent', cursor: 'pointer' }}
+              className="flex-1 sm:flex-none rounded-xl border-gray-200 font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all h-12"
             >
               <Download className="w-4 h-4" />
               Export CSV
-            </button>
-          </div>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%' }}>
-              <thead>
-                <tr style={{
-                  background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                  color: 'white',
-                  fontWeight: '600'
-                }}>
-                  <th style={{ padding: '12px', textAlign: 'left', borderRadius: '10px 0 0 0' }}>Code</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Teacher</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Category</th>
-                  <th style={{ padding: '12px', textAlign: 'center' }}>Qty</th>
-                  <th style={{ padding: '12px', textAlign: 'center' }}>Status</th>
-                  <th style={{ padding: '12px', textAlign: 'center' }}>Date</th>
-                  <th style={{ padding: '12px', textAlign: 'center', borderRadius: '0 10px 0 0' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={7} style={{ padding: '20px' }}>
-                      <TableSkeleton rows={5} cols={7} />
-                    </td>
-                  </tr>
-                ) : requests.map((req) => (
-                  <tr key={req.id} style={{
-                    borderBottom: '1px solid #e9ecef',
-                    transition: 'background 0.3s ease'
-                  }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                    <td style={{ padding: '12px', fontWeight: '600', color: '#667eea' }}>{req.request_code}</td>
-                    <td style={{ padding: '12px' }}>{req.teacher?.full_name || 'N/A'}</td>
-                    <td style={{ padding: '12px' }}>{req.category?.category_name || 'N/A'}</td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>{req.quantity_requested}</td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                      <span className={`badge ${getStatusColor(req.status)}`}>
-                        {req.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px' }}>
-                      {formatDateTime(req.created_at)}
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                        <button
-                          onClick={() => {
-                            setSelectedViewRequest(req);
-                            setShowViewModal(true);
-                          }}
-                          className="btn btn-primary"
-                          style={{ padding: '4px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '4px' }}
-                        >
-                          <Eye className="w-3 h-3" /> View
-                        </button>
-                        {req.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setSelectedRequest(req);
-                                setApprovalForm({
-                                  inventory_item_ids: [],
-                                  expected_return_date: '',
-                                  admin_notes: '',
-                                });
-                                setShowApprovalModal(true);
-                              }}
-                              className="btn btn-success"
-                              style={{ padding: '4px 10px', fontSize: '12px' }}
-                            >
-                              ✓ Approve
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedRequest(req);
-                                setShowRejectionModal(true);
-                              }}
-                              className="btn btn-danger"
-                              style={{ padding: '4px 10px', fontSize: '12px' }}
-                            >
-                              ✕ Reject
-                            </button>
-                          </>
-                        )}
-                        {req.status === 'approved' && (
-                          <button
-                            onClick={() => handleIssue(req.id)}
-                            className="btn btn-info"
-                            style={{ padding: '4px 10px', fontSize: '12px' }}
-                          >
-                            📤 Issue
-                          </button>
-                        )}
-                        {req.status === 'borrowed' && (
-                          <button
-                            onClick={() => handleReturn(req.id)}
-                            className="btn btn-secondary"
-                            style={{ padding: '4px 10px', fontSize: '12px' }}
-                          >
-                            📥 Return
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {requests.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>
-                No requests found
-              </div>
-            )}
+            </Button>
           </div>
         </div>
-      </div>
 
-      {/* Approval Modal */}
-      {showApprovalModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '10px'
-        }}>
-          <div className="card" style={{ 
-            maxWidth: '500px', 
-            width: '100%',
-            height: 'auto',
-            maxHeight: '80vh',
-            display: 'flex',
-            flexDirection: 'column',
-            backgroundColor: '#f8f9fa',
-            border: '3px solid #28a745'
-          }}>
-            <div className="card-header" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '10px 14px',
-              borderBottom: '1px solid #e9ecef'
-            }}>
-              <h5 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Approve Request ({selectedRequest?.category?.category_name})</h5>
-              <button
-                onClick={() => setShowApprovalModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  color: '#666',
-                  padding: '0'
-                }}
-              >
-                ×
-              </button>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          {loading ? (
+            <div className="p-8"><TableSkeleton rows={8} cols={7} /></div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Code</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Teacher</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</th>
+                    <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Qty</th>
+                    <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
+                    <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {requests.map((req) => (
+                    <tr key={req.id} className="hover:bg-indigo-50/30 transition-colors group">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm font-black text-indigo-600">{req.request_code}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-black text-gray-900">{req.teacher?.full_name || 'N/A'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-bold text-gray-700">{req.category?.category_name || 'N/A'}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center justify-center px-3 py-1 bg-gray-100 rounded-lg text-sm font-black text-gray-700">
+                          {req.quantity_requested}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                          req.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                          req.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                          req.status === 'borrowed' ? 'bg-blue-100 text-blue-700' :
+                          req.status === 'returned' ? 'bg-emerald-100 text-emerald-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {req.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-[11px] font-bold text-gray-500">
+                          {formatDateTime(req.created_at)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedViewRequest(req);
+                              setShowViewModal(true);
+                            }}
+                            className="p-2 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          
+                          {req.status === 'pending' && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedRequest(req);
+                                  setApprovalForm({
+                                    inventory_item_ids: [],
+                                    expected_return_date: '',
+                                    admin_notes: '',
+                                  });
+                                  setShowApprovalModal(true);
+                                }}
+                                className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedRequest(req);
+                                  setShowRejectionModal(true);
+                                }}
+                                className="px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-600 hover:text-white transition-all"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+
+                          {req.status === 'approved' && (
+                            <button
+                              onClick={() => handleIssue(req.id)}
+                              className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
+                            >
+                              Issue
+                            </button>
+                          )}
+
+                          {req.status === 'borrowed' && (
+                            <button
+                              onClick={() => handleReturn(req.id)}
+                              className="px-4 py-1.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
+                            >
+                              Return
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {requests.length === 0 && (
+                <div className="text-center py-20 bg-white">
+                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                    <FileText className="w-10 h-10 text-gray-200" />
+                  </div>
+                  <h4 className="text-lg font-black text-gray-900 tracking-tight">No Requests Found</h4>
+                  <p className="text-sm text-gray-500 font-medium max-w-xs mx-auto mt-2 italic">
+                    All clear! No pending requests match your filter.
+                  </p>
+                </div>
+              )}
             </div>
-            
-            {/* Form Fields */}
-            <div style={{ 
-              padding: '16px',
-              overflowY: 'auto',
-              flex: 1
-            }}>
-              <form onSubmit={handleApprove} id="approveForm">
-                
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ fontWeight: '600', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>Select Specific Serial Numbers <span style={{ color: '#dc3545' }}>*</span></span>
-                    <span className="badge badge-primary">{approvalForm.inventory_item_ids.length} / {selectedRequest?.quantity_requested} Selected</span>
-                  </label>
+          )}
+        </div>
+
+        {/* Improved Modals for consistent feel */}
+        {showApprovalModal && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="bg-emerald-600 px-6 py-6 text-white relative">
+                <div className="absolute right-4 top-4">
+                  <button onClick={() => setShowApprovalModal(false)} className="hover:bg-white/20 p-1 rounded-lg transition-colors">
+                    <XCircle className="w-5 h-5" />
+                  </button>
+                </div>
+                <h3 className="text-xl font-black uppercase tracking-tight">Approve Request</h3>
+                <p className="text-emerald-100 text-xs font-bold mt-1 uppercase tracking-widest">{selectedRequest?.category?.category_name}</p>
+              </div>
+
+              <form onSubmit={handleApprove} className="p-6 space-y-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Select Serial Numbers *</label>
+                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                      {approvalForm.inventory_item_ids.length} / {selectedRequest?.quantity_requested}
+                    </span>
+                  </div>
                   
-                  <div style={{ 
-                    border: '1px solid #dee2e6', 
-                    borderRadius: '8px', 
-                    maxHeight: '200px', 
-                    overflowY: 'auto',
-                    backgroundColor: '#fff' 
-                  }}>
+                  <div className="border border-gray-100 rounded-2xl max-h-[180px] overflow-y-auto bg-gray-50/50 p-2 space-y-1">
                     {availableItems.length === 0 ? (
-                      <div style={{ padding: '16px', textAlign: 'center', color: '#dc3545', fontWeight: '500' }}>
-                        No available items in this category!
+                      <div className="py-8 text-center">
+                        <p className="text-xs font-bold text-red-500 uppercase">Insufficient stock available!</p>
                       </div>
                     ) : (
                       availableItems.map((item: any) => (
                         <label 
                           key={item.id} 
-                          style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            padding: '10px 12px', 
-                            borderBottom: '1px solid #f1f3f5',
-                            cursor: 'pointer',
-                            backgroundColor: approvalForm.inventory_item_ids.includes(item.id) ? '#e6f2ff' : 'transparent',
-                            transition: 'background-color 0.2s'
-                          }}
+                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                            approvalForm.inventory_item_ids.includes(item.id) 
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' 
+                            : 'bg-white text-gray-700 border-gray-100 hover:border-indigo-200'
+                          }`}
                         >
                           <input 
                             type="checkbox"
                             checked={approvalForm.inventory_item_ids.includes(item.id)}
                             onChange={() => toggleItemSelection(item.id)}
-                            style={{ marginRight: '12px', width: '16px', height: '16px', cursor: 'pointer' }}
+                            className="hidden"
                           />
-                          <div>
-                            <div style={{ fontWeight: '600', fontSize: '13px' }}>{item.serial_number}</div>
-                            <div style={{ fontSize: '11px', color: '#6c757d' }}>{item.item_name} - {item.condition}</div>
+                          <div className="flex-1">
+                            <p className="text-xs font-black tracking-tight">{item.serial_number}</p>
+                            <p className={`text-[9px] font-bold uppercase tracking-widest mt-0.5 ${
+                              approvalForm.inventory_item_ids.includes(item.id) ? 'text-indigo-100' : 'text-gray-400'
+                            }`}>
+                              {item.condition} • {item.item_name}
+                            </p>
                           </div>
+                          {approvalForm.inventory_item_ids.includes(item.id) && (
+                            <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                              <CheckCircle className="w-3 h-3" />
+                            </div>
+                          )}
                         </label>
                       ))
                     )}
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '13px' }}>
-                    Expected Return Date
-                  </label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={approvalForm.expected_return_date}
-                    onChange={(e) => setApprovalForm({...approvalForm, expected_return_date: e.target.value})}
-                    style={{ fontSize: '13px' }}
-                  />
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Expected Return Date</label>
+                    <input
+                      type="date"
+                      className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                      value={approvalForm.expected_return_date}
+                      onChange={(e) => setApprovalForm({...approvalForm, expected_return_date: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Admin Notes (Optional)</label>
+                    <textarea
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                      value={approvalForm.admin_notes}
+                      onChange={(e) => setApprovalForm({ ...approvalForm, admin_notes: e.target.value })}
+                      rows={2}
+                      placeholder="Special instructions for borrower..."
+                    />
+                  </div>
                 </div>
 
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '13px' }}>
-                    Admin Notes
-                  </label>
-                  <textarea
-                    className="form-control"
-                    value={approvalForm.admin_notes}
-                    onChange={(e) =>
-                      setApprovalForm({ ...approvalForm, admin_notes: e.target.value })
-                    }
-                    rows={2}
-                    placeholder="Optional..."
-                    style={{ fontSize: '13px', resize: 'vertical' }}
-                  />
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowApprovalModal(false)}
+                    className="flex-1 h-12 rounded-xl text-sm font-black text-gray-500 hover:bg-gray-50 transition-colors uppercase tracking-widest"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-[2] h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-emerald-100 transition-all active:scale-95"
+                  >
+                    Confirm Approval
+                  </button>
                 </div>
               </form>
             </div>
-
-            {/* Buttons - Always Visible */}
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              justifyContent: 'flex-end',
-              padding: '20px 20px',
-              borderTop: '3px solid #28a745',
-              backgroundColor: '#fff',
-              position: 'sticky',
-              bottom: 0,
-              flexShrink: 0,
-              boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
-            }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setShowApprovalModal(false)}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '12px',
-                  fontWeight: '500'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="approveForm"
-                className="btn btn-success"
-                style={{
-                  padding: '12px 30px',
-                  fontSize: '16px',
-                  fontWeight: '800',
-                  minWidth: '120px',
-                  height: '50px',
-                  backgroundColor: '#28a745',
-                  border: '3px solid #28a745',
-                  boxShadow: '0 4px 8px rgba(40, 167, 69, 0.3)'
-                }}
-              >
-                Approve
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Rejection Modal */}
-      {showRejectionModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '10px'
-        }}>
-          <div className="card" style={{ 
-            maxWidth: '420px', 
-            width: '100%',
-            height: 'auto',
-            maxHeight: '400px'
-          }}>
-            <div className="card-header" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '10px 14px',
-              borderBottom: '1px solid #e9ecef'
-            }}>
-              <h5 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Reject Request</h5>
-              <button
-                onClick={() => setShowRejectionModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  color: '#666',
-                  padding: '0',
-                  width: '24px',
-                  height: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                ×
-              </button>
-            </div>
-            
-            {/* Form Fields */}
-            <div style={{ padding: '12px 14px' }}>
-              <form onSubmit={handleReject}>
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ fontWeight: '500', marginBottom: '4px', display: 'block', fontSize: '12px' }}>
-                    Reason for Rejection <span style={{ color: '#dc3545' }}>*</span>
-                  </label>
+        {/* Rejection Modal Upgrade */}
+        {showRejectionModal && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-red-600 px-6 py-6 text-white relative">
+                <h3 className="text-xl font-black uppercase tracking-tight">Reject Request</h3>
+                <p className="text-red-100 text-xs font-bold mt-1">Provide a justification for the denial.</p>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Reason for Rejection *</label>
                   <textarea
-                    className="form-control"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-sm font-medium focus:ring-2 focus:ring-red-500/20 transition-all outline-none min-h-[120px]"
                     value={rejectionForm.admin_notes}
-                    onChange={(e) =>
-                      setRejectionForm({ admin_notes: e.target.value })
-                    }
-                    rows={3}
+                    onChange={(e) => setRejectionForm({ admin_notes: e.target.value })}
                     required
-                    placeholder="Please provide a reason..."
-                    style={{ fontSize: '12px', padding: '5px 8px', resize: 'vertical' }}
+                    placeholder="e.g. Maintenance required, insufficient inventory..."
                   />
                 </div>
-              </form>
-            </div>
 
-            {/* Buttons - Always Visible */}
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              justifyContent: 'flex-end',
-              padding: '10px 14px',
-              borderTop: '1px solid #e9ecef',
-              backgroundColor: '#fff'
-            }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setShowRejectionModal(false)}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '12px',
-                  fontWeight: '500'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="btn btn-danger"
-                onClick={handleReject}
-                style={{
-                  padding: '6px 16px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  minWidth: '80px'
-                }}
-              >
-                Reject
-              </button>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowRejectionModal(false)}
+                    className="flex-1 h-12 rounded-xl text-sm font-black text-gray-500 hover:bg-gray-50 transition-colors uppercase tracking-widest"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleReject}
+                    className="flex-[2] h-12 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-red-100 transition-all active:scale-95"
+                  >
+                    Deny Request
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* View Modal */}
-      {showViewModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '10px'
-        }}>
-          <div className="card" style={{ 
-            maxWidth: '500px', 
-            width: '100%',
-            height: 'auto',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <div className="card-header" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px 16px',
-              borderBottom: '1px solid #e9ecef'
-            }}>
-              <h5 style={{ margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Eye className="w-5 h-5" style={{ color: '#667eea' }} />
-                Request Details
-              </h5>
-              <button
-                onClick={() => setShowViewModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666' }}
-              >×</button>
-            </div>
-            
-            <div style={{ padding: '16px', overflowY: 'auto' }}>
-              {selectedViewRequest && (
-                <div style={{ background: '#f8f9fa', padding: '16px', borderRadius: '8px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px' }}>
-                    <div>
-                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Request Code</span>
-                      <strong style={{ color: '#333' }}>{selectedViewRequest.request_code}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Status</span>
-                      <span className={`badge ${getStatusColor(selectedViewRequest.status)}`}>
-                        {selectedViewRequest.status.toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Teacher</span>
-                      <strong style={{ color: '#333' }}>{selectedViewRequest.teacher?.full_name || 'N/A'}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Category</span>
-                      <strong style={{ color: '#333' }}>{selectedViewRequest.category?.category_name || 'N/A'}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Quantity</span>
-                      <strong style={{ color: '#333' }}>{selectedViewRequest.quantity_requested}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Date Requested</span>
-                      <strong style={{ color: '#333' }}>{formatDateTime(selectedViewRequest.created_at)}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '2px' }}>Expected Return</span>
-                      <strong style={{ color: '#333' }}>
-                        {selectedViewRequest.expected_return_date ? formatDate(selectedViewRequest.expected_return_date) : 'N/A'}
-                      </strong>
+        {/* View Modal Upgrade */}
+        {showViewModal && selectedViewRequest && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-xl rounded-[40px] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+              <div className="bg-gray-900 px-8 py-10 text-white relative overflow-hidden">
+                <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 pointer-events-none">
+                  <FileText className="w-48 h-48" />
+                </div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="px-4 py-1.5 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
+                      Request Details
+                    </span>
+                    <button onClick={() => setShowViewModal(false)} className="text-white/50 hover:text-white transition-colors">
+                      <XCircle className="w-6 h-6" />
+                    </button>
+                  </div>
+                  <h2 className="text-4xl font-black tracking-tight">{selectedViewRequest.request_code}</h2>
+                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mt-2">
+                    Submitted on {formatDateTime(selectedViewRequest.created_at)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-10 space-y-10">
+                <div className="grid grid-cols-2 gap-x-12 gap-y-8">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Borrower</p>
+                    <p className="text-lg font-black text-gray-900">{selectedViewRequest.teacher?.full_name || 'N/A'}</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Status</p>
+                    <div className={`inline-flex px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border-2 ${
+                      selectedViewRequest.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                      selectedViewRequest.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                      selectedViewRequest.status === 'borrowed' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                      'bg-gray-50 text-gray-600 border-gray-200'
+                    }`}>
+                      {selectedViewRequest.status}
                     </div>
                   </div>
-                  
-                  {selectedViewRequest.purpose && (
-                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e9ecef' }}>
-                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '4px' }}>Purpose</span>
-                      <div style={{ background: '#fff', padding: '8px', border: '1px solid #e9ecef', borderRadius: '4px', fontSize: '13px' }}>
-                        {selectedViewRequest.purpose}
-                      </div>
-                    </div>
-                  )}
 
-                  {selectedViewRequest.admin_notes && (
-                    <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e9ecef' }}>
-                      <span style={{ color: '#666', display: 'block', fontSize: '12px', marginBottom: '4px' }}>Admin Notes</span>
-                      <div style={{ background: '#fff', padding: '8px', border: '1px solid #e9ecef', borderRadius: '4px', fontSize: '13px' }}>
-                        {selectedViewRequest.admin_notes}
-                      </div>
-                    </div>
-                  )}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Equipment Category</p>
+                    <p className="text-lg font-black text-gray-900">{selectedViewRequest.category?.category_name || 'N/A'}</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quantity Requested</p>
+                    <p className="text-lg font-black text-gray-900">{selectedViewRequest.quantity_requested} Unit(s)</p>
+                  </div>
                 </div>
-              )}
-            </div>
 
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              padding: '16px',
-              borderTop: '1px solid #e9ecef',
-              background: '#fff'
-            }}>
-              <button
-                onClick={handleDownloadPDF}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 16px',
-                  fontSize: '14px',
-                  color: '#667eea',
-                  border: '1px solid #667eea',
-                  borderRadius: '6px',
-                  background: 'transparent',
-                  cursor: 'pointer'
-                }}
-              >
-                <FileText className="w-4 h-4" /> Download PDF
-              </button>
-              <button
-                onClick={() => setShowViewModal(false)}
-                style={{
-                  padding: '8px 24px',
-                  fontSize: '14px',
-                  color: '#fff',
-                  background: '#343a40',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
-              >
-                Close
-              </button>
+                {selectedViewRequest.purpose && (
+                  <div className="space-y-3 pt-6 border-t border-gray-50">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Statement of Purpose</p>
+                    <div className="bg-gray-50/80 p-5 rounded-3xl border border-gray-100/50 italic text-gray-700 leading-relaxed text-sm">
+                      "{selectedViewRequest.purpose}"
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    onClick={handleDownloadPDF}
+                    className="flex-1 h-14 bg-white border-2 border-gray-100 hover:border-indigo-600 hover:bg-indigo-50 text-indigo-600 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Manifest
+                  </button>
+                  <button
+                    onClick={() => setShowViewModal(false)}
+                    className="flex-1 h-14 bg-gray-900 hover:bg-black text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-gray-100"
+                  >
+                    Close Preview
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

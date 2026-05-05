@@ -9,6 +9,7 @@ import { Package, Eye, EyeOff } from 'lucide-react';
 import { Footer } from '@/components/common/Footer';
 import AuthHeader from '@/components/common/AuthHeader';
 import axios from 'axios';
+import { API_BASE_URL } from '@/utils/constants';
 
 export function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ export function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/auth/reset-password', formData);
+      const response = await axios.post(`${API_BASE_URL}/auth/reset-password`, formData);
       
       toast.success(response.data.message);
       setTimeout(() => {

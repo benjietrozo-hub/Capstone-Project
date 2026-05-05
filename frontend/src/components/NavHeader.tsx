@@ -5,8 +5,8 @@ import { ArrowLeft, Menu, Home } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 
 interface NavHeaderProps {
-  title: string;
-  subtitle?: string;
+  title: string | React.ReactNode;
+  subtitle?: string | React.ReactNode;
   showBackButton?: boolean;
   showMenuButton?: boolean;
   showHomeButton?: boolean;
@@ -27,8 +27,8 @@ const NavHeader: React.FC<NavHeaderProps> = ({
   const { toggleSidebar } = useSidebar();
 
   return (
-    <div className="sticky top-0 z-50 relative overflow-hidden bg-gradient-to-r from-[#5B8DEF] to-[#0063F7] text-white shadow-lg">
-      <div className="relative z-10 px-3 sm:px-6 py-3 sm:py-4">
+    <div className="sticky top-0 z-50 relative overflow-hidden bg-gradient-to-r from-[#5B8DEF] to-[#0063F7] text-white shadow-md">
+      <div className="relative z-10 px-3 sm:px-6 py-2 sm:py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
             {showBackButton && (
@@ -67,9 +67,9 @@ const NavHeader: React.FC<NavHeaderProps> = ({
             )}
             
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg sm:text-2xl font-bold tracking-tight truncate hidden sm:block">{title}</h1>
+              <div className="text-base sm:text-lg md:text-xl font-bold tracking-tight hidden sm:block">{title}</div>
               {subtitle && (
-                <p className="text-white/80 text-xs sm:text-sm truncate hidden sm:block">{subtitle}</p>
+                <div className="text-white/90 text-[10px] sm:text-xs mt-0.5 hidden sm:block">{subtitle}</div>
               )}
             </div>
           </div>

@@ -100,7 +100,7 @@ class NotificationService
             'admin',
             'borrow_request_created',
             'New Borrow Request',
-            "{$borrowRequest->teacher->first_name} {$borrowRequest->teacher->last_name} requested {$borrowRequest->quantity_requested} unit(s) of {$borrowRequest->item->item_name}",
+            "{$borrowRequest->teacher->first_name} {$borrowRequest->teacher->last_name} requested {$borrowRequest->quantity_requested} unit(s) of " . ($borrowRequest->category->category_name ?? 'Equipment'),
             $borrowRequest->id,
             'borrow_request'
         );
@@ -116,7 +116,7 @@ class NotificationService
             'teacher',
             'borrow_request_approved',
             'Borrow Request Approved',
-            "Your request for {$borrowRequest->quantity_requested} unit(s) of {$borrowRequest->item->item_name} has been approved and issued",
+            "Your request for {$borrowRequest->quantity_requested} unit(s) of " . ($borrowRequest->category->category_name ?? 'Equipment') . " has been approved and issued",
             $borrowRequest->id,
             'borrow_request'
         );
@@ -133,7 +133,7 @@ class NotificationService
             'teacher',
             'borrow_request_rejected',
             'Borrow Request Rejected',
-            "Your request for {$borrowRequest->quantity_requested} unit(s) of {$borrowRequest->item->item_name} has been rejected.{$reason}",
+            "Your request for {$borrowRequest->quantity_requested} unit(s) of " . ($borrowRequest->category->category_name ?? 'Equipment') . " has been rejected.{$reason}",
             $borrowRequest->id,
             'borrow_request'
         );
@@ -149,7 +149,7 @@ class NotificationService
             'teacher',
             'item_returned',
             'Item Return Confirmed',
-            "Your return of {$borrowRequest->quantity_requested} unit(s) of {$borrowRequest->item->item_name} has been confirmed",
+            "Your return of {$borrowRequest->quantity_requested} unit(s) of " . ($borrowRequest->category->category_name ?? 'Equipment') . " has been confirmed",
             $borrowRequest->id,
             'borrow_request'
         );

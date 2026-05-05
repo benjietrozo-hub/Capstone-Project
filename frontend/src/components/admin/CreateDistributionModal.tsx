@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Package, User, Calendar, FileText, Plus, Minus, Users, CheckSquare, Square } from 'lucide-react';
-import axios from 'axios';
+import axiosInstance from '@/api/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,15 +55,9 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
     try {
       const token = localStorage.getItem('token');
       const [itemsRes, teachersRes, groupsRes] = await Promise.all([
-        axios.get('http://127.0.0.1:8000/api/admin/inventory', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get('http://127.0.0.1:8000/api/admin/distribution', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get('http://127.0.0.1:8000/api/admin/distribution/groups', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        axiosInstance.get('/admin/inventory'),
+        axiosInstance.get('/admin/distribution'),
+        axiosInstance.get('/admin/distribution/groups')
       ]);
 
       setItems(itemsRes.data.data.filter((item: Item) => item.quantity_available > 0));
@@ -121,8 +115,8 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
         
         // Use bulk distribution endpoint for multiple teachers
         if (selectedTeachers.length > 1) {
-          await axios.post(
-            'http://127.0.0.1:8000/api/admin/distributions/bulk',
+          await axiosInstance.post(
+            '/admin/distributions/bulk',
             {
               item_id: parseInt(formData.item_id),
               group_id: null, // Not using group, using individual teachers
@@ -132,21 +126,19 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
               purpose: formData.purpose,
               notes: formData.notes,
               condition_on_distribution: formData.condition_on_distribution,
-            },
-            { headers: { Authorization: `Bearer ${token}` } }
+            }
           );
           toast.success(`Items distributed to ${selectedTeachers.length} teachers successfully`);
         } else {
           // Use single distribution endpoint for one teacher
-          await axios.post(
-            'http://127.0.0.1:8000/api/admin/distributions',
+          await axiosInstance.post(
+            '/admin/distributions',
             {
               ...formData,
               item_id: parseInt(formData.item_id),
               teacher_id: selectedTeachers[0],
               quantity_distributed: parseInt(formData.quantity_distributed),
-            },
-            { headers: { Authorization: `Bearer ${token}` } }
+            }
           );
           toast.success('Item distributed successfully');
         }
@@ -180,8 +172,8 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
         const token = localStorage.getItem('token');
         
         // Use bulk distribution endpoint for group
-        await axios.post(
-          'http://127.0.0.1:8000/api/admin/bulk-distributions',
+        await axiosInstance.post(
+          '/admin/bulk-distributions',
           {
             item_id: parseInt(formData.item_id),
             group_id: selectedGroup,
@@ -190,8 +182,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
             distribution_date: formData.distribution_date,
             purpose: formData.purpose,
             notes: formData.notes,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
+          }
         );
         toast.success(`Items distributed to group "${selectedGroupData?.group_name}" successfully`);
         

@@ -11,7 +11,8 @@ import { toast } from '@/hooks/use-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, ClipboardList } from 'lucide-react';
+import { Package, ClipboardList, Calendar, Clock, AlertCircle, Info, ChevronRight, Filter, CheckCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 import { useSearchParams } from 'react-router-dom';
 
@@ -134,7 +135,7 @@ export function MyReservationsPage() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         returnDate.setHours(0, 0, 0, 0);
-        const isOverdue = returnDate < today;
+        const isOverdue = returnDate.getTime() < today.getTime();
         const isDueToday = returnDate.getTime() === today.getTime();
         
         return (
@@ -233,10 +234,10 @@ export function MyReservationsPage() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f8fafc]">
       <NavHeader 
         title="My Reservations" 
-        subtitle="Manage your borrowed items and track your requests"
+        subtitle="Track your equipment requests and manage borrowed items"
         showBackButton={true}
         showHomeButton={true}
         showMenuButton={true}
@@ -246,175 +247,317 @@ export function MyReservationsPage() {
         />
       </NavHeader>
       
-      {/* Mobile Subtitle */}
-      <div className="sm:hidden bg-white border-b px-4 py-3">
-        <h1 className="text-lg font-bold text-gray-900 mb-1">My Reservations</h1>
-        <p className="text-sm text-gray-600">Manage your borrowed items and track your requests</p>
+      {/* Mobile Title Section */}
+      <div className="sm:hidden bg-white border-b px-4 py-4 mb-4">
+        <h1 className="text-xl font-black text-gray-900 tracking-tight">My Reservations</h1>
+        <p className="text-sm text-gray-500 font-medium">Manage items and track requests</p>
       </div>
       
-      <div className="p-3 sm:p-6 pt-4">
-        <Card>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6">
-              <TabsTrigger value="borrowed" className="flex items-center gap-2 text-xs sm:text-sm">
-                <Package className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">My Borrowed Items</span>
-                <span className="sm:hidden">Borrowed</span>
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+              <Package className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Borrowed</p>
+              <p className="text-2xl font-black text-gray-900">{borrowedItems.length}</p>
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-amber-50 flex items-center gap-4">
+            <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pending</p>
+              <p className="text-2xl font-black text-gray-900">
+                {requests.filter(r => r.status === 'pending').length}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-red-50 flex items-center gap-4">
+            <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-red-600">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Overdue</p>
+              <p className="text-2xl font-black text-red-600">
+                {borrowedItems.filter(item => {
+                  if (!item.expected_return_date) return false;
+                  const returnDate = new Date(item.expected_return_date);
+                  returnDate.setHours(0, 0, 0, 0);
+                  return returnDate.getTime() < new Date().setHours(0, 0, 0, 0);
+                }).length}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+          <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between mb-2">
+            <TabsList className="grid grid-cols-2 w-full max-w-md bg-transparent border-0 p-0">
+              <TabsTrigger 
+                value="borrowed" 
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-xl transition-all duration-300 py-2.5 font-bold text-sm"
+              >
+                <Package className="w-4 h-4 mr-2" />
+                Borrowed Items
               </TabsTrigger>
-              <TabsTrigger value="requests" className="flex items-center gap-2 text-xs sm:text-sm">
-                <ClipboardList className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">My Borrow Requests</span>
-                <span className="sm:hidden">Requests</span>
+              <TabsTrigger 
+                value="requests" 
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-xl transition-all duration-300 py-2.5 font-bold text-sm"
+              >
+                <ClipboardList className="w-4 h-4 mr-2" />
+                Borrow Requests
               </TabsTrigger>
             </TabsList>
 
-            {/* My Borrowed Items Tab */}
-            <TabsContent value="borrowed" className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Currently Borrowed Items
-                </h3>
-                <span className="text-sm text-gray-600">
-                  Total: {borrowedItems.length} item(s)
-                </span>
-              </div>
-              
-              {borrowedItems.length === 0 ? (
-                <div className="text-center py-12">
-                  <Package className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                  <p className="text-gray-500">You don't have any borrowed items at the moment</p>
-                </div>
-              ) : (
-                <Table columns={borrowedColumns} data={borrowedItems} loading={loading} />
-              )}
-            </TabsContent>
+            <div className="hidden sm:flex items-center gap-2 px-4">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                Live Status
+              </span>
+            </div>
+          </div>
 
-            {/* My Borrow Requests Tab */}
-            <TabsContent value="requests" className="space-y-4">
-              <div className="mb-4">
-                <FormField
-                  label="Filter by Status"
-                  type="select"
-                  value={requestStatus}
-                  onChange={(e) => setRequestStatus(e.target.value)}
-                  options={[
-                    { value: '', label: 'All Requests' },
-                    { value: 'pending', label: 'Pending' },
-                    { value: 'approved', label: 'Approved' },
-                    { value: 'returned', label: 'Returned' },
-                    { value: 'rejected', label: 'Rejected' },
-                  ]}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Note: Borrowed items are shown in the "My Borrowed Items" tab
+          <TabsContent value="borrowed" className="mt-0 focus-visible:outline-none">
+            <Card className="border-0 shadow-sm overflow-hidden rounded-2xl">
+              <CardHeader className="bg-white border-b border-gray-50 py-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                      <Package className="w-5 h-5 text-blue-600" />
+                      Items in Your Possession
+                    </CardTitle>
+                    <p className="text-sm text-gray-500 font-medium mt-1">These items are currently issued to you</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="bg-blue-50/50 text-blue-700 border-blue-100 font-bold px-3 py-1">
+                      Total: {borrowedItems.length}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {borrowedItems.length === 0 ? (
+                  <div className="text-center py-20 bg-white">
+                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                      <Package className="w-10 h-10 text-gray-300" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">No Borrowed Items</h3>
+                    <p className="text-gray-500 max-w-xs mx-auto mt-2">
+                      You don't have any items currently in your possession.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table 
+                      columns={borrowedColumns} 
+                      data={borrowedItems} 
+                      loading={loading}
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="requests" className="mt-0 focus-visible:outline-none">
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="flex-1">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                    <Filter className="w-4 h-4" />
+                  </div>
+                  <select
+                    className="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 block pl-10 pr-4 py-2.5 font-bold transition-all outline-none"
+                    value={requestStatus}
+                    onChange={(e) => setRequestStatus(e.target.value)}
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="pending">⏳ Pending Review</option>
+                    <option value="approved">✅ Approved</option>
+                    <option value="returned">🔙 Returned</option>
+                    <option value="rejected">❌ Rejected</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 bg-blue-50/50 px-4 py-2 rounded-xl border border-blue-100/50">
+                <Info className="w-4 h-4 text-blue-600" />
+                <p className="text-xs text-blue-800 font-bold tracking-tight">
+                  Borrowed items are managed in the main tab
                 </p>
               </div>
+            </div>
 
-              {requests.length === 0 ? (
-                <div className="text-center py-12">
-                  <ClipboardList className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                  <p className="text-gray-500">No requests found</p>
+            <Card className="border-0 shadow-sm overflow-hidden rounded-2xl">
+              <CardHeader className="bg-white border-b border-gray-50 py-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                      <ClipboardList className="w-5 h-5 text-blue-600" />
+                      Request History
+                    </CardTitle>
+                    <p className="text-sm text-gray-500 font-medium mt-1">Track the progress of your borrow requests</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="bg-gray-50/50 text-gray-700 border-gray-200 font-bold px-3 py-1">
+                      Results: {requests.length}
+                    </Badge>
+                  </div>
                 </div>
-              ) : (
-                <Table columns={requestColumns} data={requests} loading={loading} />
-              )}
-            </TabsContent>
-          </Tabs>
-        </Card>
+              </CardHeader>
+              <CardContent className="p-0">
+                {requests.length === 0 ? (
+                  <div className="text-center py-20 bg-white">
+                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                      <ClipboardList className="w-10 h-10 text-gray-300" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">No Requests Found</h3>
+                    <p className="text-gray-500 max-w-xs mx-auto mt-2">
+                      No borrow requests match your current filters.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table columns={requestColumns} data={requests} loading={loading} />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
-        {/* Detail Modal */}
+        {/* Improved Detail Modal */}
         <Modal
           isOpen={showDetailModal}
           onClose={() => setShowDetailModal(false)}
           title="Request Details"
         >
           {selectedRequest && (
-            <div className="space-y-4">
-              <div>
-                <label className="font-semibold text-gray-700">Request ID</label>
-                <p className="text-gray-600">#{selectedRequest.id}</p>
-              </div>
-              <div>
-                <label className="font-semibold text-gray-700">Category</label>
-                <p className="text-gray-600">{selectedRequest.category?.category_name || 'N/A'}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6">
+              {/* Status Header */}
+              <div className={`p-4 rounded-2xl flex items-center justify-between ${
+                selectedRequest.status === 'borrowed' ? 'bg-blue-50' :
+                selectedRequest.status === 'approved' ? 'bg-green-50' :
+                selectedRequest.status === 'pending' ? 'bg-amber-50' :
+                'bg-gray-50'
+              }`}>
                 <div>
-                  <label className="font-semibold text-gray-700">Quantity Requested</label>
-                  <p className="text-gray-600">{selectedRequest.quantity_requested}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Current Status</p>
+                  <StatusBadge label={selectedRequest.status.toUpperCase()} status={selectedRequest.status} />
                 </div>
-                <div>
-                  <label className="font-semibold text-gray-700">Quantity Approved</label>
-                  <p className="text-gray-600">{selectedRequest.quantity_approved || '—'}</p>
+                <div className="text-right">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Request ID</p>
+                  <p className="text-sm font-black text-gray-900">#{selectedRequest.id}</p>
                 </div>
               </div>
-              <div>
-                <label className="font-semibold text-gray-700">Purpose</label>
-                <p className="text-gray-600">{selectedRequest.purpose || '—'}</p>
-              </div>
-              <div>
-                <label className="font-semibold text-gray-700">Status</label>
-                <StatusBadge label={selectedRequest.status} status={selectedRequest.status} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="font-semibold text-gray-700">Date Requested</label>
-                  <p className="text-gray-600">{formatDate(selectedRequest.date_requested)}</p>
+
+              {/* Grid Content */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</label>
+                  <p className="text-base font-bold text-gray-900">{selectedRequest.category?.category_name || 'N/A'}</p>
                 </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quantity</label>
+                  <div className="flex items-center gap-2">
+                    <p className="text-base font-bold text-gray-900">{selectedRequest.quantity_requested} Requested</p>
+                    {selectedRequest.quantity_approved && (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 font-bold">
+                        {selectedRequest.quantity_approved} Approved
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Purpose</label>
+                  <p className="text-sm font-medium text-gray-700 bg-gray-50/50 p-3 rounded-xl border border-gray-100 italic leading-relaxed">
+                    "{selectedRequest.purpose || 'No purpose specified'}"
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Requested On</label>
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    {formatDate(selectedRequest.date_requested)}
+                  </div>
+                </div>
+
                 {selectedRequest.borrow_date && (
-                  <div>
-                    <label className="font-semibold text-gray-700">Borrowed Date</label>
-                    <p className="text-gray-600">{formatDate(selectedRequest.borrow_date)}</p>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Borrowed On</label>
+                    <div className="flex items-center gap-2 text-sm font-bold text-blue-600">
+                      <Clock className="w-4 h-4" />
+                      {formatDate(selectedRequest.borrow_date)}
+                    </div>
                   </div>
                 )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="font-semibold text-gray-700">Expected Return</label>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Return Timeline</label>
                   {selectedRequest.expected_return_date ? (() => {
                     const returnDate = new Date(selectedRequest.expected_return_date);
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     returnDate.setHours(0, 0, 0, 0);
-                    const isOverdue = returnDate < today;
+                    const isOverdue = returnDate.getTime() < today.getTime();
                     const isDueToday = returnDate.getTime() === today.getTime();
                     
                     return (
-                      <p style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '4px 12px',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        fontSize: '12px',
-                        backgroundColor: isOverdue ? '#ffe0e0' : isDueToday ? '#fff3cd' : '#d4edda',
-                        color: isOverdue ? '#dc3545' : isDueToday ? '#856404' : '#155724',
-                        border: `2px solid ${isOverdue ? '#dc3545' : isDueToday ? '#ffc107' : '#28a745'}`
-                      }}>
-                        {isOverdue && '🔴'}
-                        {isDueToday && '⚠️'}
-                        {!isOverdue && !isDueToday && '✓'}
+                      <div className={`flex items-center gap-2 p-2 rounded-lg border font-bold text-xs ${
+                        isOverdue ? 'bg-red-50 text-red-700 border-red-100' : 
+                        isDueToday ? 'bg-amber-50 text-amber-700 border-amber-100' : 
+                        'bg-blue-50 text-blue-700 border-blue-100'
+                      }`}>
+                        {isOverdue ? <AlertCircle className="w-4 h-4" /> : <Calendar className="w-4 h-4" />}
                         {formatDate(selectedRequest.expected_return_date)}
                         {isOverdue && ' (OVERDUE)'}
                         {isDueToday && ' (DUE TODAY)'}
-                      </p>
+                      </div>
                     );
-                  })() : <p className="text-gray-600">—</p>}
+                  })() : <p className="text-gray-400 font-bold text-sm">Not specified</p>}
                 </div>
+
+                {selectedRequest.actual_return_date && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Actually Returned</label>
+                    <div className="flex items-center gap-2 text-sm font-bold text-green-600">
+                      <CheckCircle className="w-4 h-4" />
+                      {formatDate(selectedRequest.actual_return_date)}
+                    </div>
+                  </div>
+                )}
               </div>
-              {selectedRequest.actual_return_date && (
-                <div>
-                  <label className="font-semibold text-gray-700">Actual Return Date</label>
-                  <p className="text-gray-600">{formatDate(selectedRequest.actual_return_date)}</p>
-                </div>
-              )}
+
               {selectedRequest.admin_notes && (
-                <div>
-                  <label className="font-semibold text-gray-700">Admin Notes</label>
-                  <p className="text-gray-600">{selectedRequest.admin_notes}</p>
+                <div className="space-y-2 pt-4 border-t border-gray-100">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Administrator Feedback</label>
+                  <div className="bg-blue-50/30 p-4 rounded-2xl border border-blue-100/50 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <Info className="w-8 h-8 text-blue-600" />
+                    </div>
+                    <p className="text-sm font-bold text-blue-900 leading-relaxed">
+                      {selectedRequest.admin_notes}
+                    </p>
+                  </div>
                 </div>
               )}
+
+              <div className="pt-4 flex justify-end">
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="bg-gray-900 text-white font-black px-8 py-3 rounded-xl hover:bg-black transition-all shadow-lg hover:shadow-xl active:scale-95 text-sm uppercase tracking-widest"
+                >
+                  Close View
+                </button>
+              </div>
             </div>
           )}
         </Modal>

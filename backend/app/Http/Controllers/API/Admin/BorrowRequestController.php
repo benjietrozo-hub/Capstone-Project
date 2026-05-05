@@ -18,7 +18,14 @@ class BorrowRequestController extends Controller
     {
         $query = BorrowRequest::with(['teacher', 'category', 'inventoryItems']);
         
-        if ($request->status) $query->where('status', $request->status);
+        if ($request->status) {
+            $statuses = explode(',', $request->status);
+            if (count($statuses) > 1) {
+                $query->whereIn('status', $statuses);
+            } else {
+                $query->where('status', $request->status);
+            }
+        }
         if ($request->date_from) $query->whereDate('date_requested', '>=', $request->date_from);
         if ($request->date_to) $query->whereDate('date_requested', '<=', $request->date_to);
         if ($request->search) {
@@ -45,7 +52,8 @@ class BorrowRequestController extends Controller
         $v = $request->validate([
             'admin_notes' => 'nullable|string',
             'inventory_item_ids' => 'required|array',
-            'inventory_item_ids.*' => 'exists:inventory_items,id'
+            'inventory_item_ids.*' => 'exists:inventory_items,id',
+            'expected_return_date' => 'nullable|date|after_or_equal:today'
         ]);
         
         if (count($v['inventory_item_ids']) !== $br->quantity_requested) {
@@ -89,6 +97,7 @@ class BorrowRequestController extends Controller
             $br->update([
                 'status' => 'borrowed',
                 'admin_notes' => $v['admin_notes'] ?? null,
+                'expected_return_date' => $v['expected_return_date'] ?? $br->expected_return_date,
                 'approved_by' => auth()->id(),
                 'issued_by' => auth()->id()
             ]);

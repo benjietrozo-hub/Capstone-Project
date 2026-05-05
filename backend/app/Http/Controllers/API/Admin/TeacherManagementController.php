@@ -37,7 +37,8 @@ class TeacherManagementController extends Controller
             'middle_initial' => 'nullable|max:10',
             'last_name' => 'required|string|max:255',
             'department' => 'nullable', 
-            'phone' => 'nullable'
+            'phone' => 'nullable',
+            'role' => 'nullable|string|in:teacher,admin'
         ]);
         $v['password'] = Hash::make($v['password']);
         $v['status'] = 'active';
@@ -69,6 +70,7 @@ class TeacherManagementController extends Controller
             'department' => 'nullable', 
             'phone' => 'nullable', 
             'status' => 'sometimes|in:active,inactive,suspended', 
+            'role' => 'sometimes|string|in:teacher,admin',
             'password' => 'nullable|min:8'
         ]);
         if (isset($v['password'])) $v['password'] = Hash::make($v['password']);

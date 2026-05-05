@@ -15,6 +15,7 @@ use App\Http\Controllers\API\Admin\ArchiveController;
 use App\Http\Controllers\API\DistributionGroupController;
 use App\Http\Controllers\API\Admin\ItemCategoryController;
 use App\Http\Controllers\API\Admin\InventoryItemController;
+use App\Http\Controllers\API\Admin\BorrowHistoryController;
 
 use App\Http\Controllers\API\Teacher\InventoryController as TeacherInventoryController;
 use App\Http\Controllers\API\Teacher\BorrowRequestController as TeacherBorrowRequestController;
@@ -55,6 +56,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::post('/logout', [AdminAuthController::class, 'logout']);
     Route::get('/me', [AdminAuthController::class, 'me']);
     Route::post('/refresh-token', [AdminAuthController::class, 'refreshToken']); // Add refresh endpoint
+    Route::post('/verify-password', [UnifiedAuthController::class, 'verifyPassword']);
     
     Route::get('/dashboard', [AdminDashboardController::class, 'index']);
     Route::get('/dashboard/statistics', [AdminDashboardController::class, 'statistics']);
@@ -63,11 +65,14 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::get('/inventory-categories', [AdminInventoryController::class, 'categories']);
     
     // New Serialized Category System
+    Route::get('/item-categories/parent-categories', [ItemCategoryController::class, 'parentCategories']);
+    Route::post('/item-categories/rename-parent', [ItemCategoryController::class, 'renameParentCategory']);
     Route::apiResource('item-categories', ItemCategoryController::class);
     Route::post('/item-categories/{id}/custom-fields', [ItemCategoryController::class, 'addCustomField']);
     Route::delete('/item-categories/{id}/custom-fields/{fieldId}', [ItemCategoryController::class, 'deleteCustomField']);
     
     // New Serialized Individual Items
+    Route::post('/inventory-items/bulk', [InventoryItemController::class, 'bulkStore']);
     Route::apiResource('inventory-items', InventoryItemController::class);
     
     Route::get('/requests', [AdminBorrowRequestController::class, 'index']);
@@ -106,6 +111,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::delete('/archive/empty', [ArchiveController::class, 'emptyArchive']);
     Route::post('/archive/{type}/{id}/restore', [ArchiveController::class, 'restore']);
     Route::delete('/archive/{type}/{id}', [ArchiveController::class, 'forceDelete']);
+    
+    // Borrow History & Reports
+    Route::get('/borrow-history', [BorrowHistoryController::class, 'index']);
+    Route::get('/borrow-history/stats', [BorrowHistoryController::class, 'stats']);
+    Route::get('/borrow-history/years', [BorrowHistoryController::class, 'years']);
     
     // Item Distributions
     Route::get('/distributions', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'index']);
@@ -165,15 +175,17 @@ Route::prefix('teacher')->middleware(['auth:sanctum'])->group(function () {
     
     Route::get('/dashboard', [TeacherDashboardController::class, 'index']);
     
+    Route::get('/inventory/parent-categories', [TeacherInventoryController::class, 'parentCategories']);
     Route::get('/inventory', [TeacherInventoryController::class, 'index']);
     Route::get('/inventory/{id}', [TeacherInventoryController::class, 'show']);
     Route::get('/inventory-categories', [TeacherInventoryController::class, 'categories']);
     
-    // Teacher's Personal Inventory
-    Route::get('/my-inventory', [\App\Http\Controllers\API\Teacher\TeacherInventoryController::class, 'index']);
-    Route::post('/my-inventory', [\App\Http\Controllers\API\Teacher\TeacherInventoryController::class, 'store']);
+    // Teacher's Personal Inventory — 3-level hierarchy
+    Route::get('/my-inventory/parent-categories', [\App\Http\Controllers\API\Teacher\TeacherInventoryController::class, 'parentCategories']);
     Route::get('/my-inventory/statistics', [\App\Http\Controllers\API\Teacher\TeacherInventoryController::class, 'statistics']);
     Route::get('/my-inventory/categories', [\App\Http\Controllers\API\Teacher\TeacherInventoryController::class, 'categories']);
+    Route::get('/my-inventory', [\App\Http\Controllers\API\Teacher\TeacherInventoryController::class, 'index']);
+    Route::post('/my-inventory', [\App\Http\Controllers\API\Teacher\TeacherInventoryController::class, 'store']);
     Route::get('/my-inventory/{id}', [\App\Http\Controllers\API\Teacher\TeacherInventoryController::class, 'show']);
     Route::put('/my-inventory/{id}', [\App\Http\Controllers\API\Teacher\TeacherInventoryController::class, 'update']);
     Route::delete('/my-inventory/{id}', [\App\Http\Controllers\API\Teacher\TeacherInventoryController::class, 'destroy']);

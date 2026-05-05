@@ -5,12 +5,14 @@ namespace App\Http\Controllers\API\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ItemCategory;
 use App\Models\CustomField;
+use App\Models\MasterCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class ItemCategoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // Load categories along with custom fields and total counts
         $categories = ItemCategory::with('customFields')
@@ -20,12 +22,37 @@ class ItemCategoryController extends Controller
             }])
             ->get();
 
+        if ($request->has('parent_category')) {
+            $parentCat = $request->query('parent_category');
+            if ($parentCat === 'Uncategorized') {
+                $categories = $categories->whereNull('parent_category')->values();
+            } else {
+                $categories = $categories->where('parent_category', $parentCat)->values();
+            }
+        }
+
         return response()->json($categories);
+    }
+
+    public function parentCategories()
+    {
+        $parents = ItemCategory::selectRaw('COALESCE(parent_category, "Uncategorized") as parent_category')
+            ->selectRaw('COUNT(item_categories.id) as kind_count')
+            ->selectRaw('SUM((SELECT COUNT(*) FROM inventory_items WHERE inventory_items.category_id = item_categories.id AND inventory_items.deleted_at IS NULL)) as item_count')
+            ->leftJoin('master_categories', function($join) {
+                $join->on(DB::raw('COALESCE(item_categories.parent_category, "Uncategorized")'), '=', 'master_categories.name');
+            })
+            ->addSelect('master_categories.description', 'master_categories.image')
+            ->groupBy('parent_category', 'master_categories.description', 'master_categories.image')
+            ->get();
+
+        return response()->json($parents);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'parent_category' => 'nullable|string',
             'category_name' => 'required|string|unique:item_categories,category_name',
             'description' => 'nullable|string',
             'category_image' => 'nullable|image|max:2048',
@@ -40,6 +67,7 @@ class ItemCategoryController extends Controller
         }
 
         $category = ItemCategory::create([
+            'parent_category' => $validated['parent_category'] ?? null,
             'category_name' => $validated['category_name'],
             'description' => $validated['description'] ?? null,
             'category_image' => $validated['category_image'] ?? null,
@@ -72,6 +100,7 @@ class ItemCategoryController extends Controller
         $category = ItemCategory::findOrFail($id);
 
         $validated = $request->validate([
+            'parent_category' => 'nullable|string',
             'category_name' => 'sometimes|string|unique:item_categories,category_name,' . $category->id,
             'description' => 'nullable|string',
             'category_image' => 'nullable|image|max:2048',
@@ -85,6 +114,16 @@ class ItemCategoryController extends Controller
         }
 
         $category->update($validated);
+
+        // Update custom fields if provided
+        if ($request->has('custom_fields')) {
+            // For simplicity in the serialized array, we'll replace existing ones
+            // In a production app, you might want to match by ID to preserve data
+            $category->customFields()->delete();
+            foreach ($request->custom_fields as $field) {
+                $category->customFields()->create($field);
+            }
+        }
 
         return response()->json($category->load('customFields'));
     }
@@ -137,5 +176,54 @@ class ItemCategoryController extends Controller
         $field->delete();
 
         return response()->json(['message' => 'Custom field deleted']);
+    }
+
+    public function renameParentCategory(Request $request)
+    {
+        $validated = $request->validate([
+            'old_name' => 'required|string',
+            'new_name' => 'required|string',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
+        ]);
+
+        $oldName = $validated['old_name'] === 'Uncategorized' ? null : $validated['old_name'];
+        $newName = $validated['new_name'];
+
+        // Update name in all ItemCategories
+        ItemCategory::where('parent_category', $oldName)
+            ->update(['parent_category' => $newName]);
+
+        // Handle MasterCategory metadata
+        $master = MasterCategory::where('name', $oldName)->first();
+        if (!$master && $oldName !== null) {
+            $master = new MasterCategory(['name' => $newName]);
+        } elseif ($master) {
+            $master->name = $newName;
+        }
+
+        if ($master) {
+            $master->description = $validated['description'] ?? $master->description;
+            
+            if ($request->hasFile('image')) {
+                if ($master->image) {
+                    Storage::disk('public')->delete($master->image);
+                }
+                $master->image = $request->file('image')->store('master_categories', 'public');
+            }
+            
+            $master->save();
+        } else if ($oldName === null) {
+            // Special case for Uncategorized if they want to give it a name/desc
+            $master = MasterCategory::updateOrCreate(
+                ['name' => $newName],
+                [
+                    'description' => $validated['description'] ?? null,
+                    'image' => $request->hasFile('image') ? $request->file('image')->store('master_categories', 'public') : null
+                ]
+            );
+        }
+
+        return response()->json(['message' => 'Master category updated successfully']);
     }
 }

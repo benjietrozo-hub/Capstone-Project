@@ -10,7 +10,9 @@ import {
   FileText,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
+  MapPin,
+  Building2
 } from "lucide-react";
 import NavHeader from "@/components/NavHeader";
 import NotificationProfile from "@/components/NotificationProfile";
@@ -163,11 +165,32 @@ export function AdminDashboard() {
     }
   };
 
+  const dashboardTitle = (
+    <div className="flex flex-col">
+      <span className="tracking-tight">
+        Property Inventory Management System
+      </span>
+    </div>
+  );
+
+  const dashboardSubtitle = (
+    <div className="flex flex-col mt-0.5 space-y-0.5">
+      <div className="flex items-center text-white/90 font-medium">
+        <Building2 className="w-3 h-3 mr-1.5 opacity-90" />
+        <span className="tracking-wide">Caloc-an Elementary School</span>
+      </div>
+      <div className="flex items-center text-blue-100/80 opacity-80">
+        <MapPin className="w-2.5 h-2.5 mr-1.5 opacity-70" />
+        Caloc-an, Magallanes, Agusan del Norte
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <NavHeader 
-        title="Admin Dashboard" 
-        subtitle="Complete System Control - Manage your inventory system"
+        title={dashboardTitle} 
+        subtitle={dashboardSubtitle}
         showBackButton={false}
         showHomeButton={false}
         showMenuButton={true}
@@ -182,9 +205,18 @@ export function AdminDashboard() {
       </NavHeader>
       
       {/* Mobile Subtitle */}
-      <div className="sm:hidden bg-white border-b px-4 py-3">
-        <h1 className="text-lg font-bold text-gray-900 mb-1">Admin Dashboard</h1>
-        <p className="text-sm text-gray-600">Complete System Control - Manage your inventory system</p>
+      <div className="sm:hidden bg-gradient-to-b from-blue-50 to-white border-b px-4 py-3 shadow-sm">
+        <h1 className="text-xs font-bold text-blue-900 mb-1 leading-snug">
+          Property Inventory Management System
+        </h1>
+        <div className="flex items-center text-gray-700 font-semibold text-[10px] mb-1">
+          <Building2 className="w-3 h-3 mr-1 text-blue-600" />
+          Caloc-an Elementary School
+        </div>
+        <div className="flex items-start text-gray-500 text-[10px] leading-tight">
+          <MapPin className="w-2.5 h-2.5 mr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+          Caloc-an, Magallanes, Agusan del Norte
+        </div>
       </div>
       
       <div className="container mx-auto p-3 sm:p-6">
@@ -196,30 +228,38 @@ export function AdminDashboard() {
             {dashboardStats.map((stat) => (
               <Card
                 key={stat.title}
-                className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 border-l-4"
-                style={{ borderLeftColor: `hsl(var(--primary))` }}
+                className="group cursor-pointer relative overflow-hidden bg-white/80 backdrop-blur-xl border border-white/40 hover:border-blue-300/50 transition-all duration-500 hover:shadow-xl hover:-translate-y-1.5 shadow-sm"
                 onClick={() => navigate(stat.url)}
               >
-                <CardHeader className="pb-2 sm:pb-3">
+                {/* Decorative background elements */}
+                <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br ${stat.color} opacity-10 group-hover:scale-[2.5] transition-transform duration-700 ease-out pointer-events-none`} />
+                <div className={`absolute -left-6 -bottom-6 w-16 h-16 rounded-full bg-gradient-to-tr ${stat.color} opacity-5 group-hover:scale-[2] transition-transform duration-700 ease-out delay-100 pointer-events-none`} />
+                
+                <CardHeader className="pb-2 sm:pb-3 relative z-10">
                   <div className="flex items-center justify-between">
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform duration-300`}>
                       <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 bg-white/50 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-100 shadow-sm">
                       {getTrendIcon(stat.trend)}
-                      <span className={`text-xs sm:text-sm font-medium ${getTrendColor(stat.trend)}`}>
+                      <span className={`text-xs sm:text-sm font-bold ${getTrendColor(stat.trend)}`}>
                         {stat.change}
                       </span>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-1">
-                    <p className="text-xl sm:text-2xl font-bold">{stat.value}</p>
-                    <p className="text-xs sm:text-sm font-medium text-gray-900">{stat.title}</p>
-                    <p className="text-xs text-gray-500">{stat.description}</p>
+                <CardContent className="relative z-10">
+                  <div className="space-y-1.5">
+                    <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-800 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-cyan-600 transition-colors duration-300">
+                      {stat.value}
+                    </p>
+                    <p className="text-sm font-bold text-slate-700">{stat.title}</p>
+                    <p className="text-xs font-medium text-slate-500">{stat.description}</p>
                   </div>
                 </CardContent>
+                
+                {/* Bottom animated border */}
+                <div className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full bg-gradient-to-r ${stat.color} transition-all duration-500 ease-out`} />
               </Card>
             ))}
           </div>

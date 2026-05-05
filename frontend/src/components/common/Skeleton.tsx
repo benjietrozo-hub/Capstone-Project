@@ -74,28 +74,25 @@ export function DashboardSkeleton() {
 
 export function TableSkeleton({ rows = 5, cols = 5 }) {
   return (
-    <div className="w-full space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-10 w-32" />
-      </div>
-      <div className="border rounded-lg overflow-hidden">
-        <div className="bg-gray-50 p-4 border-b">
-          <div className="flex gap-4">
-            {Array.from({ length: cols }).map((_, i) => (
-              <Skeleton key={i} className="h-4 flex-1" />
-            ))}
-          </div>
-        </div>
-        <div className="divide-y">
-          {Array.from({ length: rows }).map((_, i) => (
-            <div key={i} className="p-4 flex gap-4">
-              {Array.from({ length: cols }).map((_, j) => (
-                <Skeleton key={j} className="h-4 flex-1" />
-              ))}
-            </div>
+    <div className="w-full bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+      <div className="bg-gray-50/50 p-4 border-b border-gray-100">
+        <div className="flex gap-6 px-2">
+          {Array.from({ length: cols }).map((_, i) => (
+            <Skeleton key={i} className="h-3 flex-1 opacity-50" />
           ))}
         </div>
+      </div>
+      <div className="divide-y divide-gray-50">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="p-4 flex gap-6 px-6 items-center">
+            {Array.from({ length: cols }).map((_, j) => (
+              <div key={j} className="flex-1 space-y-2">
+                <Skeleton className={cn("h-4 w-full", j === 0 ? "w-3/4" : "w-1/2")} />
+                {j < 2 && <Skeleton className="h-2 w-1/3 opacity-60" />}
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );

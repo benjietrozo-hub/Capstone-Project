@@ -22,6 +22,7 @@ class InventoryItem extends Model
         'condition',
         'status',
         'date_acquired',
+        'location',
         'custom_attributes',
         'deleted_by'
     ];
@@ -39,5 +40,12 @@ class InventoryItem extends Model
     public function borrowRequests()
     {
         return $this->belongsToMany(BorrowRequest::class, 'borrow_request_items');
+    }
+
+    public function distributions()
+    {
+        return $this->belongsToMany(ItemDistribution::class, 'item_distribution_items')
+                    ->withPivot('status', 'returned_at')
+                    ->withTimestamps();
     }
 }

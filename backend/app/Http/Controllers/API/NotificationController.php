@@ -16,7 +16,8 @@ class NotificationController extends Controller
     {
         try {
             $user = Auth::guard('sanctum')->user();
-            $userType = $request->user_type ?? ($user instanceof \App\Models\Admin ? 'admin' : 'teacher');
+                        $userType = $request->user_type ?? (Auth::user() instanceof \App\Models\Admin ? 'admin' : 'teacher');
+
 
             $query = Notification::forUser($user->id, $userType);
 
@@ -53,7 +54,8 @@ class NotificationController extends Controller
     {
         try {
             $user = Auth::guard('sanctum')->user();
-            $userType = $request->user_type ?? ($user instanceof \App\Models\Admin ? 'admin' : 'teacher');
+                        $userType = $request->user_type ?? (Auth::user() instanceof \App\Models\Admin ? 'admin' : 'teacher');
+
 
             $count = Notification::forUser($user->id, $userType)
                                 ->unread()

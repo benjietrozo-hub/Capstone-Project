@@ -12,6 +12,30 @@ import { formatDate } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  Edit2, 
+  Archive, 
+  Search, 
+  Plus, 
+  MoreHorizontal,
+  UserCheck,
+  UserX,
+  ShieldCheck,
+  Calendar,
+  MapPin,
+  MoreVertical
+} from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 
 interface Teacher {
   id: number;
@@ -45,6 +69,7 @@ interface TeacherFormData {
   password: string;
   confirm_password?: string;
   status: 'active' | 'inactive' | 'suspended';
+  role: string;
 }
 
 interface FormErrors {
@@ -69,6 +94,7 @@ export function TeachersPage() {
     password: '',
     phone: '',
     status: 'active',
+    role: 'teacher',
   });
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -111,6 +137,7 @@ export function TeachersPage() {
         password: '',
         confirm_password: '',
         status: teacher.status,
+        role: teacher.role || 'teacher',
       });
     } else {
       setEditingId(null);
@@ -129,6 +156,7 @@ export function TeachersPage() {
         password: '',
         confirm_password: '',
         status: 'active',
+        role: 'teacher',
       });
     }
     setShowModal(true);
@@ -217,52 +245,99 @@ export function TeachersPage() {
   };
 
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'teacher_id', label: 'Teacher ID' },
-    { key: 'full_name', label: 'Full Name' },
-    { key: 'first_name', label: 'First Name' },
-    { key: 'middle_initial', label: 'M.I.' },
-    { key: 'last_name', label: 'Last Name' },
-    { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Phone' },
+    { 
+      key: 'user', 
+      label: 'Teacher Profile', 
+      width: '250',
+      render: (_: any, row: Teacher) => (
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-sm flex-shrink-0">
+            {row.first_name ? row.first_name.charAt(0) : row.full_name.charAt(0)}
+            {row.last_name ? row.last_name.charAt(0) : ''}
+          </div>
+          <div className="min-w-0">
+            <div className="font-bold text-gray-900 truncate">{row.full_name}</div>
+            <div className="text-[10px] text-gray-500 font-mono">ID: {row.teacher_id}</div>
+          </div>
+        </div>
+      )
+    },
+    { 
+      key: 'contact', 
+      label: 'Contact Details', 
+      width: '250',
+      render: (_: any, row: Teacher) => (
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-gray-600">
+            <Mail className="w-3.5 h-3.5 text-blue-500" />
+            <span className="truncate">{row.email}</span>
+          </div>
+          {row.phone && (
+            <div className="flex items-center gap-2 text-gray-600">
+              <Phone className="w-3.5 h-3.5 text-green-500" />
+              <span>{row.phone}</span>
+            </div>
+          )}
+        </div>
+      )
+    },
     {
       key: 'role',
       label: 'Role',
+      width: '120',
       render: (value: string) => {
         const role = value || 'teacher';
-        const roleColors: Record<string, string> = {
-          admin: 'bg-red-100 text-red-800 border-red-200',
-          teacher: 'bg-blue-100 text-blue-800 border-blue-200',
-        };
+        const isAdmin = role === 'admin';
         return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${roleColors[role] || roleColors.teacher}`}>
-            {role.charAt(0).toUpperCase() + role.slice(1)}
-          </span>
+          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+            isAdmin 
+              ? 'bg-purple-50 text-purple-700 border-purple-100' 
+              : 'bg-blue-50 text-blue-700 border-blue-100'
+          }`}>
+            {isAdmin ? <ShieldCheck className="w-3 h-3" /> : <User className="w-3 h-3" />}
+            {role}
+          </div>
         );
       },
     },
     {
       key: 'status',
       label: 'Status',
-      render: (value: string) => <StatusBadge label={value} status={value} />,
+      width: '120',
+      render: (value: string) => (
+        <div className="flex items-center">
+          <StatusBadge label={value} status={value} />
+        </div>
+      ),
     },
     {
       key: 'actions',
       label: 'Actions',
+      width: '120',
       render: (_: any, row: Teacher) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleOpenModal(row)}
-            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenModal(row);
+            }}
+            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full"
           >
-            Edit
-          </button>
-          <button
-            onClick={() => handleDeleteTeacher(row.id)}
-            className="bg-amber-500 text-white px-3 py-1 rounded text-sm hover:bg-amber-600"
+            <Edit2 className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteTeacher(row.id);
+            }}
+            className="h-8 w-8 p-0 text-amber-500 hover:text-amber-600 hover:bg-amber-50 rounded-full"
           >
-            Archive
-          </button>
+            <Archive className="w-4 h-4" />
+          </Button>
         </div>
       ),
     },
@@ -292,28 +367,46 @@ export function TeachersPage() {
         <p className="text-sm text-gray-600">Manage teacher accounts and permissions</p>
       </div>
       
-      <div className="p-6">
-        <Card>
-          <div className="flex justify-between items-start mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 mr-4">
-              <FormField
-                label="Search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name or email..."
-              />
-                          </div>
-            <div className="pt-6">
-              <Button onClick={() => handleOpenModal()}>+ Add New Teacher</Button>
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200">
+              <UserCheck className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight">Active Faculty</h1>
+              <p className="text-sm text-gray-500 font-medium">Manage and monitor all school personnel</p>
             </div>
           </div>
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="relative flex-1 md:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search teachers..."
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Button 
+              onClick={() => handleOpenModal()}
+              className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-md shadow-blue-100 flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all hover:-translate-y-0.5"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">Add Teacher</span>
+            </Button>
+          </div>
+        </div>
 
-        {loading ? (
-          <TableSkeleton rows={8} cols={6} />
-        ) : (
-          <Table columns={columns} data={teachers} />
-        )}
-      </Card>
+        <div className="bg-white rounded-xl shadow-xl shadow-gray-100/50 border border-gray-100 overflow-hidden">
+          {loading ? (
+            <TableSkeleton rows={10} cols={5} />
+          ) : (
+            <Table columns={columns} data={teachers} />
+          )}
+        </div>
 
       {/* Modern Modal */}
       {showModal && (
@@ -593,6 +686,25 @@ export function TeachersPage() {
                         <option value="inactive">Inactive</option>
                         <option value="suspended">Suspended</option>
                       </select>
+                    </div>
+
+                    {/* Role */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        User Role
+                      </label>
+                      <select
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white font-bold text-gray-900"
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      >
+                        <option value="teacher">TEACHER</option>
+                        <option value="admin">ADMINISTRATOR</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1.5 px-1 flex items-center gap-1.5 font-medium">
+                        <ShieldCheck className="w-3 h-3 text-blue-500" />
+                        Determines the user's access level in the system
+                      </p>
                     </div>
                   </div>
                 </div>

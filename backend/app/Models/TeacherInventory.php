@@ -14,6 +14,7 @@ class TeacherInventory extends Model
 
     protected $fillable = [
         'teacher_id',
+        'parent_category',
         'item_code',
         'item_name',
         'description',
@@ -43,6 +44,11 @@ class TeacherInventory extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    public function scopeByParentCategory($query, $parentCategory)
+    {
+        return $query->where('parent_category', $parentCategory);
     }
 
     public function scopeByCategory($query, $category)

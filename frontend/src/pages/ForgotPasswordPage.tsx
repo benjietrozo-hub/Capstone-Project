@@ -9,6 +9,7 @@ import { Package, ArrowLeft, Mail } from 'lucide-react';
 import { Footer } from '@/components/common/Footer';
 import AuthHeader from '@/components/common/AuthHeader';
 import axios from 'axios';
+import { API_BASE_URL } from '@/utils/constants';
 
 export function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ export function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/auth/forgot-password', {
+      const response = await axios.post(`${API_BASE_URL}/auth/forgot-password`, {
         email
       });
       

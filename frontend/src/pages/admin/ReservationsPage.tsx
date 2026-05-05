@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Package, ClipboardList, CheckCircle, XCircle, Eye, Download, FileText } from 'lucide-react';
+import { Package, ClipboardList, CheckCircle, XCircle, Eye, Download, FileText, Info, AlertCircle, Calendar, Clock } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { exportToCSV, generateRequestPDF } from '../../utils/exportUtils';
 
@@ -39,7 +39,7 @@ interface BorrowRequest {
 
 
 interface ApprovalForm {
-  quantity_approved: number;
+  inventory_item_ids: number[];
   expected_return_date: string;
   admin_notes: string;
 }
@@ -59,7 +59,7 @@ export function ReservationsPage() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedViewRequest, setSelectedViewRequest] = useState<BorrowRequest | null>(null);
   const [approvalForm, setApprovalForm] = useState<ApprovalForm>({
-    quantity_approved: 0,
+    inventory_item_ids: [],
     expected_return_date: '',
     admin_notes: '',
   });
@@ -107,6 +107,18 @@ export function ReservationsPage() {
     enabled: activeTab === 'requests',
   });
 
+  const { data: availableItemsResponse, isLoading: loadingAvailable } = useQuery({
+    queryKey: ['available-items', selectedRequest?.category_id],
+    queryFn: () => adminAPI.getInventoryItems({ 
+      category_id: selectedRequest?.category_id, 
+      status: 'available',
+      per_page: 100
+    }),
+    enabled: !!selectedRequest?.category_id && showApprovalModal,
+  });
+
+  const availableItems = availableItemsResponse?.data?.data || [];
+
   const loading = activeTab === 'borrowed' ? loadingBorrowed : loadingRequests;
 
   const handleApprove = async (e: React.FormEvent) => {
@@ -114,13 +126,31 @@ export function ReservationsPage() {
     if (!selectedRequest) return;
 
     try {
-      await adminAPI.approveBorrowRequest(selectedRequest.id, approvalForm);
+      // Auto-assign items if none were selected (teacher made a general category request)
+      let finalItemIds = [...approvalForm.inventory_item_ids];
+      if (finalItemIds.length === 0 && availableItems.length >= selectedRequest.quantity_requested) {
+        finalItemIds = availableItems.slice(0, selectedRequest.quantity_requested).map((i: any) => i.id);
+      }
+
+      if (finalItemIds.length !== selectedRequest.quantity_requested) {
+        toast({
+          title: 'Error',
+          description: `Please select exactly ${selectedRequest.quantity_requested} items (or ensure enough are available).`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      await adminAPI.approveBorrowRequest(selectedRequest.id, {
+        ...approvalForm,
+        inventory_item_ids: finalItemIds
+      });
       toast({
         title: 'Success',
         description: 'Request approved successfully',
       });
       setShowApprovalModal(false);
-      setApprovalForm({ quantity_approved: 0, expected_return_date: '', admin_notes: '' });
+      setApprovalForm({ inventory_item_ids: [], expected_return_date: '', admin_notes: '' });
       queryClient.invalidateQueries({ queryKey: ['borrowed-items'] });
       queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
     } catch (error: any) {
@@ -249,172 +279,227 @@ export function ReservationsPage() {
     }
   };
 
+  const toggleItemSelection = (itemId: number) => {
+    setApprovalForm(prev => {
+      const isSelected = prev.inventory_item_ids.includes(itemId);
+      if (isSelected) {
+        return { ...prev, inventory_item_ids: prev.inventory_item_ids.filter(id => id !== itemId) };
+      } else {
+        if (prev.inventory_item_ids.length >= (selectedRequest?.quantity_requested || 0)) {
+          toast({
+            title: 'Selection Limit Reached',
+            description: `You can only select up to ${selectedRequest?.quantity_requested} items.`,
+            variant: 'destructive',
+          });
+          return prev;
+        }
+        return { ...prev, inventory_item_ids: [...prev.inventory_item_ids, itemId] };
+      }
+    });
+  };
+
   return (
-    <div>
+    <div className="min-h-screen bg-[#f8fafc]">
       <NavHeader 
         title="Reservations Management" 
-        subtitle="Manage borrowed items and borrow requests"
+        subtitle="Process equipment requests and track issued items across the institution"
         showBackButton={true}
         showHomeButton={true}
         showMenuButton={true}
       >
         <NotificationProfile 
-          notifications={[]}
-          unreadCount={0}
           currentUser={currentUser}
-          onMarkAsRead={() => {}}
-          onMarkAllAsRead={() => {}}
         />
       </NavHeader>
       
-      {/* Mobile Subtitle */}
-      <div className="sm:hidden bg-white border-b px-4 py-3">
-        <h1 className="text-lg font-bold text-gray-900 mb-1">Reservations Management</h1>
-        <p className="text-sm text-gray-600">Manage borrowed items and borrow requests</p>
+      {/* Mobile Title Section */}
+      <div className="sm:hidden bg-white border-b px-4 py-4 mb-4">
+        <h1 className="text-xl font-black text-gray-900 tracking-tight">Reservations</h1>
+        <p className="text-sm text-gray-500 font-medium">Manage institutional equipment</p>
       </div>
       
-      <div className="p-6">
-        <div className="card">
-          {/* Modern Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="borrowed" className="flex items-center gap-2">
-                <Package className="w-4 h-4" />
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Statistics Dashboard */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-indigo-50 flex items-center gap-4 transition-all hover:shadow-md">
+            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+              <ClipboardList className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Requests</p>
+              <p className="text-2xl font-black text-gray-900">{requests.filter(r => r.status === 'pending').length}</p>
+            </div>
+          </div>
+          
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-blue-50 flex items-center gap-4 transition-all hover:shadow-md">
+            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+              <Package className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Issued Items</p>
+              <p className="text-2xl font-black text-gray-900">{borrowedItems.length}</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-50 flex items-center gap-4 transition-all hover:shadow-md">
+            <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">To Be Issued</p>
+              <p className="text-2xl font-black text-emerald-600">
+                {requests.filter(r => r.status === 'approved').length}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-red-50 flex items-center gap-4 transition-all hover:shadow-md">
+            <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-red-600">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Overdue</p>
+              <p className="text-2xl font-black text-red-600">
+                {borrowedItems.filter(item => {
+                  if (!item.expected_return_date) return false;
+                  const returnDate = new Date(item.expected_return_date);
+                  returnDate.setHours(0, 0, 0, 0);
+                  return returnDate.getTime() < new Date().setHours(0, 0, 0, 0);
+                }).length}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+          <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+            <TabsList className="grid grid-cols-2 w-full max-w-md bg-transparent border-0 p-0">
+              <TabsTrigger 
+                value="borrowed" 
+                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white rounded-xl transition-all duration-300 py-3 font-black text-sm uppercase tracking-wider"
+              >
+                <Package className="w-4 h-4 mr-2" />
                 Borrowed List
               </TabsTrigger>
-              <TabsTrigger value="requests" className="flex items-center gap-2">
-                <ClipboardList className="w-4 h-4" />
-                Borrow Requests
+              <TabsTrigger 
+                value="requests" 
+                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white rounded-xl transition-all duration-300 py-3 font-black text-sm uppercase tracking-wider"
+              >
+                <ClipboardList className="w-4 h-4 mr-2" />
+                Review Requests
               </TabsTrigger>
             </TabsList>
 
-            {/* Borrowed List Tab */}
-            <TabsContent value="borrowed" className="space-y-4">
-              <div className="card-body">
-                {loading ? (
-                  <TableSkeleton rows={8} cols={7} />
-                ) : (
-                  <div>
-                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <h5 style={{ margin: 0, color: '#667eea' }}>
-                          Currently Borrowed Items ({borrowedItems.length})
-                        </h5>
-                        <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>
-                          Items that have been issued and are currently with teachers
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleExportCSV(borrowedItems, 'Borrowed_Items')}
-                        className="btn btn-outline-primary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '14px', border: '1px solid #667eea', color: '#667eea', borderRadius: '6px', background: 'transparent', cursor: 'pointer' }}
-                      >
-                        <Download className="w-4 h-4" />
-                        Export CSV
-                      </button>
-                    </div>
+            <div className="hidden lg:flex items-center gap-4 px-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Live Management</span>
+              </div>
+            </div>
+          </div>
 
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%' }}>
+          <TabsContent value="borrowed" className="mt-0 outline-none">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+              <div>
+                <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+                  <Package className="w-5 h-5 text-indigo-600" />
+                  Currently Issued Equipment
+                </h3>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">
+                  Track items currently in teacher possession
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => handleExportCSV(borrowedItems, 'Borrowed_Items')}
+                className="rounded-xl border-gray-200 font-bold flex items-center gap-2 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all"
+              >
+                <Download className="w-4 h-4" />
+                Export Data
+              </Button>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {loading ? (
+                <div className="p-8"><TableSkeleton rows={8} cols={7} /></div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
                     <thead>
-                      <tr style={{
-                        background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                        color: 'white',
-                        fontWeight: '600'
-                      }}>
-                        <th style={{ padding: '12px', textAlign: 'left', borderRadius: '10px 0 0 0' }}>Request ID</th>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Teacher</th>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Category</th>
-                        <th style={{ padding: '12px', textAlign: 'center' }}>Qty</th>
-                        <th style={{ padding: '12px', textAlign: 'center' }}>Borrowed Date</th>
-                        <th style={{ padding: '12px', textAlign: 'center' }}>Expected Return</th>
-                        <th style={{ padding: '12px', textAlign: 'center', borderRadius: '0 10px 0 0' }}>Actions</th>
+                      <tr className="bg-gray-50/50 border-b border-gray-100">
+                        <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Request</th>
+                        <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Teacher</th>
+                        <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Equipment</th>
+                        <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Qty</th>
+                        <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Borrowed</th>
+                        <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Due Date</th>
+                        <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-50">
                       {borrowedItems.map((item) => (
-                        <tr key={item.id} style={{
-                          borderBottom: '1px solid #e9ecef',
-                          transition: 'background 0.3s ease'
-                        }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                          <td style={{ padding: '12px', fontWeight: '600', color: '#667eea' }}>
-                            #{item.id}
+                        <tr key={item.id} className="hover:bg-indigo-50/30 transition-colors group">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm font-black text-indigo-600">#{item.id}</span>
                           </td>
-                          <td style={{ padding: '12px' }}>
-                            <div>
-                              <div style={{ fontWeight: '600' }}>{item.teacher?.full_name || 'N/A'}</div>
-                              {item.teacher?.employee_id && (
-                                <div style={{ fontSize: '12px', color: '#666' }}>
-                                  ID: {item.teacher.employee_id}
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-black text-gray-900">{item.teacher?.full_name || 'N/A'}</span>
+                              <span className="text-[10px] font-bold text-gray-400">{item.teacher?.employee_id || 'No ID'}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm font-bold text-gray-700">{item.category?.category_name || 'N/A'}</span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 rounded-lg text-sm font-black text-gray-700">
+                              {item.quantity_requested}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className="text-[11px] font-bold text-gray-500">
+                              {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {item.expected_return_date ? (() => {
+                              const returnDate = new Date(item.expected_return_date);
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              returnDate.setHours(0, 0, 0, 0);
+                              const isOverdue = returnDate < today;
+                              const isDueToday = returnDate.getTime() === today.getTime();
+                              
+                              return (
+                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-black text-[10px] uppercase tracking-tight ${
+                                  isOverdue ? 'bg-red-50 text-red-700 border-red-100 shadow-sm shadow-red-100' : 
+                                  isDueToday ? 'bg-amber-50 text-amber-700 border-amber-100' : 
+                                  'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                }`}>
+                                  {isOverdue && <AlertCircle className="w-3 h-3" />}
+                                  {new Date(item.expected_return_date).toLocaleDateString()}
+                                  {isOverdue && ' Overdue'}
                                 </div>
-                              )}
-                            </div>
+                              );
+                            })() : <span className="text-gray-400 font-bold">—</span>}
                           </td>
-                          <td style={{ padding: '12px' }}>
-                            <div>
-                              <div style={{ fontWeight: '600' }}>{item.category?.category_name || 'N/A'}</div>
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px', textAlign: 'center', fontWeight: '600' }}>
-                            {item.quantity_requested}
-                          </td>
-                          <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px' }}>
-                            {item.created_at 
-                              ? new Date(item.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) 
-                              : 'N/A'}
-                          </td>
-                          <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px' }}>
-                            {item.expected_return_date ? (
-                              (() => {
-                                const returnDate = new Date(item.expected_return_date);
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-                                returnDate.setHours(0, 0, 0, 0);
-                                const isOverdue = returnDate < today;
-                                const isDueToday = returnDate.getTime() === today.getTime();
-                                
-                                return (
-                                  <span style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    padding: '4px 12px',
-                                    borderRadius: '6px',
-                                    fontWeight: '600',
-                                    fontSize: '12px',
-                                    backgroundColor: isOverdue ? '#ffe0e0' : isDueToday ? '#fff3cd' : '#d4edda',
-                                    color: isOverdue ? '#dc3545' : isDueToday ? '#856404' : '#155724',
-                                    border: `2px solid ${isOverdue ? '#dc3545' : isDueToday ? '#ffc107' : '#28a745'}`
-                                  }}>
-                                    {isOverdue && '🔴'}
-                                    {isDueToday && '⚠️'}
-                                    {!isOverdue && !isDueToday && '✓'}
-                                    {new Date(item.expected_return_date).toLocaleDateString()}
-                                    {isOverdue && ' (OVERDUE)'}
-                                    {isDueToday && ' (DUE TODAY)'}
-                                  </span>
-                                );
-                              })()
-                            ) : 'N/A'}
-                          </td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => {
                                   setSelectedViewRequest(item);
                                   setShowViewModal(true);
                                 }}
-                                className="btn btn-primary"
-                                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '4px' }}
+                                className="p-2 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                                title="View Details"
                               >
-                                <Eye className="w-3 h-3" /> View
+                                <Eye className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleReturn(item.id)}
-                                className="btn btn-success"
-                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                className="px-4 py-2 bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 active:scale-95"
                               >
-                                📥 Return
+                                Return
                               </button>
                             </div>
                           </td>
@@ -423,119 +508,110 @@ export function ReservationsPage() {
                     </tbody>
                   </table>
                   {borrowedItems.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>
-                      <Package className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                      <p>No borrowed items at the moment</p>
+                    <div className="text-center py-20 bg-white">
+                      <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Package className="w-10 h-10 text-gray-200" />
+                      </div>
+                      <h4 className="text-lg font-black text-gray-900">Zero Active Borrows</h4>
+                      <p className="text-sm text-gray-500 font-medium max-w-xs mx-auto mt-2 italic">
+                        "Your shelves are full and your assets are safe."
+                      </p>
                     </div>
                   )}
                 </div>
-                  </div>
-                )}
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="requests" className="mt-0 outline-none">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+              <div>
+                <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-indigo-600" />
+                  Equipment Requests Queue
+                </h3>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">
+                  Review and process incoming teacher requests
+                </p>
               </div>
-            </TabsContent>
+              <Button
+                variant="outline"
+                onClick={() => handleExportCSV(requests, 'Borrow_Requests')}
+                className="rounded-xl border-gray-200 font-bold flex items-center gap-2 hover:bg-indigo-50 hover:text-indigo-700"
+              >
+                <Download className="w-4 h-4" />
+                Export Queue
+              </Button>
+            </div>
 
-            {/* Borrow Requests Tab */}
-            <TabsContent value="requests" className="space-y-4">
-              <div className="card-body">
-                {loading ? (
-                  <TableSkeleton rows={8} cols={6} />
-                ) : (
-                  <div>
-                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <h5 style={{ margin: 0, color: '#667eea' }}>
-                          Pending Borrow Requests ({requests.length})
-                        </h5>
-                        <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>
-                          New requests waiting for approval
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleExportCSV(requests, 'Borrow_Requests')}
-                        className="btn btn-outline-primary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '14px', border: '1px solid #667eea', color: '#667eea', borderRadius: '6px', background: 'transparent', cursor: 'pointer' }}
-                      >
-                        <Download className="w-4 h-4" />
-                        Export CSV
-                      </button>
-                    </div>
-
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%' }}>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {loading ? (
+                <div className="p-8"><TableSkeleton rows={8} cols={6} /></div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
                     <thead>
-                      <tr style={{
-                        background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                        color: 'white',
-                        fontWeight: '600'
-                      }}>
-                        <th style={{ padding: '12px', textAlign: 'left', borderRadius: '10px 0 0 0' }}>Request ID</th>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Teacher</th>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Category</th>
-                        <th style={{ padding: '12px', textAlign: 'center' }}>Qty</th>
-                        <th style={{ padding: '12px', textAlign: 'center' }}>Date Requested</th>
-                        <th style={{ padding: '12px', textAlign: 'center', borderRadius: '0 10px 0 0' }}>Actions</th>
+                      <tr className="bg-gray-50/50 border-b border-gray-100">
+                        <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Code</th>
+                        <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Teacher</th>
+                        <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</th>
+                        <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Qty</th>
+                        <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
+                        <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-50">
                       {requests.map((req) => (
-                        <tr key={req.id} style={{
-                          borderBottom: '1px solid #e9ecef',
-                          transition: 'background 0.3s ease'
-                        }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                          <td style={{ padding: '12px', fontWeight: '600', color: '#667eea' }}>
-                            #{req.id}
+                        <tr key={req.id} className="hover:bg-indigo-50/30 transition-colors group">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm font-black text-indigo-600">#{req.id}</span>
                           </td>
-                          <td style={{ padding: '12px' }}>
-                            <div>
-                              <div style={{ fontWeight: '600' }}>{req.teacher?.full_name || 'N/A'}</div>
-                              {req.teacher?.employee_id && (
-                                <div style={{ fontSize: '12px', color: '#666' }}>
-                                  ID: {req.teacher.employee_id}
-                                </div>
-                              )}
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-black text-gray-900">{req.teacher?.full_name || 'N/A'}</span>
+                              <span className="text-[10px] font-bold text-gray-400 uppercase">{req.teacher?.employee_id || 'Staff'}</span>
                             </div>
                           </td>
-                          <td style={{ padding: '12px' }}>
-                            <div>
-                              <div style={{ fontWeight: '600' }}>{req.category?.category_name || 'N/A'}</div>
-                            </div>
+                          <td className="px-6 py-4">
+                            <span className="text-sm font-bold text-gray-700">{req.category?.category_name || 'N/A'}</span>
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'center', fontWeight: '600' }}>
-                            {req.quantity_requested}
+                          <td className="px-6 py-4 text-center">
+                            <span className="inline-flex items-center justify-center px-3 py-1 bg-gray-100 rounded-lg text-sm font-black text-gray-700">
+                              {req.quantity_requested}
+                            </span>
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px' }}>
-                            {req.created_at 
-                              ? new Date(req.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) 
-                              : 'N/A'}
+                          <td className="px-6 py-4 text-center">
+                            <span className="text-[11px] font-bold text-gray-500 whitespace-nowrap">
+                              {req.created_at ? new Date(req.created_at).toLocaleDateString() : 'N/A'}
+                            </span>
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => {
                                   setSelectedViewRequest(req);
                                   setShowViewModal(true);
                                 }}
-                                className="btn btn-primary"
-                                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '4px' }}
+                                className="p-2 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-600 hover:text-white transition-all"
                               >
-                                <Eye className="w-3 h-3" /> View
+                                <Eye className="w-4 h-4" />
                               </button>
+                              
                               {req.status === 'pending' && (
-                                <>
+                                <div className="flex items-center gap-2">
                                   <button
                                     onClick={() => {
                                       setSelectedRequest(req);
+                                      const preSelectedIds = req.inventoryItems?.map((i: any) => i.id) || [];
                                       setApprovalForm({
-                                        quantity_approved: req.quantity_requested,
-                                        expected_return_date: '',
+                                        inventory_item_ids: preSelectedIds,
+                                        expected_return_date: req.expected_return_date || '',
                                         admin_notes: '',
                                       });
                                       setShowApprovalModal(true);
                                     }}
-                                    className="btn btn-success"
-                                    style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
                                   >
-                                    <CheckCircle className="w-4 h-4" />
                                     Approve
                                   </button>
                                   <button
@@ -543,21 +619,19 @@ export function ReservationsPage() {
                                       setSelectedRequest(req);
                                       setShowRejectionModal(true);
                                     }}
-                                    className="btn btn-danger"
-                                    style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    className="px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-600 hover:text-white transition-all"
                                   >
-                                    <XCircle className="w-4 h-4" />
                                     Reject
                                   </button>
-                                </>
+                                </div>
                               )}
+                              
                               {req.status === 'approved' && (
                                 <button
                                   onClick={() => handleIssue(req.id)}
-                                  className="btn btn-info"
-                                  style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px' }}
+                                  className="px-4 py-2 bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100 animate-pulse"
                                 >
-                                  📤 Issue
+                                  Issue Now
                                 </button>
                               )}
                             </div>
@@ -567,319 +641,230 @@ export function ReservationsPage() {
                     </tbody>
                   </table>
                   {requests.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>
-                      <ClipboardList className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                      <p>No pending requests</p>
+                    <div className="text-center py-20 bg-white">
+                      <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <ClipboardList className="w-10 h-10 text-gray-200" />
+                      </div>
+                      <h4 className="text-lg font-black text-gray-900">Queue is Empty</h4>
+                      <p className="text-sm text-gray-500 font-medium max-w-xs mx-auto mt-2 italic">
+                        "Great work! You've processed all incoming requests."
+                      </p>
                     </div>
                   )}
                 </div>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
 
-        
-        {/* Approval Modal */}
+        {/* Upgrade Modals for Premium Feel */}
         <Dialog open={showApprovalModal} onOpenChange={setShowApprovalModal}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                Approve Borrow Request
+          <DialogContent className="sm:max-w-[500px] rounded-3xl p-0 overflow-hidden border-0 shadow-2xl">
+            <div className="bg-indigo-600 px-6 py-6 text-white relative overflow-hidden">
+              <div className="absolute -right-4 -bottom-4 opacity-10">
+                <CheckCircle className="w-32 h-32" />
+              </div>
+              <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-2">
+                Approval Required
               </DialogTitle>
-              <DialogDescription>
-                Review the request details and approve the borrow request.
+              <DialogDescription className="text-indigo-100 font-medium mt-1">
+                Assign equipment and set the return timeline.
               </DialogDescription>
-            </DialogHeader>
+            </div>
             
-            <form onSubmit={handleApprove}>
-              <div className="space-y-4">
-                {/* Request Details */}
-                {selectedRequest && (
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                    <h3 className="font-semibold text-sm text-gray-700">Request Details</h3>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-gray-600">Request ID:</span>
-                        <p className="font-semibold text-gray-900">#{selectedRequest.id}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Teacher:</span>
-                        <p className="font-semibold text-gray-900">{selectedRequest.teacher?.full_name || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Category:</span>
-                        <p className="font-semibold text-gray-900">{selectedRequest.category?.category_name || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Quantity Requested:</span>
-                        <p className="font-semibold text-gray-900">{selectedRequest.quantity_requested}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Date Requested:</span>
-                        <p className="font-semibold text-gray-900">
-                          {selectedRequest.created_at 
-                            ? new Date(selectedRequest.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) 
-                            : 'N/A'}
-                        </p>
-                      </div>
-                      {selectedRequest.expected_return_date && (
-                        <div>
-                          <span className="text-gray-600">Expected Return:</span>
-                          <p className="font-semibold text-gray-900">
-                            {new Date(selectedRequest.expected_return_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    {selectedRequest.purpose && (
-                      <div className="pt-2 border-t">
-                        <span className="text-gray-600 text-sm">Purpose:</span>
-                        <p className="text-gray-900 text-sm mt-1">{selectedRequest.purpose}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Approval Form */}
+            <form onSubmit={handleApprove} className="p-6 space-y-6 bg-white">
+              {selectedRequest && (
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="quantity-approved">Quantity to Approve *</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Equipment</p>
+                      <p className="text-sm font-black text-gray-900">{selectedRequest.category?.category_name}</p>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Quantity</p>
+                      <p className="text-sm font-black text-gray-900">{selectedRequest.quantity_requested} Unit(s)</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="expected-return-date" className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Expected Return Date</Label>
                     <Input
-                      id="quantity-approved"
-                      type="number"
-                      min="1"
-                      max={selectedRequest?.quantity_requested}
-                      value={approvalForm.quantity_approved}
-                      onChange={(e) =>
-                        setApprovalForm({ ...approvalForm, quantity_approved: parseInt(e.target.value) || 0 })
-                      }
+                      id="expected-return-date"
+                      type="date"
+                      className="rounded-xl border-gray-200 h-12 font-bold focus:ring-indigo-500/20"
+                      value={approvalForm.expected_return_date}
+                      onChange={(e) => setApprovalForm({ ...approvalForm, expected_return_date: e.target.value })}
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Maximum: {selectedRequest?.quantity_requested}
-                    </p>
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="admin-notes">Admin Notes (Optional)</Label>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="admin-notes" className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Instructions for Teacher</Label>
                     <Textarea
                       id="admin-notes"
+                      className="rounded-xl border-gray-200 font-medium focus:ring-indigo-500/20"
                       value={approvalForm.admin_notes}
-                      onChange={(e) =>
-                        setApprovalForm({ ...approvalForm, admin_notes: e.target.value })
-                      }
-                      placeholder="Add any notes or instructions for the teacher..."
+                      onChange={(e) => setApprovalForm({ ...approvalForm, admin_notes: e.target.value })}
+                      placeholder="e.g. Handle with care, return to lab 101..."
                       rows={3}
                     />
                   </div>
                 </div>
-              </div>
+              )}
               
-              <DialogFooter className="mt-6">
+              <div className="flex gap-3 pt-2">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setShowApprovalModal(false)}
-                  className="px-6 py-2"
+                  className="flex-1 rounded-xl font-bold text-gray-500"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
-                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 text-base shadow-lg hover:shadow-xl transition-all duration-200"
-                  style={{
-                    fontSize: '16px',
-                    fontWeight: '700',
-                    minWidth: '140px',
-                    height: '48px'
-                  }}
+                  className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest rounded-xl h-12 shadow-lg shadow-indigo-100 transition-all active:scale-95"
                 >
-                  Approve Request
+                  Approve & Assign
                 </Button>
-              </DialogFooter>
+              </div>
             </form>
           </DialogContent>
         </Dialog>
 
-        {/* Rejection Modal */}
+        {/* Rejection Modal Upgrade */}
         <Dialog open={showRejectionModal} onOpenChange={setShowRejectionModal}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-                <XCircle className="w-5 h-5 text-red-600" />
-                Reject Borrow Request
+          <DialogContent className="sm:max-w-[450px] rounded-3xl p-0 overflow-hidden border-0 shadow-2xl">
+             <div className="bg-red-600 px-6 py-6 text-white relative overflow-hidden">
+              <div className="absolute -right-4 -bottom-4 opacity-10">
+                <XCircle className="w-32 h-32" />
+              </div>
+              <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-2">
+                Deny Request
               </DialogTitle>
-              <DialogDescription>
-                Review the request details and provide a reason for rejection. The teacher will see this message.
+              <DialogDescription className="text-red-100 font-medium mt-1">
+                Provide a reason for the rejection.
               </DialogDescription>
-            </DialogHeader>
-            
-            {/* Request Details */}
-            {selectedRequest && (
-              <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
-                <h3 className="font-semibold text-sm text-gray-700 mb-2">Request Details</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-gray-600">Request ID:</span>
-                    <p className="font-semibold text-gray-900">#{selectedRequest.id}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Teacher:</span>
-                    <p className="font-semibold text-gray-900">{selectedRequest.teacher?.full_name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Category:</span>
-                    <p className="font-semibold text-gray-900">{selectedRequest.category?.category_name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Quantity Requested:</span>
-                    <p className="font-semibold text-gray-900">{selectedRequest.quantity_requested}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Date Requested:</span>
-                    <p className="font-semibold text-gray-900">
-                      {new Date(selectedRequest.borrow_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                {selectedRequest.purpose && (
-                  <div className="pt-2 border-t">
-                    <span className="text-gray-600 text-sm">Purpose:</span>
-                    <p className="text-gray-900 text-sm mt-1">{selectedRequest.purpose}</p>
-                  </div>
-                )}
+            </div>
+
+            <form onSubmit={handleReject} className="p-6 space-y-6 bg-white">
+              <div className="space-y-3">
+                <Label htmlFor="rejection-reason" className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Reason for Rejection *</Label>
+                <Textarea
+                  id="rejection-reason"
+                  className="rounded-xl border-gray-200 font-medium focus:ring-red-500/20 min-h-[120px]"
+                  value={rejectionForm.admin_notes}
+                  onChange={(e) => setRejectionForm({ admin_notes: e.target.value })}
+                  placeholder="Items currently undergoing maintenance..."
+                  required
+                />
               </div>
-            )}
-            
-            <form onSubmit={handleReject}>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="rejection-reason">Reason for Rejection *</Label>
-                  <Textarea
-                    id="rejection-reason"
-                    value={rejectionForm.admin_notes}
-                    onChange={(e) =>
-                      setRejectionForm({ admin_notes: e.target.value })
-                    }
-                    placeholder="Please provide a clear reason for rejecting this request..."
-                    rows={3}
-                    required
-                  />
-                </div>
-              </div>
-              <DialogFooter>
+
+              <div className="flex gap-3 pt-2">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setShowRejectionModal(false)}
+                  className="flex-1 rounded-xl font-bold text-gray-500"
                 >
-                  Cancel
+                  Back
                 </Button>
-                <Button type="submit" variant="destructive">
-                  Reject Request
+                <Button 
+                  type="submit" 
+                  variant="destructive"
+                  className="flex-[2] bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest rounded-xl h-12 shadow-lg shadow-red-100 transition-all active:scale-95"
+                >
+                  Confirm Denial
                 </Button>
-              </DialogFooter>
+              </div>
             </form>
           </DialogContent>
         </Dialog>
 
-        {/* View Modal */}
+        {/* View Modal Upgrade */}
         <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-                <Eye className="w-5 h-5 text-blue-600" />
-                Request Details
-              </DialogTitle>
-              <DialogDescription>
-                View full details of the borrow request.
-              </DialogDescription>
-            </DialogHeader>
-            
+          <DialogContent className="sm:max-w-[550px] rounded-3xl p-0 overflow-hidden border-0 shadow-2xl">
             {selectedViewRequest && (
-              <div className="space-y-4 py-4">
-                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+              <>
+                <div className="bg-gray-900 px-6 py-8 text-white relative overflow-hidden">
+                  <div className="absolute right-0 top-0 opacity-20 pointer-events-none">
+                    <Info className="w-48 h-48 -mr-16 -mt-16" />
+                  </div>
+                  <div className="flex items-center justify-between relative z-10">
                     <div>
-                      <span className="text-gray-500 block mb-1">Request ID</span>
-                      <span className="font-medium text-gray-900">#{selectedViewRequest.id}</span>
+                      <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Request Summary</p>
+                      <h2 className="text-2xl font-black tracking-tight">REQ-{selectedViewRequest.id}</h2>
                     </div>
-                    <div>
-                      <span className="text-gray-500 block mb-1">Status</span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        selectedViewRequest.status === 'pending' ? 'bg-amber-100 text-amber-800' :
-                        selectedViewRequest.status === 'borrowed' ? 'bg-blue-100 text-blue-800' :
-                        selectedViewRequest.status === 'returned' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {selectedViewRequest.status.toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block mb-1">Teacher</span>
-                      <span className="font-medium text-gray-900">{selectedViewRequest.teacher?.full_name || 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block mb-1">Employee ID</span>
-                      <span className="font-medium text-gray-900">{selectedViewRequest.teacher?.employee_id || 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block mb-1">Category</span>
-                      <span className="font-medium text-gray-900">{selectedViewRequest.category?.category_name || 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block mb-1">Quantity</span>
-                      <span className="font-medium text-gray-900">{selectedViewRequest.quantity_requested}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block mb-1">Date Requested</span>
-                      <span className="font-medium text-gray-900">
-                        {selectedViewRequest.created_at ? new Date(selectedViewRequest.created_at).toLocaleDateString() : 'N/A'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block mb-1">Expected Return</span>
-                      <span className="font-medium text-gray-900">
-                        {selectedViewRequest.expected_return_date ? new Date(selectedViewRequest.expected_return_date).toLocaleDateString() : 'N/A'}
-                      </span>
+                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border-2 ${
+                      selectedViewRequest.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/50' :
+                      selectedViewRequest.status === 'borrowed' ? 'bg-blue-500/10 text-blue-400 border-blue-500/50' :
+                      selectedViewRequest.status === 'returned' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/50' :
+                      'bg-gray-500/10 text-gray-400 border-gray-500/50'
+                    }`}>
+                      {selectedViewRequest.status}
                     </div>
                   </div>
-                  
+                </div>
+
+                <div className="p-8 space-y-8 bg-white">
+                  <div className="grid grid-cols-2 gap-x-12 gap-y-8">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Borrower</p>
+                      <p className="text-base font-black text-gray-900">{selectedViewRequest.teacher?.full_name}</p>
+                      <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-tighter">ID: {selectedViewRequest.teacher?.employee_id || 'N/A'}</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Item Category</p>
+                      <p className="text-base font-black text-gray-900">{selectedViewRequest.category?.category_name}</p>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Quantity: {selectedViewRequest.quantity_requested}</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Requested On</p>
+                      <div className="flex items-center gap-2 text-sm font-bold text-gray-700">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        {new Date(selectedViewRequest.created_at || '').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Due Date</p>
+                      <div className="flex items-center gap-2 text-sm font-bold text-indigo-600">
+                        <Clock className="w-4 h-4" />
+                        {selectedViewRequest.expected_return_date ? new Date(selectedViewRequest.expected_return_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+
                   {selectedViewRequest.purpose && (
-                    <div className="pt-3 border-t border-gray-200 mt-3">
-                      <span className="text-gray-500 block mb-1">Purpose</span>
-                      <p className="text-sm text-gray-900 bg-white p-2 border rounded">{selectedViewRequest.purpose}</p>
+                    <div className="space-y-2 pt-4 border-t border-gray-50">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Statement of Purpose</p>
+                      <p className="text-sm font-medium text-gray-700 leading-relaxed italic bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        "{selectedViewRequest.purpose}"
+                      </p>
                     </div>
                   )}
 
-                  {selectedViewRequest.admin_notes && (
-                    <div className="pt-3 border-t border-gray-200 mt-3">
-                      <span className="text-gray-500 block mb-1">Admin Notes</span>
-                      <p className="text-sm text-gray-900 bg-white p-2 border rounded">{selectedViewRequest.admin_notes}</p>
-                    </div>
-                  )}
+                  <div className="flex gap-4 pt-4">
+                    <Button
+                      variant="outline"
+                      className="flex-1 rounded-2xl h-12 font-black uppercase text-[10px] tracking-widest border-2 border-gray-100 hover:bg-gray-50"
+                      onClick={handleDownloadPDF}
+                    >
+                      <FileText className="w-4 h-4 mr-2 text-indigo-600" />
+                      Manifest PDF
+                    </Button>
+                    <Button 
+                      onClick={() => setShowViewModal(false)}
+                      className="flex-1 bg-gray-900 text-white hover:bg-black rounded-2xl h-12 font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-xl shadow-gray-100"
+                    >
+                      Close Details
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              </>
             )}
-            
-            <DialogFooter className="flex justify-between items-center w-full">
-              <Button
-                variant="outline"
-                className="flex items-center gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                onClick={handleDownloadPDF}
-              >
-                <FileText className="w-4 h-4" /> Download PDF
-              </Button>
-              <Button 
-                onClick={() => setShowViewModal(false)}
-                className="bg-gray-800 text-white hover:bg-gray-700"
-              >
-                Close
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

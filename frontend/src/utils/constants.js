@@ -1,4 +1,5 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL;
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+export const STORAGE_BASE_URL = API_BASE_URL.replace('/api', '/storage');
 export const APP_NAME = import.meta.env.VITE_APP_NAME || 'OlineIMS';
 
 export const USER_ROLES = {

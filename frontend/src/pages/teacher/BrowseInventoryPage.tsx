@@ -6,7 +6,9 @@ import { teacherAPI } from '../../api';
 import { toast } from '@/hooks/use-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
-import { Package, Layers } from 'lucide-react';
+import { Package, Layers, Search, Filter, Calendar, Clock, AlertCircle, ArrowRight, ArrowLeft, X, Check, FileText, Image as ImageIcon, Plus, Trash2, Folder, LayoutGrid, List, Info, ClipboardCheck, Eye } from 'lucide-react';
+import { StatusBadge } from '../../components/common/StatusBadge';
+import { STORAGE_BASE_URL } from '../../utils/constants';
 
 interface ItemCategory {
   id: number;
@@ -20,18 +22,25 @@ interface ItemCategory {
     item_name: string;
     serial_number: string;
     property_number: string | null;
+    item_image: string | null;
     condition: string;
     status: string;
+    pending_requests_count?: number;
   }>;
 }
 
 interface RequestForm {
+  inventory_item_id?: number;
   quantity: number;
   purpose: string;
   expected_return_date: string;
 }
 
 export function BrowseInventoryPage() {
+  const [viewMode, setViewMode] = useState<'main' | 'categories' | 'items'>('main');
+  const [parentCategories, setParentCategories] = useState<any[]>([]);
+  const [selectedParentCategory, setSelectedParentCategory] = useState<string | null>(null);
+  const [displayMode, setDisplayMode] = useState<'card' | 'list'>('card');
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -39,6 +48,7 @@ export function BrowseInventoryPage() {
   const [sortOrder, setSortOrder] = useState('asc');
   
   const [selectedCategory, setSelectedCategory] = useState<ItemCategory | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -52,8 +62,24 @@ export function BrowseInventoryPage() {
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
 
   useEffect(() => {
-    fetchCategories();
-  }, [search, sortBy, sortOrder]);
+    if (viewMode === 'main') {
+      fetchParentCategories();
+    } else if (viewMode === 'categories') {
+      fetchCategories();
+    }
+  }, [search, sortBy, sortOrder, viewMode, selectedParentCategory]);
+
+  const fetchParentCategories = async () => {
+    try {
+      setLoading(true);
+      const response = await teacherAPI.getInventoryParentCategories();
+      setParentCategories(response.data);
+    } catch (error) {
+      console.error('Failed to load parent categories:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -62,6 +88,7 @@ export function BrowseInventoryPage() {
         search,
         sort_by: sortBy,
         sort_order: sortOrder,
+        parent_category: selectedParentCategory,
         per_page: 50,
       });
       setCategories(response.data.data);
@@ -72,10 +99,10 @@ export function BrowseInventoryPage() {
     }
   };
 
-  const handleViewDetails = async (id: number) => {
+  const handleViewCategoryItems = async (id: number) => {
     try {
       setLoadingDetails(true);
-      setShowDetailsModal(true);
+      setViewMode('items');
       const response = await teacherAPI.getCategoryDetails(id);
       setSelectedCategory(response.data);
     } catch (error) {
@@ -84,10 +111,27 @@ export function BrowseInventoryPage() {
         description: 'Failed to load category details',
         variant: 'destructive',
       });
-      setShowDetailsModal(false);
+      setViewMode('categories');
     } finally {
       setLoadingDetails(false);
     }
+  };
+
+  const handleOpenRequestModal = (cat: ItemCategory, item?: any) => {
+    setSelectedCategory(cat);
+    setSelectedItem(item || null);
+    setRequestForm({
+      inventory_item_id: item?.id,
+      quantity: 1,
+      purpose: '',
+      expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    });
+    setShowRequestModal(true);
+  };
+  
+  const handleOpenDetailsModal = (item: any) => {
+    setSelectedItem(item);
+    setShowDetailsModal(true);
   };
 
   const handleSubmitRequest = async (e: React.FormEvent) => {
@@ -116,18 +160,21 @@ export function BrowseInventoryPage() {
       if (response?.data?.success) {
         toast({
           title: 'Request Submitted Successfully!',
-          description: response?.data?.message || `Your borrow request for ${selectedCategory.category_name} has been submitted. Please wait for admin approval.`,
+          description: response?.data?.message || `Your borrow request for ${selectedItem?.item_name || selectedCategory.category_name} has been submitted. Please wait for admin approval.`,
           duration: 5000,
         });
         
         setShowRequestModal(false);
+        setSelectedItem(null);
         setRequestForm({ 
           quantity: 1, 
           purpose: '', 
           expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         });
         
-        await fetchCategories();
+        if (viewMode === 'categories') {
+          await fetchCategories();
+        }
       } else {
         throw new Error(response?.data?.message || "Unknown error occurred");
       }
@@ -152,11 +199,12 @@ export function BrowseInventoryPage() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gray-50 min-h-screen pb-10">
       <NavHeader 
-        title="Browse Inventory" 
-        subtitle="View and request available equipment categories"
-        showBackButton={true}
+        title={viewMode === 'main' ? "Browse Inventory" : viewMode === 'categories' ? selectedParentCategory || "Category Kinds" : selectedCategory?.category_name || "Category Items"} 
+        subtitle={viewMode === 'main' ? "View and request available equipment categories" : viewMode === 'categories' ? "View available kinds in this category" : "View specific units available in this category"}
+        showBackButton={viewMode !== 'main'}
+        onBack={() => { if(viewMode === 'items') setViewMode('categories'); else setViewMode('main'); }}
         showHomeButton={true}
         showMenuButton={true}
       >
@@ -164,154 +212,476 @@ export function BrowseInventoryPage() {
       </NavHeader>
       
       <div className="sm:hidden bg-white border-b px-4 py-3">
-        <h1 className="text-lg font-bold text-gray-900 mb-1">Browse Inventory</h1>
-        <p className="text-sm text-gray-600">View and request available equipment categories</p>
+        <h1 className="text-lg font-bold text-gray-900 mb-1">
+          {viewMode === 'categories' ? "Browse Inventory" : selectedCategory?.category_name}
+        </h1>
+        <p className="text-sm text-gray-600">
+          {viewMode === 'categories' ? "View and request available equipment categories" : "View specific units available"}
+        </p>
       </div>
       
       <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        <Card className="p-4 sm:p-6 bg-white rounded-2xl shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <FormField
-              label="Search Categories"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="e.g. Projectors, Laptops..."
-            />
-            <FormField
-              label="Sort By"
-              type="select"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              options={[
-                { value: 'category_name', label: 'Category Name' },
-                { value: 'available_items', label: 'Available Quantity' }
-              ]}
-            />
-            <FormField
-              label="Order"
-              type="select"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              options={[
-                { value: 'asc', label: 'Ascending' },
-                { value: 'desc', label: 'Descending' }
-              ]}
-            />
-          </div>
-
-          {loading ? (
-            <div className="text-center py-20 text-gray-500">Loading categories...</div>
-          ) : categories.length === 0 ? (
-            <div className="text-center py-20 bg-gray-50 rounded-xl border border-gray-100">
-              <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900">No Categories Found</h3>
-              <p className="text-gray-500 mt-1">Check back later for available inventory.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {categories.map((cat) => (
-                <div 
-                  key={cat.id} 
-                  className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer group"
-                  onClick={() => handleViewDetails(cat.id)}
-                >
-                  <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
-                    {cat.category_image ? (
-                      <img 
-                        src={`http://localhost:8000/storage/${cat.category_image}`} 
-                        alt={cat.category_name} 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Layers className="w-12 h-12 text-gray-300" />
-                    )}
-                  </div>
-                  
-                  <div className="p-5 flex-1 flex flex-col">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{cat.category_name}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-1">
-                      {cat.description || 'No description provided.'}
-                    </p>
-                    
-                    <div className="flex items-center justify-between mb-4 pt-4 border-t border-gray-100">
-                      <div className="flex flex-col">
-                        <span className="text-xs text-gray-500 font-medium uppercase">Available</span>
-                        <span className={`text-lg font-bold ${cat.available_items > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                          {cat.available_items}
+        
+        
+        {/* --- MAIN CATEGORIES VIEW --- */}
+        {viewMode === 'main' && (
+          <Card className="p-4 sm:p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="font-medium">Loading categories...</p>
+              </div>
+            ) : parentCategories.length === 0 ? (
+              <div className="text-center py-20 bg-gray-50 rounded-xl border border-gray-100">
+                <Folder className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900">No Categories Found</h3>
+                <p className="text-gray-500 mt-1">Check back later for available inventory.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {parentCategories.map((parent) => (
+                  <div 
+                    key={parent.parent_category} 
+                    className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer group hover:border-blue-300"
+                    onClick={() => {
+                      setSelectedParentCategory(parent.parent_category);
+                      setViewMode('categories');
+                    }}
+                  >
+                    <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
+                      <Layers className="w-12 h-12 text-gray-300 group-hover:scale-110 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                        <span className="text-white font-medium text-sm flex items-center gap-2">
+                          Browse Kinds <ArrowLeft className="w-4 h-4 rotate-180" />
                         </span>
                       </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs text-gray-500 font-medium uppercase">Total</span>
-                        <span className="text-lg font-bold text-gray-700">{cat.total_items}</span>
+                    </div>
+                    
+                    <div className="p-5 flex-1 flex flex-col">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{parent.parent_category}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-1">
+                        Migrated category for {parent.parent_category}
+                      </p>
+                      
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">AVAILABLE</span>
+                          <span className="text-lg font-black text-green-600">{parent.kind_count}</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">TOTAL UNITS</span>
+                          <span className="text-lg font-black text-gray-700">{parent.item_count || 0}</span>
+                        </div>
                       </div>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
 
-                    <Button 
-                      className="w-full"
-                      disabled={cat.available_items === 0}
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent opening details modal
-                        setSelectedCategory(cat);
-                        setRequestForm({
-                          quantity: 1,
-                          purpose: '',
-                          expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                        });
-                        setShowRequestModal(true);
-                      }}
-                    >
-                      {cat.available_items > 0 ? 'Request to Borrow' : 'Out of Stock'}
-                    </Button>
+        {/* --- CATEGORIES VIEW --- */}
+        {viewMode === 'categories' && (
+          <Card className="p-4 sm:p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <FormField
+                label="Search Categories"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="e.g. Projectors, Laptops..."
+              />
+              <FormField
+                label="Sort By"
+                type="select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                options={[
+                  { value: 'category_name', label: 'Category Name' },
+                  { value: 'available_items', label: 'Available Quantity' }
+                ]}
+              />
+              <FormField
+                label="Order"
+                type="select"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                options={[
+                  { value: 'asc', label: 'Ascending' },
+                  { value: 'desc', label: 'Descending' }
+                ]}
+              />
+            </div>
+
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="font-medium">Loading categories...</p>
+              </div>
+            ) : categories.length === 0 ? (
+              <div className="text-center py-20 bg-gray-50 rounded-xl border border-gray-100">
+                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900">No Categories Found</h3>
+                <p className="text-gray-500 mt-1">Check back later for available inventory.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {categories.map((cat) => (
+                  <div 
+                    key={cat.id} 
+                    className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer group hover:border-blue-300"
+                    onClick={() => handleViewCategoryItems(cat.id)}
+                  >
+                    <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
+                      {cat.category_image ? (
+                        <img 
+                          src={`${STORAGE_BASE_URL}/${cat.category_image}`} 
+                          alt={cat.category_name} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <Layers className="w-12 h-12 text-gray-300" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                        <span className="text-white font-medium text-sm flex items-center gap-2">
+                          View Units <ArrowLeft className="w-4 h-4 rotate-180" />
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-5 flex-1 flex flex-col">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{cat.category_name}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-1">
+                        {cat.description || 'No description provided.'}
+                      </p>
+                      
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Available</span>
+                          <span className={`text-lg font-black ${cat.available_items > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {cat.available_items}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Units</span>
+                          <span className="text-lg font-black text-gray-700">{cat.total_items}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* --- ITEMS VIEW (PAGE) --- */}
+        {viewMode === 'items' && (
+          <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+            {/* Category Header Card */}
+            <div className="bg-white rounded-3xl overflow-hidden shadow-md border border-gray-100 flex flex-col md:flex-row">
+              <div className="w-full md:w-56 h-56 md:h-auto bg-gray-100 flex items-center justify-center shrink-0">
+                {selectedCategory?.category_image ? (
+                  <img 
+                    src={`${STORAGE_BASE_URL}/${selectedCategory.category_image}`} 
+                    alt={selectedCategory.category_name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Layers className="w-16 h-16 text-gray-300" />
+                )}
+              </div>
+              <div className="p-6 sm:p-8 flex-1 flex flex-col justify-center">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="px-2.5 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-blue-100">Category</span>
+                  <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">{selectedCategory?.category_name}</h2>
+                </div>
+                <p className="text-gray-600 mb-6 max-w-3xl text-sm sm:text-base leading-relaxed">
+                  {selectedCategory?.description || "No description available for this category."}
+                </p>
+                
+                <div className="flex flex-wrap items-center gap-4 sm:gap-8">
+                  <div className="bg-green-50 px-5 py-3 rounded-2xl border border-green-100 flex items-center gap-4">
+                    <div className="p-2 bg-green-100 rounded-xl">
+                      <Package className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-black text-green-600 uppercase tracking-widest">Available</span>
+                      <span className="text-2xl font-black text-green-700 leading-none">{selectedCategory?.available_items}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-50 px-5 py-3 rounded-2xl border border-gray-200 flex items-center gap-4">
+                    <div className="p-2 bg-gray-200 rounded-xl">
+                      <Layers className="w-5 h-5 text-gray-500" />
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Total Units</span>
+                      <span className="text-2xl font-black text-gray-700 leading-none">{selectedCategory?.total_items}</span>
+                    </div>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
-          )}
-        </Card>
+
+            {/* Units Display Control */}
+            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <Package className="w-4 h-4 text-blue-600" />
+                </div>
+                <h3 className="font-bold text-gray-800">
+                  Serialized Units ({selectedCategory?.inventory_items?.length || 0})
+                </h3>
+              </div>
+
+              <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+                <button
+                  onClick={() => setDisplayMode('card')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    displayMode === 'card' 
+                      ? 'bg-white text-blue-600 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Cards
+                </button>
+                <button
+                  onClick={() => setDisplayMode('list')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    displayMode === 'list' 
+                      ? 'bg-white text-blue-600 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                  List
+                </button>
+              </div>
+            </div>
+
+            {loadingDetails ? (
+              <div className="py-20 text-center text-gray-500 flex flex-col items-center">
+                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p>Loading available units...</p>
+              </div>
+            ) : (!selectedCategory?.inventory_items || selectedCategory.inventory_items.length === 0) ? (
+              <div className="p-20 bg-white rounded-3xl border border-gray-100 text-center flex flex-col items-center shadow-sm">
+                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                  <Package className="w-10 h-10 text-gray-300" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No individual units available</h3>
+                <p className="text-gray-500 max-w-sm">
+                  There are no specific units currently registered or available for individual viewing in this category.
+                </p>
+              </div>
+            ) : displayMode === 'card' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {selectedCategory.inventory_items.map((item) => (
+                  <div key={item.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:border-blue-300 transition-all group">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="w-full h-40 bg-gray-100 rounded-xl overflow-hidden border border-gray-100 flex items-center justify-center relative">
+                          {item.item_image ? (
+                            <img 
+                              src={`${STORAGE_BASE_URL}/${item.item_image}`} 
+                              alt={item.item_name} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          ) : (
+                            <Package className="w-10 h-10 text-gray-300" />
+                          )}
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Serial Number</p>
+                          <p className="font-mono text-sm font-bold text-blue-600">{item.serial_number}</p>
+                        </div>
+                        <StatusBadge label={item.status} status={item.status} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Property Number</p>
+                        <p className="text-sm font-medium text-gray-700">{item.property_number || 'Not Assigned'}</p>
+                      </div>
+
+                      {/* Request Indicator */}
+                      {item.pending_requests_count !== undefined && item.pending_requests_count > 0 && (
+                        <div className="bg-amber-50 border border-amber-100 rounded-lg p-2 flex items-center gap-2">
+                          <Info className="w-3 h-3 text-amber-600" />
+                          <span className="text-[10px] font-bold text-amber-700 uppercase tracking-tight">Currently Requested by someone</span>
+                        </div>
+                      )}
+
+                        <div className="pt-3 border-t border-gray-50 flex flex-col gap-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Condition</span>
+                            <span className="text-sm font-bold text-gray-700 capitalize">{item.condition}</span>
+                          </div>
+                          
+                          <Button 
+                            className="w-full text-xs h-9 font-bold flex items-center gap-2"
+                            disabled={item.status !== 'available' || (item.pending_requests_count !== undefined && item.pending_requests_count > 0)}
+                            onClick={() => selectedCategory && handleOpenRequestModal(selectedCategory, item)}
+                          >
+                            <ClipboardCheck className="w-4 h-4" />
+                            {item.status === 'borrowed' ? 'Already Borrowed' : 
+                             (item.pending_requests_count !== undefined && item.pending_requests_count > 0) ? 'Requested' : 
+                             item.status === 'available' ? 'Borrow Unit' : 'Unavailable'}
+                          </Button>
+                          
+                          <Button 
+                            variant="secondary"
+                            className="w-full text-xs h-9 font-bold flex items-center gap-2 border-gray-200"
+                            onClick={() => handleOpenDetailsModal(item)}
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Details
+                          </Button>
+                        </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50/50 border-b border-gray-100">
+                      <tr>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Unit Info</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Serial Number</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Property Number</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Condition</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Status</th>
+                        <th className="px-6 py-4 text-right"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {selectedCategory.inventory_items.map((item) => (
+                        <tr key={item.id} className="hover:bg-blue-50/30 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-100 shrink-0">
+                                {item.item_image ? (
+                                  <img src={`${STORAGE_BASE_URL}/${item.item_image}`} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <Package className="w-4 h-4 text-gray-400" />
+                                )}
+                              </div>
+                              <div className="flex flex-col">
+                                <div className="font-bold text-gray-900">{item.item_name}</div>
+                                <div className="flex gap-2 items-center mt-1">
+                                  {item.pending_requests_count !== undefined && item.pending_requests_count > 0 && (
+                                    <span className="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-black uppercase tracking-wider flex items-center gap-1">
+                                      <Info className="w-2 h-2" /> Requested
+                                    </span>
+                                  )}
+                                  {item.status === 'borrowed' && (
+                                    <span className="text-[9px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">Already Borrowed</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="font-mono text-sm font-bold text-blue-600">{item.serial_number}</span>
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium text-gray-700">
+                            {item.property_number || 'N/A'}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider ${
+                              item.condition === 'excellent' ? 'bg-green-100 text-green-700' :
+                              item.condition === 'good' ? 'bg-blue-100 text-blue-700' :
+                              'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {item.condition}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <StatusBadge label={item.status} status={item.status} />
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <Button 
+                              variant="secondary"
+                              className="text-[10px] font-bold uppercase tracking-wider"
+                              disabled={item.status !== 'available' || (item.pending_requests_count !== undefined && item.pending_requests_count > 0)}
+                              onClick={() => selectedCategory && handleOpenRequestModal(selectedCategory, item)}
+                            >
+                              {item.status === 'borrowed' ? 'Borrowed' : 
+                               (item.pending_requests_count !== undefined && item.pending_requests_count > 0) ? 'Requested' : 
+                               'Borrow'}
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Request Modal */}
         <Modal
           isOpen={showRequestModal}
           onClose={() => setShowRequestModal(false)}
-          title={`Borrow Request - ${selectedCategory?.category_name}`}
+          title={`Borrow Request - ${selectedItem?.item_name || selectedCategory?.category_name}`}
         >
-          <form onSubmit={handleSubmitRequest} className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
-              <p className="text-sm text-blue-800">
-                You are requesting units from the <strong>{selectedCategory?.category_name}</strong> category. 
-                The administrator will allocate specific serial numbers upon approval.
+          <form onSubmit={handleSubmitRequest} className="space-y-6 py-2">
+            <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 flex gap-4 items-start">
+              <div className="p-2 bg-blue-100 rounded-xl shrink-0">
+                <Info className="w-5 h-5 text-blue-600" />
+              </div>
+              <p className="text-sm text-blue-800 leading-relaxed">
+                {selectedItem ? (
+                  <>You are requesting to borrow <strong>{selectedItem.item_name}</strong> (SN: {selectedItem.serial_number}).</>
+                ) : (
+                  <>You are requesting units from the <strong>{selectedCategory?.category_name}</strong> category. The administrator will allocate specific units based on availability upon approval.</>
+                )}
               </p>
             </div>
             
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {!selectedItem && (
+                <FormField
+                  label={`Quantity (Max: ${selectedCategory?.available_items})`}
+                  type="number"
+                  value={requestForm.quantity.toString()}
+                  onChange={(e) => setRequestForm({ ...requestForm, quantity: parseInt(e.target.value) || 1 })}
+                  required
+                  min="1"
+                  max={selectedCategory?.available_items?.toString()}
+                />
+              )}
+                <FormField
+                  label="Expected Return Date"
+                  type="date"
+                  value={requestForm.expected_return_date}
+                  onChange={(e) => setRequestForm({ ...requestForm, expected_return_date: e.target.value })}
+                  required
+                  min={new Date().toISOString().split('T')[0]}
+                />
+            </div>
+
             <FormField
-              label={`Quantity (Max: ${selectedCategory?.available_items})`}
-              type="number"
-              value={requestForm.quantity.toString()}
-              onChange={(e) => setRequestForm({ ...requestForm, quantity: parseInt(e.target.value) || 1 })}
-              required
-              min="1"
-              max={selectedCategory?.available_items?.toString()}
-            />
-            <FormField
-              label="Purpose"
+              label="Purpose of Request"
               type="textarea"
               value={requestForm.purpose}
               onChange={(e) => setRequestForm({ ...requestForm, purpose: e.target.value })}
-              placeholder="State your purpose for borrowing this equipment"
-            />
-            <FormField
-              label="Expected Return Date"
-              type="date"
-              value={requestForm.expected_return_date}
-              onChange={(e) => setRequestForm({ ...requestForm, expected_return_date: e.target.value })}
+              placeholder="Please provide details on why you need this equipment..."
               required
-              min={new Date().toISOString().split('T')[0]}
             />
-            <div className="flex gap-4 pt-4">
-              <Button type="button" variant="secondary" onClick={() => setShowRequestModal(false)} className="flex-1">
-                Cancel
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button type="button" variant="secondary" onClick={() => setShowRequestModal(false)} className="flex-1 py-4 rounded-xl font-bold">
+                Discard
               </Button>
-              <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white">
+              <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-100">
                 Submit Request
               </Button>
             </div>
@@ -321,92 +691,72 @@ export function BrowseInventoryPage() {
         {/* Details Modal */}
         <Modal
           isOpen={showDetailsModal}
-          onClose={() => {
-            setShowDetailsModal(false);
-            if (!showRequestModal) setSelectedCategory(null);
-          }}
-          title={`Category Details: ${selectedCategory?.category_name || 'Loading...'}`}
+          onClose={() => setShowDetailsModal(false)}
+          title="Item Details"
         >
-          {loadingDetails ? (
-            <div className="py-10 text-center text-gray-500">Loading details...</div>
-          ) : selectedCategory && (
-            <div className="space-y-6">
-              <div className="flex gap-6 items-start">
-                <div className="w-32 h-32 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
-                  {selectedCategory.category_image ? (
-                    <img 
-                      src={`http://localhost:8000/storage/${selectedCategory.category_image}`} 
-                      alt={selectedCategory.category_name} 
-                      className="w-full h-full object-cover"
-                    />
+          {selectedItem && (
+            <div className="space-y-6 py-2">
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="w-full md:w-48 h-48 bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 shrink-0">
+                  {selectedItem.item_image ? (
+                    <img src={`${STORAGE_BASE_URL}/${selectedItem.item_image}`} alt={selectedItem.item_name} className="w-full h-full object-cover" />
                   ) : (
-                    <Layers className="w-12 h-12 text-gray-300" />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="w-12 h-12 text-gray-300" />
+                    </div>
                   )}
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">{selectedCategory.category_name}</h3>
-                  <p className="text-gray-600 mt-2">{selectedCategory.description || 'No description available.'}</p>
-                  <div className="flex gap-4 mt-4">
-                    <div className="bg-green-50 px-3 py-1 rounded-full border border-green-100">
-                      <span className="text-xs text-green-600 font-bold uppercase">Available: {selectedCategory.available_items}</span>
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{selectedItem.item_name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <StatusBadge label={selectedItem.status} status={selectedItem.status} />
+                      <span className="text-xs text-gray-500 font-mono">SN: {selectedItem.serial_number}</span>
                     </div>
-                    <div className="bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
-                      <span className="text-xs text-gray-600 font-bold uppercase">Total: {selectedCategory.total_items}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Property Number</p>
+                      <p className="text-sm font-bold text-gray-700">{selectedItem.property_number || 'N/A'}</p>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Condition</p>
+                      <p className="text-sm font-bold text-gray-700 capitalize">{selectedItem.condition}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Package className="w-4 h-4 text-blue-500" />
-                  Available Units ({selectedCategory.inventory_items?.length || 0})
-                </h4>
-                
-                {(!selectedCategory.inventory_items || selectedCategory.inventory_items.length === 0) ? (
-                  <div className="p-8 bg-gray-50 rounded-xl text-center text-gray-500 italic">
-                    No individual units are currently available for this category.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                    {selectedCategory.inventory_items.map((item) => (
-                      <div key={item.id} className="p-3 bg-white border border-gray-200 rounded-xl flex justify-between items-center hover:border-blue-300 transition-colors">
-                        <div>
-                          <p className="font-mono text-sm font-bold text-blue-600">{item.serial_number}</p>
-                          <p className="text-xs text-gray-500">Property #: {item.property_number || 'N/A'}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                            item.condition === 'excellent' ? 'bg-green-100 text-green-700' :
-                            item.condition === 'good' ? 'bg-blue-100 text-blue-700' :
-                            'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {item.condition}
-                          </span>
-                        </div>
+              {selectedItem.custom_attributes && Object.keys(selectedItem.custom_attributes).length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-blue-600" /> Additional Specifications
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {Object.entries(selectedItem.custom_attributes).map(([key, value]) => (
+                      <div key={key} className="flex justify-between p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
+                        <span className="text-xs font-medium text-gray-600">{key}</span>
+                        <span className="text-xs font-bold text-gray-900">{String(value)}</span>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              <div className="flex gap-4 pt-4 border-t">
+              <div className="pt-4 border-t border-gray-100 flex gap-3">
                 <Button 
-                  variant="secondary" 
-                  onClick={() => setShowDetailsModal(false)} 
-                  className="flex-1"
-                >
-                  Close
-                </Button>
-                <Button 
-                  disabled={selectedCategory.available_items === 0}
-                  className="flex-1"
+                  className="flex-1 py-4 rounded-xl font-bold"
+                  disabled={selectedItem.status !== 'available'}
                   onClick={() => {
                     setShowDetailsModal(false);
-                    setShowRequestModal(true);
+                    handleOpenRequestModal(selectedCategory!, selectedItem);
                   }}
                 >
-                  Request Units
+                  Request to Borrow
+                </Button>
+                <Button variant="secondary" onClick={() => setShowDetailsModal(false)} className="px-6 rounded-xl font-bold">
+                  Close
                 </Button>
               </div>
             </div>

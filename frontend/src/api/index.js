@@ -27,6 +27,9 @@ export const adminAPI = {
   getDashboard: () =>
     axiosInstance.get('/admin/dashboard'),
 
+  verifyPassword: (password) =>
+    axiosInstance.post('/admin/verify-password', { password }),
+
   getDashboardStats: () =>
     axiosInstance.get('/admin/dashboard/statistics'),
 
@@ -47,8 +50,16 @@ export const adminAPI = {
     axiosInstance.delete(`/admin/inventory/${id}`),
 
   // --- New Serialized Inventory System ---
-  getItemCategories: () =>
-    axiosInstance.get('/admin/item-categories'),
+  getParentCategories: () =>
+    axiosInstance.get('/admin/item-categories/parent-categories'),
+
+  renameParentCategory: (data) =>
+    axiosInstance.post('/admin/item-categories/rename-parent', data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+
+  getItemCategories: (params) =>
+    axiosInstance.get('/admin/item-categories', { params }),
     
   createItemCategory: (data) =>
     axiosInstance.post('/admin/item-categories', data, {
@@ -74,6 +85,11 @@ export const adminAPI = {
     
   createInventoryItem: (data) =>
     axiosInstance.post('/admin/inventory-items', data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    
+  bulkCreateInventoryItem: (data) =>
+    axiosInstance.post('/admin/inventory-items/bulk', data, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
     
@@ -107,6 +123,13 @@ export const adminAPI = {
 
   getBorrowRequestsStats: () =>
     axiosInstance.get('/admin/requests/statistics'),
+
+  // Borrow History
+  getBorrowHistory: (params) =>
+    axiosInstance.get('/admin/borrow-history', { params }),
+
+  getBorrowHistoryYears: () =>
+    axiosInstance.get('/admin/borrow-history/years'),
 
   // Teachers
   getTeachers: (params) =>
@@ -248,6 +271,9 @@ export const teacherAPI = {
     axiosInstance.get('/teacher/dashboard'),
 
   // Inventory
+  getInventoryParentCategories: () =>
+    axiosInstance.get('/teacher/inventory/parent-categories'),
+
   getInventory: (params) =>
     axiosInstance.get('/teacher/inventory', { params }),
 
@@ -260,7 +286,7 @@ export const teacherAPI = {
   getInventoryCategories: () =>
     axiosInstance.get('/teacher/inventory-categories'),
 
-  // Teacher's Personal Inventory
+  // Teacher's Personal Inventory — 3-level hierarchy
   getMyInventory: (params) =>
     axiosInstance.get('/teacher/my-inventory', { params }),
 
@@ -276,8 +302,11 @@ export const teacherAPI = {
   deleteMyInventoryItem: (id) =>
     axiosInstance.delete(`/teacher/my-inventory/${id}`),
 
-  getMyInventoryCategories: () =>
-    axiosInstance.get('/teacher/my-inventory/categories'),
+  getMyInventoryParentCategories: () =>
+    axiosInstance.get('/teacher/my-inventory/parent-categories'),
+
+  getMyInventoryCategories: (params) =>
+    axiosInstance.get('/teacher/my-inventory/categories', { params }),
 
   getMyInventoryStatistics: () =>
     axiosInstance.get('/teacher/my-inventory/statistics'),

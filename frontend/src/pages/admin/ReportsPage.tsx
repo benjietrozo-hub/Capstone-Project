@@ -10,6 +10,7 @@ import { formatDate } from '../../utils/formatters.js';
 import { toast } from '@/hooks/use-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
+import { History, AlertCircle, Search, Filter, Download, Calendar, User, Package, Eye, FileText } from 'lucide-react';
 
 interface Report {
   id: number;
@@ -33,23 +34,43 @@ interface ResolutionForm {
 }
 
 export function ReportsPage() {
+  const [activeTab, setActiveTab] = useState<'borrow' | 'issue'>('borrow');
   const [reports, setReports] = useState<Report[]>([]);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [expandedYears, setExpandedYears] = useState<number[]>([]);
+  const [historyByYear, setHistoryByYear] = useState<Record<number, any[]>>({});
+  const [loadingYears, setLoadingYears] = useState(true);
+  const [loadingHistoryMap, setLoadingHistoryMap] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedHistory, setSelectedHistory] = useState<any>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showResolutionModal, setShowResolutionModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
+  
   const [resolutionForm, setResolutionForm] = useState<ResolutionForm>({
     admin_notes: '',
     resolution_date: new Date().toISOString().split('T')[0],
   });
 
   useEffect(() => {
-    fetchReports();
-  }, [status]);
+    if (activeTab === 'issue') {
+      fetchReports();
+    } else {
+      fetchYears();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'borrow' && expandedYears.length > 0) {
+      expandedYears.forEach(year => fetchBorrowHistoryForYear(year));
+    }
+  }, [status, searchQuery]);
 
   const fetchReports = async () => {
     try {
@@ -62,11 +83,58 @@ export function ReportsPage() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to load reports',
+        description: 'Failed to load issue reports',
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchYears = async () => {
+    try {
+      setLoadingYears(true);
+      const response = await adminAPI.getBorrowHistoryYears();
+      if (response.data?.success) {
+        const years = response.data.data || [];
+        setAvailableYears(years);
+        if (years.length > 0) {
+          toggleYear(years[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching history years:', error);
+    } finally {
+      setLoadingYears(false);
+    }
+  };
+
+  const toggleYear = (year: number) => {
+    const isExpanded = expandedYears.includes(year);
+    if (isExpanded) {
+      setExpandedYears(expandedYears.filter(y => y !== year));
+    } else {
+      setExpandedYears([...expandedYears, year]);
+      if (!historyByYear[year]) {
+        fetchBorrowHistoryForYear(year);
+      }
+    }
+  };
+
+  const fetchBorrowHistoryForYear = async (year: number) => {
+    try {
+      setLoadingHistoryMap(prev => ({ ...prev, [year]: true }));
+      const response = await adminAPI.getBorrowHistory({
+        status: status || undefined,
+        search: searchQuery,
+        year: year,
+        per_page: 200 // Retrieve enough records for the dropdown report
+      });
+      setHistoryByYear(prev => ({ ...prev, [year]: response.data.data.data || [] }));
+    } catch (error) {
+      console.error(`Error fetching history for ${year}:`, error);
+    } finally {
+      setLoadingHistoryMap(prev => ({ ...prev, [year]: false }));
     }
   };
 
@@ -133,122 +201,327 @@ export function ReportsPage() {
     },
   ];
 
-  if (loading) return <PageLoader />;
-
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50/50">
       <NavHeader 
-        title="Issue Reports" 
-        subtitle="View and manage equipment issue reports"
+        title="Inventory Reports" 
+        subtitle="Historical borrow data and equipment issue reports"
         showBackButton={true}
-        showHomeButton={true}
-        showMenuButton={true}
       >
-        <NotificationProfile 
-          currentUser={currentUser}
-        />
+        <NotificationProfile currentUser={currentUser} />
       </NavHeader>
       
-      {/* Mobile Subtitle */}
-      <div className="sm:hidden bg-white border-b px-4 py-3">
-        <h1 className="text-lg font-bold text-gray-900 mb-1">Issue Reports</h1>
-        <p className="text-sm text-gray-600">View and manage equipment issue reports</p>
-      </div>
-      
-      <div className="p-6">
-        <Card>
-          <div className="mb-6">
-            <FormField
-              label="Filter by Status"
-              type="select"
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        
+        {/* Tabs and Controls */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200">
+            <button
+              onClick={() => { setActiveTab('borrow'); setStatus(''); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'borrow' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+            >
+              <History className="w-4 h-4" /> Borrow History
+            </button>
+            <button
+              onClick={() => { setActiveTab('issue'); setStatus(''); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'issue' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+            >
+              <AlertCircle className="w-4 h-4" /> Issue Reports
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="relative flex-1 md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search history..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+              />
+            </div>
+            <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              options={[
-                { value: '', label: 'All Reports' },
-                { value: 'pending', label: 'Pending' },
-                { value: 'reviewed', label: 'Reviewed' },
-                { value: 'resolved', label: 'Resolved' },
-            ]}
-          />
+              className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="">All Statuses</option>
+              {activeTab === 'borrow' ? (
+                <>
+                  <option value="returned">Returned</option>
+                  <option value="borrowed">Currently Borrowed</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="cancelled">Cancelled</option>
+                </>
+              ) : (
+                <>
+                  <option value="pending">Pending</option>
+                  <option value="reviewed">Reviewed</option>
+                  <option value="resolved">Resolved</option>
+                </>
+              )}
+            </select>
+          </div>
         </div>
 
-        <Table columns={columns} data={reports} loading={loading} />
-      </Card>
-
-      {/* Detail Modal */}
-      <Modal
-        isOpen={showDetailModal}
-        onClose={() => setShowDetailModal(false)}
-        title="Report Details"
-      >
-        {selectedReport && (
+        {activeTab === 'borrow' ? (
           <div className="space-y-4">
-            <div>
-              <label className="font-semibold text-gray-700">Report ID</label>
-              <p className="text-gray-600">#{selectedReport.id}</p>
-            </div>
-            <div>
-              <label className="font-semibold text-gray-700">Reported By</label>
-              <p className="text-gray-600">{selectedReport.teacher?.full_name}</p>
-            </div>
-            <div>
-              <label className="font-semibold text-gray-700">Item</label>
-              <p className="text-gray-600">{selectedReport.item?.item_name}</p>
-            </div>
-            <div>
-              <label className="font-semibold text-gray-700">Report Type</label>
-              <p className="text-gray-600">{selectedReport.report_type}</p>
-            </div>
-            <div>
-              <label className="font-semibold text-gray-700">Description</label>
-              <p className="text-gray-600">{selectedReport.description}</p>
-            </div>
-            <div>
-              <label className="font-semibold text-gray-700">Status</label>
-              <StatusBadge label={selectedReport.status} status={selectedReport.status} />
-            </div>
-            <div>
-              <label className="font-semibold text-gray-700">Date Reported</label>
-              <p className="text-gray-600">{formatDate(selectedReport.date_reported || selectedReport.created_at)}</p>
-            </div>
+            {loadingYears ? (
+              <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-gray-200">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <p className="mt-4 text-gray-500 font-medium">Loading history timeline...</p>
+              </div>
+            ) : availableYears.length === 0 ? (
+              <div className="bg-white p-12 text-center rounded-2xl shadow-sm border border-gray-200">
+                <History className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium text-lg">No borrow history recorded yet</p>
+              </div>
+            ) : (
+              availableYears.map(year => (
+                <div key={year} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300">
+                  <button 
+                    onClick={() => toggleYear(year)}
+                    className="w-full px-6 py-4 flex items-center justify-between bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-b border-gray-100"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <h2 className="text-xl font-bold text-gray-800">{year} Transactions</h2>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {historyByYear[year] && !loadingHistoryMap[year] && (
+                        <span className="text-sm font-semibold px-3 py-1 bg-white rounded-full border border-gray-200 text-gray-600 shadow-sm">
+                          {historyByYear[year].length} records
+                        </span>
+                      )}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white border border-gray-200 shadow-sm transform transition-transform duration-300 ${expandedYears.includes(year) ? 'rotate-180' : ''}`}>
+                         <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      </div>
+                    </div>
+                  </button>
+                  
+                  {expandedYears.includes(year) && (
+                    <div className="overflow-x-auto bg-white">
+                      <table className="w-full text-left">
+                        <thead className="bg-white border-b border-gray-100">
+                          <tr>
+                            <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest bg-gray-50/30">Transaction</th>
+                            <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest bg-gray-50/30">Teacher</th>
+                            <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest bg-gray-50/30">Equipment</th>
+                            <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest bg-gray-50/30">Duration</th>
+                            <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest bg-gray-50/30">Status</th>
+                            <th className="px-6 py-4 text-right text-xs font-black text-gray-400 uppercase tracking-widest bg-gray-50/30">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {loadingHistoryMap[year] ? (
+                            <tr><td colSpan={6} className="px-6 py-12 text-center">
+                              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mb-2"></div>
+                              <p className="text-gray-400 font-medium">Loading records for {year}...</p>
+                            </td></tr>
+                          ) : !historyByYear[year] || historyByYear[year].length === 0 ? (
+                            <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                              <History className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                              <p>No records found for {year} with the current filters.</p>
+                            </td></tr>
+                          ) : (
+                            historyByYear[year].map((item) => (
+                              <tr key={item.id} className="hover:bg-blue-50/30 transition-colors">
+                                <td className="px-6 py-4">
+                                  <div className="text-sm font-bold text-gray-900">{item.request_code}</div>
+                                  <div className="text-[10px] text-gray-500 font-mono">ID: {item.id}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black text-xs border border-blue-200/50">
+                                      {item.teacher?.first_name?.[0]}{item.teacher?.last_name?.[0]}
+                                    </div>
+                                    <div>
+                                      <div className="text-sm font-bold text-gray-900">{item.teacher?.full_name}</div>
+                                      <div className="text-[10px] font-medium tracking-wide text-gray-500 uppercase">{item.teacher?.department || 'N/A'}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="text-sm font-bold text-gray-900">{item.category?.category_name}</div>
+                                  <div className="text-xs font-medium text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded-md mt-1">
+                                    {item.inventory_items?.length || 0} unit(s)
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="text-xs font-medium text-gray-700">Requested: {formatDate(item.date_needed)}</div>
+                                  <div className="text-[10px] text-gray-500 italic mt-0.5">Expected Return: {formatDate(item.expected_return_date)}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <StatusBadge label={item.status} status={item.status} />
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <button 
+                                    onClick={() => { setSelectedHistory(item); setShowHistoryModal(true); }}
+                                    className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-blue-100"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden p-6">
+            <Table columns={columns} data={reports} loading={loading} />
           </div>
         )}
-      </Modal>
 
-      {/* Resolution Modal */}
-      <Modal
-        isOpen={showResolutionModal}
-        onClose={() => setShowResolutionModal(false)}
-        title="Resolve Report"
-      >
-        <form onSubmit={handleResolve} className="space-y-4">
-          <FormField
-            label="Resolution Date"
-            type="date"
-            value={resolutionForm.resolution_date}
-            onChange={(e) =>
-              setResolutionForm({ ...resolutionForm, resolution_date: e.target.value })
-            }
-          />
-          <FormField
-            label="Resolution Notes"
-            type="textarea"
-            value={resolutionForm.admin_notes}
-            onChange={(e) =>
-              setResolutionForm({ ...resolutionForm, admin_notes: e.target.value })
-            }
-            required
-          />
-          <div className="flex gap-4">
-            <Button type="submit" variant="success">
-              Resolve
-            </Button>
-            <Button variant="secondary" onClick={() => setShowResolutionModal(false)}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        {/* History Detail Modal */}
+        <Modal
+          isOpen={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          title="Transaction Details"
+        >
+          {selectedHistory && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Request Code</p>
+                  <p className="text-sm font-bold text-gray-700">{selectedHistory.request_code}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
+                  <StatusBadge label={selectedHistory.status} status={selectedHistory.status} />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                  <User className="w-3.5 h-3.5 text-primary" /> Teacher Information
+                </h4>
+                <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                  <p className="font-bold text-gray-900">{selectedHistory.teacher?.full_name}</p>
+                  <p className="text-xs text-gray-600">{selectedHistory.teacher?.email}</p>
+                  <p className="text-xs text-gray-600 mt-1">{selectedHistory.teacher?.department} Department</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                  <Package className="w-3.5 h-3.5 text-primary" /> Allocated Items
+                </h4>
+                <div className="space-y-2">
+                  {selectedHistory.inventory_items?.map((unit: any) => (
+                    <div key={unit.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                          <Package className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-900">{unit.item_name}</p>
+                          <p className="text-[10px] text-gray-500 font-mono">SN: {unit.serial_number}</p>
+                        </div>
+                      </div>
+                      <StatusBadge label={unit.pivot?.status || 'Allocated'} status={unit.pivot?.status} />
+                    </div>
+                  ))}
+                  {(!selectedHistory.inventory_items || selectedHistory.inventory_items.length === 0) && (
+                    <p className="text-xs text-gray-500 italic">No specific units were linked to this request.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                <h4 className="text-xs font-black text-amber-800 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5" /> Purpose
+                </h4>
+                <p className="text-sm text-amber-900 leading-relaxed">{selectedHistory.purpose || 'No purpose stated.'}</p>
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* Existing Issue Report Detail Modal */}
+        <Modal
+          isOpen={showDetailModal}
+          onClose={() => setShowDetailModal(false)}
+          title="Issue Report Details"
+        >
+          {selectedReport && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Report ID</p>
+                  <p className="text-lg font-black text-gray-900">#{selectedReport.id}</p>
+                </div>
+                <StatusBadge label={selectedReport.status} status={selectedReport.status} />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Reported By</label>
+                  <p className="text-sm font-bold text-gray-700">{selectedReport.teacher?.full_name}</p>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Item Affected</label>
+                  <p className="text-sm font-bold text-gray-700">{selectedReport.item?.item_name}</p>
+                </div>
+              </div>
+
+              <div className="p-4 bg-red-50/50 rounded-xl border border-red-100">
+                <label className="text-[10px] font-black text-red-800 uppercase tracking-widest block mb-1">Description of Issue</label>
+                <p className="text-sm text-gray-800">{selectedReport.description}</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Date Reported</label>
+                <p className="text-sm font-medium text-gray-600">{formatDate(selectedReport.date_reported || selectedReport.created_at)}</p>
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* Resolution Modal */}
+        <Modal
+          isOpen={showResolutionModal}
+          onClose={() => setShowResolutionModal(false)}
+          title="Resolve Equipment Issue"
+        >
+          <form onSubmit={handleResolve} className="space-y-4">
+            <FormField
+              label="Resolution Date"
+              type="date"
+              value={resolutionForm.resolution_date}
+              onChange={(e) =>
+                setResolutionForm({ ...resolutionForm, resolution_date: e.target.value })
+              }
+            />
+            <FormField
+              label="Resolution Notes"
+              type="textarea"
+              value={resolutionForm.admin_notes}
+              onChange={(e) =>
+                setResolutionForm({ ...resolutionForm, admin_notes: e.target.value })
+              }
+              required
+              placeholder="Explain how this issue was resolved..."
+            />
+            <div className="flex gap-4 pt-4">
+              <Button type="submit" variant="success" className="flex-1">
+                Mark as Resolved
+              </Button>
+              <Button variant="secondary" onClick={() => setShowResolutionModal(false)} className="flex-1">
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

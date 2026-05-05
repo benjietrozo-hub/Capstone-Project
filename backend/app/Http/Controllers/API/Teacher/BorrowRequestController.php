@@ -58,6 +58,7 @@ class BorrowRequestController extends Controller
         
         $v = $request->validate([
             'category_id' => 'required|exists:item_categories,id',
+            'inventory_item_id' => 'nullable|exists:inventory_items,id',
             'quantity' => 'required|integer|min:1',
             'expected_return_date' => 'required|date|after_or_equal:today',
             'purpose' => 'nullable|max:500'
@@ -95,8 +96,17 @@ class BorrowRequestController extends Controller
         
         \Log::info('Borrow request created successfully with ID:', ['id' => $br->id]);
         
+        // Link specific item if provided
+        if (isset($v['inventory_item_id'])) {
+            $br->inventoryItems()->attach($v['inventory_item_id'], [
+                'status' => 'borrowed',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+        
         // Load relationships for notification
-        $br->load(['category', 'teacher']);
+        $br->load(['category', 'teacher', 'inventoryItems']);
         
         // Notify all admins about new borrow request
         NotificationService::notifyBorrowRequestCreated($br);
