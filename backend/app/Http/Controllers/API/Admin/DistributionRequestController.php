@@ -155,17 +155,18 @@ class DistributionRequestController extends Controller
                 'teacher_id' => $distributionRequest->teacher_id,
                 'distributed_by' => $admin->id,
                 'quantity_distributed' => $distributionRequest->quantity_requested,
-                'status' => 'active',
+                'status' => 'pending_acceptance',
                 'distribution_date' => now(),
                 'purpose' => $distributionRequest->reason,
+
                 'notes' => $distributionRequest->notes,
                 'admin_notes' => $request->admin_notes,
                 'condition_on_distribution' => $request->condition_on_distribution,
             ]);
 
             // Update item statuses to distributed
-            \App\Models\InventoryItem::whereIn('id', $request->inventory_item_ids)->update(['status' => 'borrowed']); // Note: borrowed is used for both borrow and dist or we could add 'distributed' status to inventory_items
-            // Actually, wait, status might only be 'available', 'borrowed', 'maintenance', 'damaged', 'archived'. Let's stick with 'borrowed'.
+            \App\Models\InventoryItem::whereIn('id', $request->inventory_item_ids)->update(['status' => 'distributed']);
+
             
             $syncData = [];
             foreach ($request->inventory_item_ids as $itemId) {

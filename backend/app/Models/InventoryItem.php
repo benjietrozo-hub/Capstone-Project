@@ -22,6 +22,7 @@ class InventoryItem extends Model
         'condition',
         'status',
         'date_acquired',
+        'lifespan_years',
         'location',
         'custom_attributes',
         'deleted_by'
@@ -31,6 +32,27 @@ class InventoryItem extends Model
         'date_acquired' => 'date',
         'custom_attributes' => 'array', // This handles JSON encoding/decoding automatically!
     ];
+
+    protected $appends = ['is_approaching_end_of_life', 'end_of_life_date'];
+
+    public function getEndOfLifeDateAttribute()
+    {
+        if (!$this->date_acquired || !$this->lifespan_years) {
+            return null;
+        }
+        return $this->date_acquired->copy()->addYears($this->lifespan_years);
+    }
+
+    public function getIsApproachingEndOfLifeAttribute()
+    {
+        $eolDate = $this->end_of_life_date;
+        if (!$eolDate) {
+            return false;
+        }
+        // Flag if within 6 months (180 days) of EOL
+        return now()->diffInDays($eolDate, false) <= 180;
+    }
+
 
     public function category()
     {

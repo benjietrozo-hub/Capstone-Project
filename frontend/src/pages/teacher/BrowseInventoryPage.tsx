@@ -57,6 +57,8 @@ export function BrowseInventoryPage() {
     purpose: '',
     expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Tomorrow
   });
+  const [requestType, setRequestType] = useState<'borrow' | 'distribution'>('borrow');
+
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
@@ -117,9 +119,24 @@ export function BrowseInventoryPage() {
     }
   };
 
-  const handleOpenRequestModal = (cat: ItemCategory, item?: any) => {
+  
+  const handleOpenDistributionModal = (cat: ItemCategory, item?: any) => {
     setSelectedCategory(cat);
     setSelectedItem(item || null);
+    setRequestType('distribution');
+    setRequestForm({
+      inventory_item_id: item?.id,
+      quantity: 1,
+      purpose: '',
+      expected_return_date: '', // Not needed for distribution
+    });
+    setShowRequestModal(true);
+  };
+
+  const handleOpenBorrowModal = (cat: ItemCategory, item?: any) => {
+    setSelectedCategory(cat);
+    setSelectedItem(item || null);
+    setRequestType('borrow');
     setRequestForm({
       inventory_item_id: item?.id,
       quantity: 1,
@@ -128,6 +145,7 @@ export function BrowseInventoryPage() {
     });
     setShowRequestModal(true);
   };
+
   
   const handleOpenDetailsModal = (item: any) => {
     setSelectedItem(item);
@@ -155,14 +173,17 @@ export function BrowseInventoryPage() {
         ...requestForm
       };
       
-      const response = await teacherAPI.createBorrowRequest(requestData);
+      const response = requestType === 'borrow' 
+        ? await teacherAPI.createBorrowRequest(requestData)
+        : await teacherAPI.createDistributionRequest(requestData);
       
       if (response?.data?.success) {
         toast({
           title: 'Request Submitted Successfully!',
-          description: response?.data?.message || `Your borrow request for ${selectedItem?.item_name || selectedCategory.category_name} has been submitted. Please wait for admin approval.`,
+          description: response?.data?.message || `Your ${requestType} request for ${selectedItem?.item_name || selectedCategory.category_name} has been submitted. Please wait for admin approval.`,
           duration: 5000,
         });
+
         
         setShowRequestModal(false);
         setSelectedItem(null);
@@ -521,16 +542,25 @@ export function BrowseInventoryPage() {
                             <span className="text-sm font-bold text-gray-700 capitalize">{item.condition}</span>
                           </div>
                           
-                          <Button 
-                            className="w-full text-xs h-9 font-bold flex items-center gap-2"
-                            disabled={item.status !== 'available' || (item.pending_requests_count !== undefined && item.pending_requests_count > 0)}
-                            onClick={() => selectedCategory && handleOpenRequestModal(selectedCategory, item)}
-                          >
-                            <ClipboardCheck className="w-4 h-4" />
-                            {item.status === 'borrowed' ? 'Already Borrowed' : 
-                             (item.pending_requests_count !== undefined && item.pending_requests_count > 0) ? 'Requested' : 
-                             item.status === 'available' ? 'Borrow Unit' : 'Unavailable'}
-                          </Button>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button 
+                              className="text-[10px] h-9 font-black uppercase tracking-widest flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                              disabled={item.status !== 'available' || (item.pending_requests_count !== undefined && item.pending_requests_count > 0)}
+                              onClick={() => selectedCategory && handleOpenBorrowModal(selectedCategory, item)}
+                            >
+                              <ClipboardCheck className="w-3.5 h-3.5" />
+                              Borrow
+                            </Button>
+                            <Button 
+                              className="text-[10px] h-9 font-black uppercase tracking-widest flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
+                              disabled={item.status !== 'available' || (item.pending_requests_count !== undefined && item.pending_requests_count > 0)}
+                              onClick={() => selectedCategory && handleOpenDistributionModal(selectedCategory, item)}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              Distribute
+                            </Button>
+                          </div>
+
                           
                           <Button 
                             variant="secondary"
@@ -605,17 +635,25 @@ export function BrowseInventoryPage() {
                             <StatusBadge label={item.status} status={item.status} />
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <Button 
-                              variant="secondary"
-                              className="text-[10px] font-bold uppercase tracking-wider"
-                              disabled={item.status !== 'available' || (item.pending_requests_count !== undefined && item.pending_requests_count > 0)}
-                              onClick={() => selectedCategory && handleOpenRequestModal(selectedCategory, item)}
-                            >
-                              {item.status === 'borrowed' ? 'Borrowed' : 
-                               (item.pending_requests_count !== undefined && item.pending_requests_count > 0) ? 'Requested' : 
-                               'Borrow'}
-                            </Button>
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="secondary"
+                                className="text-[9px] font-black uppercase tracking-widest h-8 px-3"
+                                disabled={item.status !== 'available' || (item.pending_requests_count !== undefined && item.pending_requests_count > 0)}
+                                onClick={() => selectedCategory && handleOpenBorrowModal(selectedCategory, item)}
+                              >
+                                Borrow
+                              </Button>
+                              <Button 
+                                className="text-[9px] font-black uppercase tracking-widest h-8 px-3 bg-indigo-600 hover:bg-indigo-700 text-white border-0"
+                                disabled={item.status !== 'available' || (item.pending_requests_count !== undefined && item.pending_requests_count > 0)}
+                                onClick={() => selectedCategory && handleOpenDistributionModal(selectedCategory, item)}
+                              >
+                                Distribute
+                              </Button>
+                            </div>
                           </td>
+
                         </tr>
                       ))}
                     </tbody>
@@ -630,8 +668,9 @@ export function BrowseInventoryPage() {
         <Modal
           isOpen={showRequestModal}
           onClose={() => setShowRequestModal(false)}
-          title={`Borrow Request - ${selectedItem?.item_name || selectedCategory?.category_name}`}
+          title={`${requestType === 'borrow' ? 'Borrow' : 'Distribution'} Request - ${selectedItem?.item_name || selectedCategory?.category_name}`}
         >
+
           <form onSubmit={handleSubmitRequest} className="space-y-6 py-2">
             <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 flex gap-4 items-start">
               <div className="p-2 bg-blue-100 rounded-xl shrink-0">
@@ -639,14 +678,15 @@ export function BrowseInventoryPage() {
               </div>
               <p className="text-sm text-blue-800 leading-relaxed">
                 {selectedItem ? (
-                  <>You are requesting to borrow <strong>{selectedItem.item_name}</strong> (SN: {selectedItem.serial_number}).</>
+                  <>You are requesting to {requestType === 'borrow' ? 'borrow' : 'be assigned'} <strong>{selectedItem.item_name}</strong> (SN: {selectedItem.serial_number}).</>
                 ) : (
-                  <>You are requesting units from the <strong>{selectedCategory?.category_name}</strong> category. The administrator will allocate specific units based on availability upon approval.</>
+                  <>You are requesting units for {requestType === 'borrow' ? 'temporary use' : 'permanent distribution'} from the <strong>{selectedCategory?.category_name}</strong> category.</>
                 )}
               </p>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 ${requestType === 'borrow' ? 'sm:grid-cols-2' : ''} gap-4`}>
+
               {!selectedItem && (
                 <FormField
                   label={`Quantity (Max: ${selectedCategory?.available_items})`}
@@ -658,6 +698,8 @@ export function BrowseInventoryPage() {
                   max={selectedCategory?.available_items?.toString()}
                 />
               )}
+              {requestType === 'borrow' && (
+
                 <FormField
                   label="Expected Return Date"
                   type="date"
@@ -666,10 +708,13 @@ export function BrowseInventoryPage() {
                   required
                   min={new Date().toISOString().split('T')[0]}
                 />
+              )}
             </div>
 
+
             <FormField
-              label="Purpose of Request"
+              label={`Purpose of ${requestType === 'borrow' ? 'Borrow' : 'Distribution'}`}
+
               type="textarea"
               value={requestForm.purpose}
               onChange={(e) => setRequestForm({ ...requestForm, purpose: e.target.value })}
@@ -745,16 +790,29 @@ export function BrowseInventoryPage() {
               )}
 
               <div className="pt-4 border-t border-gray-100 flex gap-3">
-                <Button 
-                  className="flex-1 py-4 rounded-xl font-bold"
-                  disabled={selectedItem.status !== 'available'}
-                  onClick={() => {
-                    setShowDetailsModal(false);
-                    handleOpenRequestModal(selectedCategory!, selectedItem);
-                  }}
-                >
-                  Request to Borrow
-                </Button>
+                <div className="flex flex-col gap-2 flex-1">
+                  <Button 
+                    className="w-full py-4 rounded-xl font-bold bg-blue-600 hover:bg-blue-700"
+                    disabled={selectedItem.status !== 'available'}
+                    onClick={() => {
+                      setShowDetailsModal(false);
+                      handleOpenBorrowModal(selectedCategory!, selectedItem);
+                    }}
+                  >
+                    Request to Borrow
+                  </Button>
+                  <Button 
+                    className="w-full py-4 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700"
+                    disabled={selectedItem.status !== 'available'}
+                    onClick={() => {
+                      setShowDetailsModal(false);
+                      handleOpenDistributionModal(selectedCategory!, selectedItem);
+                    }}
+                  >
+                    Request Distribution
+                  </Button>
+                </div>
+
                 <Button variant="secondary" onClick={() => setShowDetailsModal(false)} className="px-6 rounded-xl font-bold">
                   Close
                 </Button>

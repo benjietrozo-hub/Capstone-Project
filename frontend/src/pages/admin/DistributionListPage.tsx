@@ -2,7 +2,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TableSkeleton, DashboardSkeleton } from "../../components/common/Skeleton";
-import { Search, Download, Users, Filter, Plus, Mail, Phone, Building2, UserCheck, UserX, Package, Calendar, AlertCircle, CheckCircle, XCircle, Eye, Clock, ClipboardList } from "lucide-react";
+import { Search, Download, Users, Users2, Filter, Plus, Mail, Phone, Building2, UserCheck, UserX, Package, Calendar, AlertCircle, CheckCircle, XCircle, Eye, Clock, ClipboardList, Printer, Archive, ShieldCheck, TrendingUp, ArrowUpRight, Layers } from "lucide-react";
+
+
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -224,6 +226,13 @@ export default function DistributionListPage() {
   const [showViewRequestModal, setShowViewRequestModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<DistributionRequest | null>(null);
 
+  // Verification Modal state
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifyPassword, setVerifyPassword] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ type: 'group' | 'distribution', data: any } | null>(null);
+
+
   // React Query - Statistics and Departments
   const { data: statsData } = useQuery({
     queryKey: ['distribution-stats'],
@@ -417,7 +426,104 @@ export default function DistributionListPage() {
 
   const loading = loadingTeachers || loadingGroups || loadingDistributions || loadingRequests;
 
+  const handlePrintDistributions = () => {
+    if (filteredAllDistributions.length === 0) {
+      toast.error("No data to print");
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const tableRows = filteredAllDistributions.map((dist, idx) => `
+      <tr>
+        <td>${idx + 1}</td>
+        <td>${dist.type === 'bulk' ? `BD-${dist.id}` : `ID-${dist.id}`}</td>
+        <td>${new Date(dist.distribution_date).toLocaleDateString()}</td>
+        <td>
+          <strong>${dist.item?.item_name || 'N/A'}</strong><br/>
+          <small>${dist.item?.item_code || ''}</small>
+        </td>
+        <td>
+          ${dist.type === 'individual' ? dist.teacher?.full_name : dist.group?.group_name}<br/>
+          <small>${dist.type === 'individual' ? dist.teacher?.department : 'Group'}</small>
+        </td>
+        <td>${dist.type === 'individual' ? dist.quantity_distributed : dist.total_quantity}</td>
+        <td>${dist.condition_on_distribution || 'Good'}</td>
+        <td>${dist.status}</td>
+        <td style="border-bottom: 1px solid #ccc; width: 100px;"></td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Equipment Distribution Report - OIMS</title>
+          <style>
+            body { font-family: sans-serif; padding: 40px; color: #333; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #0063F7; padding-bottom: 20px; }
+            .header h1 { margin: 0; color: #0063F7; font-size: 24px; }
+            .header p { margin: 5px 0; font-size: 14px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+            th { bg-color: #f8f9fa; font-weight: bold; text-transform: uppercase; }
+            .footer { margin-top: 50px; display: flex; justify-content: space-between; }
+            .sig-block { text-align: center; width: 200px; }
+            .sig-line { border-top: 1px solid #333; margin-top: 40px; padding-top: 5px; font-weight: bold; }
+            @media print {
+              .no-print { display: none; }
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>OFFICE INVENTORY MANAGEMENT SYSTEM</h1>
+            <p><strong>EQUIPMENT DISTRIBUTION REPORT</strong></p>
+            <p>Generated on: ${new Date().toLocaleString()}</p>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Control No</th>
+                <th>Date</th>
+                <th>Item Details</th>
+                <th>Recipient</th>
+                <th>Qty</th>
+                <th>Cond.</th>
+                <th>Status</th>
+                <th>Signature</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <div class="sig-block">
+              <div class="sig-line">Prepared By</div>
+              <p>Property Custodian</p>
+            </div>
+            <div class="sig-block">
+              <div class="sig-line">Verified By</div>
+              <p>School Administrator</p>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() { window.print(); window.close(); };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const handleExport = async () => {
+
     try {
       const token = localStorage.getItem("token");
       
@@ -483,16 +589,16 @@ export default function DistributionListPage() {
   };
 
   const handleCancelDistribution = async (id: number) => {
-    if (!confirm("Are you sure?")) return;
+    if (!confirm("Are you sure you want to cancel this distribution?")) return;
     try {
       const token = localStorage.getItem("token");
       await axios.post(`${import.meta.env.VITE_API_URL}/admin/distributions/${id}/cancel`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success("Cancelled");
+      toast.success("Distribution cancelled successfully");
       queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
-    } catch (error) {
-      toast.error("Failed");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to cancel distribution");
     }
   };
 
@@ -503,24 +609,24 @@ export default function DistributionListPage() {
 
   const getRequestStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
-      pending: <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>,
-      approved: <Badge className="bg-green-100 text-green-800">Approved</Badge>,
-      rejected: <Badge className="bg-red-100 text-red-800">Rejected</Badge>,
-      distributed: <Badge className="bg-blue-100 text-blue-800">Distributed</Badge>,
+      pending: <Badge className="bg-amber-100 text-amber-800 border-amber-200">Pending</Badge>,
+      approved: <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Approved</Badge>,
+      rejected: <Badge className="bg-red-100 text-red-800 border-red-200">Rejected</Badge>,
+      distributed: <Badge className="bg-blue-100 text-blue-800 border-blue-200">Distributed</Badge>,
     };
     return variants[status] || <Badge>{status}</Badge>;
   };
 
   const getStatusBadge = (status: string, isOverdue: boolean = false) => {
-    if (isOverdue) return <Badge className="bg-red-100 text-red-800">Overdue</Badge>;
+    if (isOverdue) return <Badge className="bg-red-100 text-red-800 border-red-200 font-bold px-3 py-1 animate-pulse">Overdue</Badge>;
     const variants: Record<string, any> = {
-      active: <Badge className="bg-blue-100 text-blue-800">Active</Badge>,
-      returned: <Badge className="bg-green-100 text-green-800">Returned</Badge>,
-      cancelled: <Badge className="bg-gray-100 text-gray-800">Cancelled</Badge>,
-      damaged: <Badge className="bg-orange-100 text-orange-800">Damaged</Badge>,
-      lost: <Badge className="bg-red-100 text-red-800">Lost</Badge>,
+      active: <Badge className="bg-blue-50 text-blue-700 border-blue-100 font-bold px-3 py-1">Active</Badge>,
+      returned: <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-bold px-3 py-1">Returned</Badge>,
+      cancelled: <Badge className="bg-slate-50 text-slate-500 border-slate-100 font-bold px-3 py-1">Cancelled</Badge>,
+      damaged: <Badge className="bg-orange-50 text-orange-700 border-orange-100 font-bold px-3 py-1">Damaged</Badge>,
+      lost: <Badge className="bg-red-50 text-red-700 border-red-100 font-bold px-3 py-1">Lost</Badge>,
     };
-    return variants[status] || <Badge>{status}</Badge>;
+    return variants[status] || <Badge className="font-bold px-3 py-1">{status}</Badge>;
   };
 
   const handleViewGroup = (group: DistributionGroup) => {
@@ -532,161 +638,200 @@ export default function DistributionListPage() {
     setSelectedGroupData(group);
     setShowManageMembersModal(true);
   };
+  
+  const handleVerifyAndExecute = async () => {
+    if (!verifyPassword) {
+      toast.error("Administrative authorization required");
+      return;
+    }
+
+    try {
+      setVerifying(true);
+      const token = localStorage.getItem("token");
+      
+      await axios.post(`${import.meta.env.VITE_API_URL}/admin/verify-password`, 
+        { password: verifyPassword },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (!pendingAction) return;
+
+      if (pendingAction.type === 'group') {
+        const group = pendingAction.data;
+        await axios.delete(`${import.meta.env.VITE_API_URL}/admin/distribution/groups/${group.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success("Distribution group archived");
+        queryClient.invalidateQueries({ queryKey: ['distribution-groups'] });
+      } else if (pendingAction.type === 'distribution') {
+        const dist = pendingAction.data;
+        await axios.delete(`${import.meta.env.VITE_API_URL}/admin/distributions/${dist.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success("Distribution record moved to archive");
+        queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
+      }
+
+      setShowVerifyModal(false);
+      setVerifyPassword('');
+      setPendingAction(null);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Authorization failed");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleArchiveGroup = (group: DistributionGroup) => {
+    setPendingAction({ type: 'group', data: group });
+    setShowVerifyModal(true);
+  };
+
+  const handleArchiveDistribution = (dist: ItemDistribution) => {
+    setPendingAction({ type: 'distribution', data: dist });
+    setShowVerifyModal(true);
+  };
 
   const handleReportDamaged = async (dist: ItemDistribution) => {
-    if (!confirm("Report this item as damaged?")) return;
+    toast.info("Updating asset condition...");
     try {
       const token = localStorage.getItem("token");
       await axios.post(`${import.meta.env.VITE_API_URL}/admin/distributions/${dist.id}/damaged`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success("Item reported as damaged");
+      toast.success("Asset reported as damaged");
       queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error("Condition update failed");
     }
   };
 
   const handleReportLost = async (dist: ItemDistribution) => {
-    if (!confirm("Report this item as lost?")) return;
+    toast.info("Updating asset status...");
     try {
       const token = localStorage.getItem("token");
       await axios.post(`${import.meta.env.VITE_API_URL}/admin/distributions/${dist.id}/lost`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success("Item reported as lost");
+      toast.success("Asset reported as lost");
       queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error("Status update failed");
     }
   };
 
-  const handleProcessBulkDistribution = async (id: number) => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(`${import.meta.env.VITE_API_URL}/admin/bulk-distributions/${id}/process`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success("Bulk distribution processed");
-      queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
-    } catch (error) {
-      toast.error("Failed to process");
-    }
-  };
-
-  const fetchDistributionRequests = () => {
-    queryClient.invalidateQueries({ queryKey: ['distribution-requests'] });
-  };
-
-  const fetchData = () => {
-    queryClient.invalidateQueries({ queryKey: ['distribution-stats'] });
-    queryClient.invalidateQueries({ queryKey: ['distribution-teachers'] });
-    queryClient.invalidateQueries({ queryKey: ['distribution-groups'] });
-  };
-
-  const fetchDistributions = () => {
-    queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
-  };
-
-
-  if (!statsData) {
+  if (!statsData && loadingTeachers) {
     return <DashboardSkeleton />;
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Distribution List</h1>
-          <p className="text-gray-600 mt-1">Manage teacher contact lists and groups</p>
+    <div className="p-10 space-y-10 bg-[#F8FAFC] min-h-screen">
+      {/* Premium Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-200">
+              <Users2 className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Distribution Hub</h1>
+          </div>
+          <p className="text-slate-500 font-medium flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            Centralized management for personnel allocations and group distributions
+          </p>
         </div>
-        <div className="flex gap-3">
-          <Button onClick={handleExport} variant="outline" className="gap-2">
-            <Download className="w-4 h-4" />
-            Export
+        <div className="flex items-center gap-4">
+          <Button 
+            onClick={handleExport} 
+            variant="outline" 
+            className="h-12 px-6 rounded-2xl border-slate-200 bg-white hover:bg-slate-50 font-bold transition-all gap-2"
+          >
+            <Download className="w-4 h-4 text-slate-400" />
+            Export Data
           </Button>
-          <Button onClick={() => setShowCreateGroupModal(true)} className="gap-2 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7]">
-            <Plus className="w-4 h-4" />
+          <Button 
+            onClick={() => setShowCreateGroupModal(true)} 
+            className="h-12 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black shadow-xl shadow-slate-200 transition-all active:scale-95 gap-2"
+          >
+            <Plus className="w-5 h-5" />
             Create Group
           </Button>
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Teachers</CardTitle>
-            <Users className="w-4 h-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics?.total_teachers || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Active</CardTitle>
-            <UserCheck className="w-4 h-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{statistics?.active_teachers || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Inactive</CardTitle>
-            <UserX className="w-4 h-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{statistics?.inactive_teachers || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Groups</CardTitle>
-            <Building2 className="w-4 h-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{groupPagination.total}</div>
-          </CardContent>
-        </Card>
+      {/* Premium Statistics Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Total Personnel', value: statistics?.total_teachers || 0, icon: Users, color: 'blue', sub: 'Verified across all depts' },
+          { label: 'Active Roster', value: statistics?.active_teachers || 0, icon: UserCheck, color: 'emerald', sub: 'Eligible for distribution' },
+          { label: 'Pending Requests', value: distributionRequestStats?.pending_requests || 0, icon: Clock, color: 'amber', sub: 'Awaiting admin review' },
+          { label: 'Active Channels', value: groupPagination.total, icon: Building2, color: 'purple', sub: 'Distribution groups' }
+        ].map((stat, i) => (
+          <div key={i} className="group relative overflow-hidden bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-${stat.color}-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-${stat.color}-500/10 transition-colors`} />
+            <div className="relative flex items-start justify-between">
+              <div>
+                <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block">{stat.label}</span>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-4xl font-black text-slate-900 leading-none">{stat.value}</h3>
+                  <div className={`p-1.5 bg-${stat.color}-50 rounded-lg`}>
+                    <TrendingUp className={`w-4 h-4 text-${stat.color}-600`} />
+                  </div>
+                </div>
+                <p className="text-xs font-bold text-slate-400 mt-4 flex items-center gap-1">
+                  {stat.sub}
+                  <ArrowUpRight className="w-3 h-3" />
+                </p>
+              </div>
+              <div className={`p-4 bg-${stat.color}-50 rounded-[20px] text-${stat.color}-600 group-hover:scale-110 transition-transform duration-500`}>
+                <stat.icon className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Main Content */}
-      <Tabs defaultValue="all" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="all">All Teachers</TabsTrigger>
-          <TabsTrigger value="groups">Distribution Groups</TabsTrigger>
-          <TabsTrigger value="distributions">Item Distributions</TabsTrigger>
-          <TabsTrigger value="requests">Distribution Requests</TabsTrigger>
+      {/* Main Interactive Interface */}
+      <Tabs defaultValue="all" className="space-y-8">
+        <TabsList className="h-16 p-2 bg-slate-100 rounded-[24px] border border-slate-200">
+          {[
+            { value: 'all', label: 'Personnel Directory', icon: Users },
+            { value: 'groups', label: 'Distribution Groups', icon: Layers },
+            { value: 'distributions', label: 'Active Distributions', icon: Package },
+            { value: 'requests', label: 'Incoming Requests', icon: ClipboardList }
+          ].map(tab => (
+            <TabsTrigger 
+              key={tab.value}
+              value={tab.value} 
+              className="px-8 h-full rounded-[18px] data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg font-black text-slate-500 gap-3 transition-all"
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        {/* All Teachers Tab */}
-        <TabsContent value="all" className="space-y-4">
-          {/* Filters */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        {/* Personnel Directory Tab */}
+        <TabsContent value="all" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="rounded-[40px] border-slate-100 shadow-xl shadow-slate-100 overflow-hidden">
+            <CardContent className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 pb-8 border-b border-slate-100">
+                <div className="relative md:col-span-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <Input
-                    placeholder="Search teachers..."
+                    placeholder="Search personnel..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-12 h-14 rounded-2xl border-slate-200 bg-slate-50/50 shadow-inner focus:bg-white"
                   />
                 </div>
 
                 <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50/50">
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
+                    <SelectItem value="all">Global Directory</SelectItem>
                     {departments.map(dept => (
                       <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                     ))}
@@ -694,538 +839,247 @@ export default function DistributionListPage() {
                 </Select>
 
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Status" />
+                  <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50/50">
+                    <SelectValue placeholder="Roster Status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="active">Verified Active</SelectItem>
+                    <SelectItem value="inactive">Currently Inactive</SelectItem>
                   </SelectContent>
                 </Select>
 
                 <Select value={selectedGroup?.toString() || "all"} onValueChange={(v) => setSelectedGroup(v === "all" ? null : parseInt(v))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Groups" />
+                  <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50/50">
+                    <SelectValue placeholder="Filter by Group" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Groups</SelectItem>
+                    <SelectItem value="all">All Channels</SelectItem>
                     {allGroups.map(group => (
                       <SelectItem key={group.id} value={group.id.toString()}>
-                        {group.group_name} ({group.teachers_count})
+                        {group.group_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                <div className="text-sm text-gray-600">
-                  Showing {teachers.length} of {teacherPagination.total} teachers
-                  {selectedTeachers.length > 0 && ` • ${selectedTeachers.length} selected`}
+              {loadingTeachers ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[1, 2, 3, 4, 5, 6].map(n => <div key={n} className="h-48 bg-slate-50 rounded-[32px] animate-pulse" />)}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleSelectAll}>
-                    {selectedTeachers.length === teachers.length ? "Deselect All" : "Select All"}
+              ) : teachers.length === 0 ? (
+                <div className="py-24 text-center">
+                  <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center mx-auto mb-6">
+                    <Users className="w-10 h-10 text-slate-200" />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900">Zero personnel matched</h3>
+                  <p className="text-slate-400 mt-2">Refine your search parameters to find results</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {teachers.map((teacher) => (
+                    <div key={teacher.id} className="group p-6 bg-white border border-slate-100 rounded-[32px] hover:shadow-2xl hover:shadow-slate-200 transition-all duration-300 relative">
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                            <span className="text-lg font-black text-slate-400 group-hover:text-blue-600">{teacher.full_name.charAt(0)}</span>
+                          </div>
+                          <div>
+                            <h4 className="font-black text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">{teacher.full_name}</h4>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {teacher.employee_id}</p>
+                          </div>
+                        </div>
+                        <Badge className={`${teacher.status === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'} font-black px-3 py-1 rounded-xl`}>
+                          {teacher.status.toUpperCase()}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-3 rounded-2xl group-hover:bg-white group-hover:border-slate-100 border border-transparent transition-all">
+                          <Mail className="w-4 h-4 text-slate-400" />
+                          <span className="truncate">{teacher.email}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-3 rounded-2xl group-hover:bg-white group-hover:border-slate-100 border border-transparent transition-all">
+                          <Building2 className="w-4 h-4 text-slate-400" />
+                          <span>{teacher.department}</span>
+                        </div>
+                      </div>
+
+                      {teacher.active_borrows_count > 0 && (
+                        <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Package className="w-4 h-4 text-blue-500" />
+                            <span className="text-xs font-black text-slate-800">{teacher.active_borrows_count} Items Assigned</span>
+                          </div>
+                          <ArrowUpRight className="w-4 h-4 text-slate-200 group-hover:text-blue-500 transition-colors" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Pagination UI */}
+              <div className="flex items-center justify-between mt-12 pt-8 border-t border-slate-100">
+                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">
+                  Record {((teacherPagination.currentPage - 1) * 12) + 1} - {Math.min(teacherPagination.currentPage * 12, teacherPagination.total)} of {teacherPagination.total}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" className="rounded-xl border-slate-200" disabled={teacherPagination.currentPage === 1} onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}>
+                    <ChevronLeft className="w-5 h-5" />
+                  </Button>
+                  <div className="flex items-center gap-1 px-4">
+                    <span className="text-sm font-black text-slate-900">{teacherPagination.currentPage}</span>
+                    <span className="text-sm font-bold text-slate-400">/</span>
+                    <span className="text-sm font-bold text-slate-400">{teacherPagination.lastPage}</span>
+                  </div>
+                  <Button variant="outline" size="icon" className="rounded-xl border-slate-200" disabled={teacherPagination.currentPage === teacherPagination.lastPage} onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}>
+                    <ChevronRight className="w-5 h-5" />
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          {/* Teachers Grid */}
-          {loadingTeachers ? (
-            <TableSkeleton rows={6} cols={1} />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {teachers.map((teacher) => (
-              <Card key={teacher.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <input
-                        type="checkbox"
-                        checked={selectedTeachers.includes(teacher.id)}
-                        onChange={() => handleSelectTeacher(teacher.id)}
-                        className="mt-1 rounded border-gray-300"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg truncate">{teacher.full_name}</CardTitle>
-                        <p className="text-sm text-gray-600 mt-1">{teacher.employee_id}</p>
-                      </div>
-                    </div>
-                    <Badge variant={teacher.status === "active" ? "default" : "secondary"}>
-                      {teacher.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">{teacher.email}</span>
-                  </div>
-                  {teacher.phone && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Phone className="w-4 h-4 flex-shrink-0" />
-                      <span>{teacher.phone}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Building2 className="w-4 h-4 flex-shrink-0" />
-                    <Badge variant="outline" className="truncate">{teacher.department}</Badge>
-                  </div>
-                  {teacher.active_borrows_count > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Package className="w-4 h-4 flex-shrink-0 text-blue-600" />
-                      <span className="text-blue-600 font-medium">
-                        {teacher.active_borrows_count} active borrow{teacher.active_borrows_count !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-            </div>
-          )}
-
-          {teachers.length === 0 && (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Teachers Found</h3>
-                <p className="text-gray-600">Try adjusting your filters or search query</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Teacher Pagination */}
-          <div className="flex items-center justify-center gap-2 mt-6">
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={teacherPagination.currentPage === 1}
-              onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: 1 }))}
-            >
-              <ChevronsLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={teacherPagination.currentPage === 1}
-              onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-sm font-medium px-4">
-              Page {teacherPagination.currentPage} of {teacherPagination.lastPage}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={teacherPagination.currentPage === teacherPagination.lastPage}
-              onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={teacherPagination.currentPage === teacherPagination.lastPage}
-              onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: teacherPagination.lastPage }))}
-            >
-              <ChevronsRight className="w-4 h-4" />
-            </Button>
-          </div>
         </TabsContent>
 
         {/* Distribution Groups Tab */}
-        <TabsContent value="groups" className="space-y-4">
-          {loadingGroups ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => <TableSkeleton key={i} rows={4} cols={1} />)}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {groups.map((group) => (
-              <Card key={group.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{group.group_name}</CardTitle>
-                      <p className="text-sm text-gray-600 mt-1">{group.description || "No description"}</p>
+        <TabsContent value="groups" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {loadingGroups ? (
+              [1, 2, 3].map(n => <div key={n} className="h-64 bg-slate-100 rounded-[40px] animate-pulse" />)
+            ) : groups.length === 0 ? (
+              <div className="col-span-full py-24 text-center bg-white rounded-[40px] border border-slate-100 shadow-sm">
+                <Layers className="w-16 h-16 text-slate-100 mx-auto mb-6" />
+                <h3 className="text-xl font-black text-slate-900">No Distribution Groups</h3>
+                <p className="text-slate-400 mt-2">Initialize a new group to start collective distributions</p>
+                <Button onClick={() => setShowCreateGroupModal(true)} className="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-black px-8 h-12 rounded-2xl">Create First Group</Button>
+              </div>
+            ) : (
+              groups.map((group) => (
+                <div key={group.id} className="group bg-white border border-slate-100 rounded-[40px] shadow-sm hover:shadow-2xl hover:shadow-slate-200 transition-all duration-500 overflow-hidden flex flex-col">
+                  <div className="p-8 pb-4">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="p-4 bg-slate-50 rounded-3xl group-hover:bg-blue-50 transition-colors">
+                        <Users className="w-6 h-6 text-slate-400 group-hover:text-blue-600" />
+                      </div>
+                      <Badge className={`${group.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'} font-black px-3 h-7`}>
+                        {group.is_active ? 'ACTIVE CHANNEL' : 'INACTIVE'}
+                      </Badge>
                     </div>
-                    <Badge variant={group.is_active ? "default" : "secondary"}>
-                      {group.is_active ? "Active" : "Inactive"}
-                    </Badge>
+                    <h3 className="text-2xl font-black text-slate-900 mb-2">{group.group_name}</h3>
+                    <p className="text-slate-500 text-sm font-medium line-clamp-2 min-h-[40px]">{group.description || 'No descriptive metadata provided for this distribution channel.'}</p>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Users className="w-4 h-4" />
-                      <span>{group.teachers_count} members</span>
+                  
+                  <div className="px-8 py-6 bg-slate-50/50 border-y border-slate-50 flex items-center justify-between mt-auto">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] mb-1">Verified Members</span>
+                      <span className="text-xl font-black text-slate-800">{group.teachers_count} Personnel</span>
                     </div>
-                    <Badge variant="outline">{group.group_type}</Badge>
+                    <div className="flex flex-col text-right">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] mb-1">Channel Type</span>
+                      <span className="text-sm font-black text-slate-500 uppercase tracking-widest">{group.group_type}</span>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewGroup(group);
-                      }}
-                      className="flex-1"
-                    >
-                      View Details
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleManageMembers(group);
-                      }}
-                      className="flex-1 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7]"
-                    >
-                      Manage Members
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            </div>
-          )}
 
-          {/* Group Pagination */}
-          {groupPagination.lastPage > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
-              <Button
-                variant="outline"
-                size="icon"
-                disabled={groupPagination.currentPage === 1}
-                onClick={() => setGroupPagination(prev => ({ ...prev, currentPage: 1 }))}
-              >
-                <ChevronsLeft className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                disabled={groupPagination.currentPage === 1}
-                onClick={() => setGroupPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-sm font-medium px-4">
-                Page {groupPagination.currentPage} of {groupPagination.lastPage}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                disabled={groupPagination.currentPage === groupPagination.lastPage}
-                onClick={() => setGroupPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                disabled={groupPagination.currentPage === groupPagination.lastPage}
-                onClick={() => setGroupPagination(prev => ({ ...prev, currentPage: groupPagination.lastPage }))}
-              >
-                <ChevronsRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
+                  <div className="p-6 grid grid-cols-2 gap-3 bg-white">
+                    <Button onClick={() => handleViewGroup(group)} variant="outline" className="h-12 rounded-2xl border-slate-100 font-bold hover:bg-slate-50 text-slate-600">View Roster</Button>
+                    <Button onClick={() => handleManageMembers(group)} className="h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black shadow-lg">Manage</Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </TabsContent>
 
-        {/* Item Distributions Tab */}
-        <TabsContent value="distributions" className="space-y-4">
-          {/* Distribution Statistics */}
-          {distributionStats && (
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Total</CardTitle>
-                  <Package className="w-4 h-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{distributionStats.total_distributions}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Active</CardTitle>
-                  <CheckCircle className="w-4 h-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">{distributionStats.active_distributions}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Returned</CardTitle>
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{distributionStats.returned_distributions}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Overdue</CardTitle>
-                  <AlertCircle className="w-4 h-4 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">{distributionStats.overdue_distributions}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Items Out</CardTitle>
-                  <Package className="w-4 h-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-purple-600">{distributionStats.total_quantity_distributed}</div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Filters and Actions */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 flex gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      placeholder="Search by item or teacher..."
-                      value={distributionSearch}
-                      onChange={(e) => setDistributionSearch(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-
-                  <Select value={distributionStatus} onValueChange={(v) => setDistributionStatus(v)}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="returned">Returned</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex gap-2">
-                                    <Button onClick={() => setShowCreateDistributionModal(true)} className="gap-2 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7]">
-                    <Plus className="w-4 h-4" />
-                    Distribute Item
-                  </Button>
-                </div>
+        {/* Active Distributions Tab */}
+        <TabsContent value="distributions" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="rounded-[40px] border-slate-100 shadow-xl shadow-slate-100 overflow-hidden">
+            <CardHeader className="p-8 pb-0 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl font-black text-slate-900">Distribution Ledger</CardTitle>
+                <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Real-time allocation tracking</p>
               </div>
-
-              <div className="text-sm text-gray-600 mt-4">
-                Showing {filteredAllDistributions.length} of {allDistributions.length} distributions ({distributions.length} individual, {bulkDistributions.length} bulk)
+              <div className="flex items-center gap-4">
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input 
+                    placeholder="Filter records..." 
+                    value={distributionSearch}
+                    onChange={(e) => setDistributionSearch(e.target.value)}
+                    className="pl-10 h-11 rounded-xl border-slate-100 bg-slate-50" 
+                  />
+                </div>
+                <Select value={distributionStatus} onValueChange={setDistributionStatus}>
+                  <SelectTrigger className="w-[160px] h-11 rounded-xl border-slate-100 bg-slate-50">
+                    <SelectValue placeholder="All States" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Records</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="returned">Returned</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Distributions Table */}
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="rounded-3xl border border-slate-100 overflow-hidden bg-white shadow-inner">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Control No.</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Details</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipient</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Condition</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issued By</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100">
+                      <th className="px-8 py-5 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest">Asset Details</th>
+                      <th className="px-8 py-5 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest">Recipient</th>
+                      <th className="px-8 py-5 text-center text-[11px] font-black text-slate-400 uppercase tracking-widest">Qty</th>
+                      <th className="px-8 py-5 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest">Allocated On</th>
+                      <th className="px-8 py-5 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                      <th className="px-8 py-5 text-right text-[11px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-slate-50">
                     {loadingDistributions ? (
-                      <tr>
-                        <td colSpan={10} className="px-4 py-8">
-                          <TableSkeleton rows={8} cols={10} />
-                        </td>
-                      </tr>
-                    ) : filteredAllDistributions.length === 0 ? (
-                      <tr>
-                        <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
-                          <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                          <p>No distributions found</p>
-                          <Button 
-                            onClick={() => setShowCreateDistributionModal(true)} 
-                            variant="outline" 
-                            className="mt-4"
-                          >
-                            Create First Distribution
-                          </Button>
-                        </td>
-                      </tr>
+                      <tr><td colSpan={6} className="p-12 text-center text-slate-300 italic">Accessing ledger...</td></tr>
+                    ) : distributions.length === 0 ? (
+                      <tr><td colSpan={6} className="p-20 text-center text-slate-400 italic font-bold">No distribution records found</td></tr>
                     ) : (
-                      filteredAllDistributions.map((dist) => (
-                        <tr key={`${dist.type}-${dist.id}`} className="hover:bg-gray-50">
-                          {/* Control No. Column */}
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {dist.type === 'bulk' ? `BD-${dist.id.toString().padStart(6, '0')}` : `ID-${dist.id.toString().padStart(6, '0')}`}
-                            </div>
-                            <Badge variant={dist.type === 'bulk' ? 'default' : 'secondary'} className="mt-1">
-                              {dist.type === 'bulk' ? 'Bulk' : 'Individual'}
-                            </Badge>
-                          </td>
-                          
-                          {/* Date Column */}
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {new Date(dist.distribution_date).toLocaleDateString()}
-                          </td>
-                          
-                          {/* Item Details Column */}
-                          <td className="px-4 py-4">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{dist.item?.item_name || 'N/A'}</div>
-                              <div className="text-xs text-gray-500">{dist.item?.item_code || 'N/A'}</div>
-                              <div className="text-xs text-gray-400">{dist.item?.category || 'N/A'}</div>
+                      distributions.map((dist) => (
+                        <tr key={dist.id} className="group hover:bg-slate-50/80 transition-colors">
+                          <td className="px-8 py-5">
+                            <div className="flex flex-col">
+                              <span className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{dist.item.item_name}</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">{dist.item.item_code}</span>
                             </div>
                           </td>
-                          
-                          {/* Recipient Column */}
-                          <td className="px-4 py-4">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {dist.type === 'individual' ? dist.teacher?.full_name : dist.group?.group_name}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {dist.type === 'individual' ? dist.teacher?.department : `${dist.group?.teachers_count} members`}
-                              </div>
-                              <div className="text-xs text-gray-400">
-                                {dist.type === 'individual' ? 'Teacher' : 'Group'}
-                              </div>
+                          <td className="px-8 py-5">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-slate-700">{dist.teacher.full_name}</span>
+                              <span className="text-xs font-medium text-slate-400">{dist.teacher.department}</span>
                             </div>
                           </td>
-                          
-                          {/* Quantity Column */}
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div className="font-medium">
-                              {dist.type === 'individual' ? dist.quantity_distributed : `${dist.total_quantity} total`}
-                            </div>
-                            {dist.type === 'bulk' && (
-                              <div className="text-xs text-gray-500">{dist.quantity_per_member}/member</div>
-                            )}
-                            <div className="text-xs text-gray-400">units</div>
+                          <td className="px-8 py-5 text-center">
+                            <Badge className="bg-slate-100 text-slate-700 border-slate-200 font-black h-7 px-3">{dist.quantity_distributed}</Badge>
                           </td>
-                          
-                          {/* Condition Column */}
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <Badge className={
-                              dist.condition_on_distribution === 'excellent' ? 'bg-green-100 text-green-800' :
-                              dist.condition_on_distribution === 'good' ? 'bg-blue-100 text-blue-800' :
-                              dist.condition_on_distribution === 'fair' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }>
-                              {dist.condition_on_distribution || 'Good'}
-                            </Badge>
-                          </td>
-                          
-                          {/* Purpose Column */}
-                          <td className="px-4 py-4">
-                            <div className="text-sm text-gray-900 max-w-xs truncate" title={dist.purpose || 'N/A'}>
-                              {dist.purpose || 'N/A'}
+                          <td className="px-8 py-5">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-slate-600">{new Date(dist.distribution_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                              {dist.expected_return_date && (
+                                <span className="text-[10px] font-black text-slate-400 uppercase mt-0.5">Due: {new Date(dist.expected_return_date).toLocaleDateString()}</span>
+                              )}
                             </div>
                           </td>
-                          
-                          {/* Issued By Column */}
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {dist.distributed_by_admin?.name || 'Admin'}
-                            </div>
-                            <div className="text-xs text-gray-500">Property Custodian</div>
+                          <td className="px-8 py-5">
+                            {getStatusBadge(dist.status)}
                           </td>
-                          
-                          {/* Status Column */}
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            {getStatusBadge(dist.status, (dist as any).is_overdue)}
-                          </td>
-                          
-                          {/* Actions Column */}
-                          <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex gap-2">
-                              {dist.type === 'individual' && dist.status === 'active' && (
+                          <td className="px-8 py-5 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {dist.status === 'active' && (
                                 <>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleReturnDistribution(dist)}
-                                    className="text-green-600 hover:text-green-700"
-                                  >
-                                    Return
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleReportDamaged(dist)}
-                                    className="text-orange-600 hover:text-orange-700"
-                                  >
-                                    Damaged
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleReportLost(dist)}
-                                    className="text-red-600 hover:text-red-700"
-                                  >
-                                    Lost
-                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => { setSelectedDistribution(dist); setShowReturnModal(true); }} className="h-9 rounded-xl border-slate-200 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition-all font-bold">Process Return</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => handleReportDamaged(dist)} className="h-9 w-9 rounded-xl p-0 text-slate-300 hover:text-orange-600 hover:bg-orange-50" title="Report Damaged"><XCircle className="w-4 h-4" /></Button>
                                 </>
                               )}
-                              {dist.type === 'bulk' && dist.status === 'pending' && (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => window.location.href = `/admin/bulk-distributions`}
-                                    className="text-blue-600 hover:text-blue-700"
-                                  >
-                                    View Details
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleProcessBulkDistribution(dist.id)}
-                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                  >
-                                    Process
-                                  </Button>
-                                </>
-                              )}
-                              {dist.type === 'bulk' && dist.status === 'processing' && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => window.location.href = `/admin/bulk-distributions`}
-                                  className="text-blue-600 hover:text-blue-700"
-                                >
-                                  View Details
-                                </Button>
-                              )}
-                              {dist.status === 'returned' && (
-                                <span className="text-sm text-gray-500">
-                                  Returned {dist.actual_return_date ? new Date(dist.actual_return_date).toLocaleDateString() : ''}
-                                </span>
+                              {['returned', 'cancelled', 'lost'].includes(dist.status) && (
+                                <Button size="sm" variant="ghost" onClick={() => handleArchiveDistribution(dist)} className="h-9 w-9 rounded-xl p-0 text-slate-300 hover:text-red-600 hover:bg-red-50" title="Archive Record"><Archive className="w-4 h-4" /></Button>
                               )}
                             </div>
                           </td>
@@ -1239,160 +1093,103 @@ export default function DistributionListPage() {
           </Card>
         </TabsContent>
 
-        {/* Distribution Requests Tab */}
-        <TabsContent value="requests" className="space-y-4">
-          {/* Request Statistics */}
-          {distributionRequestStats && (
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Total Requests</CardTitle>
-                  <Package className="w-4 h-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{distributionRequestStats.total_requests}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Pending</CardTitle>
-                  <Clock className="w-4 h-4 text-yellow-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-yellow-600">{distributionRequestStats.pending_requests}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Approved</CardTitle>
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{distributionRequestStats.approved_requests}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Rejected</CardTitle>
-                  <XCircle className="w-4 h-4 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">{distributionRequestStats.rejected_requests}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Distributed</CardTitle>
-                  <CheckCircle className="w-4 h-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">{distributionRequestStats.distributed_requests}</div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Filters */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Search by item or teacher..."
-                    value={requestSearch}
-                    onChange={(e) => setRequestSearch(e.target.value)}
-                    className="pl-10"
-                  />
+        {/* Incoming Requests Tab */}
+        <TabsContent value="requests" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+           <Card className="rounded-[40px] border-slate-100 shadow-xl shadow-slate-100 overflow-hidden">
+            <CardHeader className="p-8 pb-0">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <CardTitle className="text-2xl font-black text-slate-900">Personnel Requests</CardTitle>
+                  <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Pending allocation requests from faculty</p>
                 </div>
-
-                <Select value={requestStatus} onValueChange={(v) => { setRequestStatus(v); fetchDistributionRequests(); }}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                    <SelectItem value="distributed">Distributed</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-4">
+                   <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Input 
+                      placeholder="Search requests..." 
+                      value={requestSearch}
+                      onChange={(e) => setRequestSearch(e.target.value)}
+                      className="pl-10 h-11 rounded-xl border-slate-100 bg-slate-50" 
+                    />
+                  </div>
+                  <Select value={requestStatus} onValueChange={setRequestStatus}>
+                    <SelectTrigger className="w-[160px] h-11 rounded-xl border-slate-100 bg-slate-50">
+                      <SelectValue placeholder="All States" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Global Queue</SelectItem>
+                      <SelectItem value="pending">Awaiting Review</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="text-sm text-gray-600 mt-4">
-                Showing {filteredRequests.length} of {distributionRequests.length} requests
+              <div className="grid grid-cols-4 gap-4 mb-8">
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex flex-col">
+                  <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">Awaiting Review</span>
+                  <span className="text-xl font-black text-amber-900">{distributionRequestStats?.pending_requests || 0}</span>
+                </div>
+                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col">
+                  <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Approved Cases</span>
+                  <span className="text-xl font-black text-emerald-900">{distributionRequestStats?.approved_requests || 0}</span>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex flex-col">
+                  <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Active Distributions</span>
+                  <span className="text-xl font-black text-blue-900">{distributionRequestStats?.distributed_requests || 0}</span>
+                </div>
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Queue</span>
+                  <span className="text-xl font-black text-slate-900">{distributionRequestStats?.total_requests || 0}</span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Requests Table */}
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
+            </CardHeader>
+            
+            <CardContent className="p-8 pt-0">
+               <div className="rounded-3xl border border-slate-100 overflow-hidden bg-white shadow-inner">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Details</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teacher</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100">
+                      <th className="px-8 py-5 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest">Requested Item</th>
+                      <th className="px-8 py-5 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest">Faculty Member</th>
+                      <th className="px-8 py-5 text-center text-[11px] font-black text-slate-400 uppercase tracking-widest">Req. Qty</th>
+                      <th className="px-8 py-5 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest">Request Date</th>
+                      <th className="px-8 py-5 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest">Current Status</th>
+                      <th className="px-8 py-5 text-right text-[11px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-slate-50">
                     {loadingRequests ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8">
-                          <TableSkeleton rows={5} cols={6} />
-                        </td>
-                      </tr>
-                    ) : filteredRequests.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                          <ClipboardList className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                          <p>No distribution requests found</p>
-                        </td>
-                      </tr>
+                      <tr><td colSpan={6} className="p-12 text-center text-slate-300 italic">Syncing request queue...</td></tr>
+                    ) : distributionRequests.length === 0 ? (
+                      <tr><td colSpan={6} className="p-20 text-center text-slate-400 italic font-bold">The request queue is currently empty</td></tr>
                     ) : (
-                      filteredRequests.map((req) => (
-                        <tr key={req.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{req.item?.item_name || 'N/A'}</div>
-                              <div className="text-sm text-gray-500">{req.item?.item_code || 'N/A'}</div>
+                      distributionRequests.map((req) => (
+                        <tr key={req.id} className="group hover:bg-slate-50/80 transition-colors">
+                          <td className="px-8 py-5">
+                            <div className="flex flex-col">
+                              <span className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{req.item?.item_name || 'Personnel Equipment'}</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">{req.item?.item_code || 'CAT-GEN-00'}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{req.teacher.full_name}</div>
-                              <div className="text-sm text-gray-500">{req.teacher.department}</div>
+                          <td className="px-8 py-5">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-slate-700">{req.teacher.full_name}</span>
+                              <span className="text-xs font-medium text-slate-400">{req.teacher.department}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {req.quantity_requested}
+                          <td className="px-8 py-5 text-center">
+                            <Badge className="bg-blue-50 text-blue-700 border-blue-100 font-black h-7 px-3">{req.quantity_requested}</Badge>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {new Date(req.created_at).toLocaleDateString()}
+                          <td className="px-8 py-5 text-sm font-bold text-slate-500">
+                            {new Date(req.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-8 py-5">
                             {getRequestStatusBadge(req.status)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewRequest(req)}
-                              className="gap-2"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View
-                            </Button>
+                          <td className="px-8 py-5 text-right">
+                            <Button size="sm" onClick={() => handleViewRequest(req)} className="h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 shadow-md transition-all active:scale-95">Review Request</Button>
                           </td>
                         </tr>
                       ))
@@ -1405,95 +1202,78 @@ export default function DistributionListPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Modals */}
+      {/* Global Application Modals */}
       {showCreateGroupModal && (
-        <CreateGroupModal
-          teachers={teachers}
-          onClose={() => setShowCreateGroupModal(false)}
-          onSuccess={handleGroupCreated}
-        />
+        <CreateGroupModal teachers={teachers} onClose={() => setShowCreateGroupModal(false)} onSuccess={handleGroupCreated} />
       )}
 
       {showViewGroupModal && selectedGroupData && (
-        <ViewGroupModal
-          group={selectedGroupData}
-          onClose={() => {
-            setShowViewGroupModal(false);
-            setSelectedGroupData(null);
-          }}
-          onUpdate={fetchData}
-        />
+        <ViewGroupModal group={selectedGroupData} onClose={() => { setShowViewGroupModal(false); setSelectedGroupData(null); }} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['distribution-groups'] })} />
       )}
 
       {showCreateDistributionModal && (
-        <CreateDistributionModal
-          onClose={() => setShowCreateDistributionModal(false)}
-          onSuccess={() => {
-            setShowCreateDistributionModal(false);
-            fetchDistributions();
-          }}
-        />
+        <CreateDistributionModal onClose={() => setShowCreateDistributionModal(false)} onSuccess={() => { setShowCreateDistributionModal(false); queryClient.invalidateQueries({ queryKey: ['item-distributions'] }); }} />
       )}
 
       {showReturnModal && selectedDistribution && (
-        <ReturnDistributionModal
-          distribution={selectedDistribution}
-          onClose={() => {
-            setShowReturnModal(false);
-            setSelectedDistribution(null);
-          }}
-          onSuccess={() => {
-            setShowReturnModal(false);
-            setSelectedDistribution(null);
-            fetchDistributions();
-          }}
-        />
+        <ReturnDistributionModal distribution={selectedDistribution} onClose={() => { setShowReturnModal(false); setSelectedDistribution(null); }} onSuccess={() => { setShowReturnModal(false); setSelectedDistribution(null); queryClient.invalidateQueries({ queryKey: ['item-distributions'] }); }} />
       )}
 
       {showViewRequestModal && selectedRequest && (
-        <ViewDistributionRequestModal
-          request={selectedRequest}
-          onClose={() => {
-            setShowViewRequestModal(false);
-            setSelectedRequest(null);
-          }}
-          onSuccess={() => {
-            setShowViewRequestModal(false);
-            setSelectedRequest(null);
-            setShowViewRequestModal(false);
-            setSelectedRequest(null);
-            queryClient.invalidateQueries({ queryKey: ['distribution-requests'] });
-            queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
-          }}
-        />
+        <ViewDistributionRequestModal request={selectedRequest} onClose={() => { setShowViewRequestModal(false); setSelectedRequest(null); }} onSuccess={() => { setShowViewRequestModal(false); setSelectedRequest(null); queryClient.invalidateQueries({ queryKey: ['distribution-requests'] }); queryClient.invalidateQueries({ queryKey: ['item-distributions'] }); queryClient.invalidateQueries({ queryKey: ['request-stats'] }); }} />
       )}
-
       
       {showManageMembersModal && selectedGroupData && (
-        <ManageGroupMembersModal
-          isOpen={showManageMembersModal}
-          onClose={() => {
-            setShowManageMembersModal(false);
-            setSelectedGroupData(null);
-          }}
-          onSuccess={() => {
-            setShowManageMembersModal(false);
-            setSelectedGroupData(null);
-            setShowManageMembersModal(false);
-            setSelectedGroupData(null);
-            queryClient.invalidateQueries({ queryKey: ['distribution-groups'] });
-            queryClient.invalidateQueries({ queryKey: ['distribution-teachers'] });
-          }}
-          group={selectedGroupData}
-        />
+        <ManageGroupMembersModal isOpen={showManageMembersModal} onClose={() => { setShowManageMembersModal(false); setSelectedGroupData(null); }} onSuccess={() => { setShowManageMembersModal(false); setSelectedGroupData(null); queryClient.invalidateQueries({ queryKey: ['distribution-groups'] }); }} group={selectedGroupData} />
+      )}
+
+      {/* High-Fidelity Security Verification Modal */}
+      {showVerifyModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-300 rounded-[40px] border-none overflow-hidden">
+            <div className="bg-gradient-to-br from-red-600 to-rose-700 p-8 text-center relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+              <div className="w-20 h-20 bg-white/20 rounded-[32px] backdrop-blur-xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/20">
+                <ShieldCheck className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tight">Access Authorization</h2>
+              <p className="text-white/70 text-sm font-medium mt-2">Administrative credentials required for archival</p>
+            </div>
+            <CardContent className="p-10 space-y-8 bg-white">
+              <div className="space-y-3">
+                <Label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Verify Password</Label>
+                <div className="relative">
+                  <Input 
+                    type="password"
+                    value={verifyPassword} 
+                    onChange={(e) => setVerifyPassword(e.target.value)}
+                    placeholder="Enter security token..."
+                    className="h-14 rounded-2xl border-slate-200 bg-slate-50 focus:bg-white text-lg shadow-inner"
+                    onKeyDown={(e) => e.key === 'Enter' && handleVerifyAndExecute()}
+                    autoFocus
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-slate-100 rounded-lg">
+                    <Settings className="w-4 h-4 text-slate-400" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-4">
+                <Button variant="ghost" onClick={() => { setShowVerifyModal(false); setVerifyPassword(''); setPendingAction(null); }} className="flex-1 h-14 rounded-2xl font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50">Cancel</Button>
+                <Button 
+                  onClick={handleVerifyAndExecute} 
+                  disabled={verifying}
+                  className="flex-[2] h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black shadow-lg shadow-red-100 active:scale-95 transition-all"
+                >
+                  {verifying ? (
+                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : "Confirm Archive"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
 }
-
-const normalizeApiArray = (response: any) => {
-  if (!response) return [];
-  if (Array.isArray(response)) return response;
-  if (response.data && Array.isArray(response.data)) return response.data;
-  return [];
-};

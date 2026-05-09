@@ -103,7 +103,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::post('/distribution/groups', [DistributionGroupController::class, 'store']);
     Route::put('/distribution/groups/{id}', [DistributionListController::class, 'updateGroup']);
     Route::delete('/distribution/groups/{id}', [DistributionListController::class, 'deleteGroup']);
+    Route::post('/distribution/groups/{id}/add-teachers', [DistributionGroupController::class, 'addTeachers']);
+    Route::post('/distribution/groups/{id}/remove-teachers', [DistributionGroupController::class, 'removeTeachers']);
     Route::get('/distribution/export', [DistributionListController::class, 'export']);
+
     
     // Archive Management
     Route::get('/archive', [ArchiveController::class, 'index']);
@@ -212,6 +215,11 @@ Route::prefix('teacher')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/distribution-requests/statistics', [\App\Http\Controllers\API\Teacher\DistributionRequestController::class, 'statistics']);
     Route::get('/distribution-requests/available-items', [\App\Http\Controllers\API\Teacher\DistributionRequestController::class, 'availableItems']);
     Route::delete('/distribution-requests/{id}', [\App\Http\Controllers\API\Teacher\DistributionRequestController::class, 'cancel']);
+    
+    // Item Distributions (Teacher Acceptance Flow)
+    Route::get('/distributions', [\App\Http\Controllers\API\Teacher\ItemDistributionController::class, 'index']);
+    Route::post('/distributions/{id}/accept', [\App\Http\Controllers\API\Teacher\ItemDistributionController::class, 'accept']);
+    Route::post('/distributions/{id}/reject', [\App\Http\Controllers\API\Teacher\ItemDistributionController::class, 'reject']);
     
     // Notifications (Teacher)
     Route::get('/notifications', [NotificationController::class, 'index']);

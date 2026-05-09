@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
-import { X, Package, User, Calendar, FileText, Plus, Minus, Users, CheckSquare, Square } from 'lucide-react';
+import { 
+  X, Package, User, Calendar, FileText, Plus, Minus, Users, 
+  CheckSquare, Square, Search, Info, AlertTriangle, Layers,
+  ChevronRight, ArrowRight, ShieldCheck, TrendingUp, Boxes, Briefcase
+} from 'lucide-react';
 import axiosInstance from '@/api/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 interface CreateDistributionModalProps {
@@ -29,6 +33,13 @@ interface Teacher {
   department: string;
 }
 
+const normalizeApiArray = (response: any) => {
+  if (!response) return [];
+  if (Array.isArray(response)) return response;
+  if (response.data && Array.isArray(response.data)) return response.data;
+  return [];
+};
+
 export default function CreateDistributionModal({ onClose, onSuccess }: CreateDistributionModalProps) {
   const [items, setItems] = useState<Item[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -43,7 +54,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
     distribution_date: new Date().toISOString().split('T')[0],
     purpose: '',
     notes: '',
-    condition_on_distribution: 'good',
+    condition_on_distribution: 'excellent',
     distribution_type: 'teacher', // 'teacher' or 'group'
   });
 
@@ -53,26 +64,43 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
 
   const fetchData = async () => {
     try {
-      const token = localStorage.getItem('token');
       const [itemsRes, teachersRes, groupsRes] = await Promise.all([
         axiosInstance.get('/admin/inventory'),
-        axiosInstance.get('/admin/distribution'),
+        axiosInstance.get('/admin/distribution?all=1'),
         axiosInstance.get('/admin/distribution/groups')
       ]);
 
-      setItems(itemsRes.data.data.filter((item: Item) => item.quantity_available > 0));
-      setTeachers(teachersRes.data);
-      setGroups(groupsRes.data.data || []);
+      const inventory = normalizeApiArray(itemsRes.data);
+      setItems(inventory.filter((item: any) => item && (item.quantity_available || 0) > 0));
+
+      const teacherList = normalizeApiArray(teachersRes.data)
+        .filter((t: any) => t !== null)
+        .map((t: any) => ({
+          ...t,
+          full_name: t.full_name || `${t.first_name || ''} ${t.last_name || ''}`.trim() || 'Unnamed Personnel',
+          email: t.email || 'no-email@system.local',
+          department: t.department || 'General'
+        }));
+      setTeachers(teacherList);
+
+      setGroups(normalizeApiArray(groupsRes.data).filter((g: any) => g !== null));
     } catch (error) {
-      toast.error('Failed to load data');
+      console.error('Failed to load data:', error);
+      toast.error('System synchronization failed');
     }
   };
 
-  const filteredTeachers = teachers.filter(t =>
-    t.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.department.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTeachers = teachers.filter(t => {
+    if (!t) return false;
+    const search = (searchQuery || "").toLowerCase();
+    const fullName = (t.full_name || "").toLowerCase();
+    const email = (t.email || "").toLowerCase();
+    const department = (t.department || "").toLowerCase();
+
+    return fullName.includes(search) || 
+           email.includes(search) || 
+           department.includes(search);
+  });
 
   const handleToggleTeacher = (teacherId: number) => {
     setSelectedTeachers(prev =>
@@ -94,32 +122,28 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
     e.preventDefault();
     
     if (!formData.item_id || (formData.distribution_type === 'teacher' && selectedTeachers.length === 0) || (formData.distribution_type === 'group' && !selectedGroup) || !formData.quantity_distributed) {
-      toast.error('Please select an item, recipient, and quantity');
+      toast.error('Required parameters missing: Asset, Recipient, and Volume required');
       return;
     }
 
     const selectedItem = items.find(i => i.id === parseInt(formData.item_id));
     
     if (formData.distribution_type === 'teacher') {
-      // Teacher distribution logic
       const totalQuantityNeeded = parseInt(formData.quantity_distributed) * selectedTeachers.length;
       
       if (selectedItem && totalQuantityNeeded > selectedItem.quantity_available) {
-        toast.error(`Insufficient inventory. Need ${totalQuantityNeeded} units but only ${selectedItem.quantity_available} available`);
+        toast.error(`Inventory deficit. Requirement: ${totalQuantityNeeded}, Available: ${selectedItem.quantity_available}`);
         return;
       }
 
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
-        
-        // Use bulk distribution endpoint for multiple teachers
         if (selectedTeachers.length > 1) {
           await axiosInstance.post(
             '/admin/distributions/bulk',
             {
               item_id: parseInt(formData.item_id),
-              group_id: null, // Not using group, using individual teachers
+              group_id: null,
               teacher_ids: selectedTeachers,
               quantity_per_teacher: parseInt(formData.quantity_distributed),
               distribution_date: formData.distribution_date,
@@ -128,9 +152,8 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
               condition_on_distribution: formData.condition_on_distribution,
             }
           );
-          toast.success(`Items distributed to ${selectedTeachers.length} teachers successfully`);
+          toast.success(`Allocated to ${selectedTeachers.length} personnel successfully`);
         } else {
-          // Use single distribution endpoint for one teacher
           await axiosInstance.post(
             '/admin/distributions',
             {
@@ -140,38 +163,32 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
               quantity_distributed: parseInt(formData.quantity_distributed),
             }
           );
-          toast.success('Item distributed successfully');
+          toast.success('Individual allocation completed');
         }
-        
         onSuccess();
       } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Failed to distribute item');
+        toast.error(error.response?.data?.message || 'Allocation pipeline failed');
       } finally {
         setLoading(false);
       }
     } else if (formData.distribution_type === 'group') {
-      // Group distribution logic
       const selectedGroupData = groups.find(g => g.id === selectedGroup);
-      
       if (!selectedGroupData) {
-        toast.error('Please select a distribution group');
+        toast.error('Target distribution group not identified');
         return;
       }
 
       const teachersInGroup = selectedGroupData?.teachers || [];
       const quantityPerMember = parseInt(formData.quantity_distributed);
-      const totalQuantityNeeded = quantityPerMember * teachersInGroup.length;
+      const totalQuantityNeeded = quantityPerMember * (selectedGroupData?.teachers_count || teachersInGroup.length);
       
       if (selectedItem && totalQuantityNeeded > selectedItem.quantity_available) {
-        toast.error(`Insufficient inventory. Need ${totalQuantityNeeded} units but only ${selectedItem.quantity_available} available`);
+        toast.error(`Inventory deficit. Group requirement: ${totalQuantityNeeded}, Available: ${selectedItem.quantity_available}`);
         return;
       }
 
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
-        
-        // Use bulk distribution endpoint for group
         await axiosInstance.post(
           '/admin/bulk-distributions',
           {
@@ -184,11 +201,10 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
             notes: formData.notes,
           }
         );
-        toast.success(`Items distributed to group "${selectedGroupData?.group_name}" successfully`);
-        
+        toast.success(`Group allocation for "${selectedGroupData?.group_name}" initialized`);
         onSuccess();
       } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Failed to distribute to group');
+        toast.error(error.response?.data?.message || 'Group allocation failed');
       } finally {
         setLoading(false);
       }
@@ -197,8 +213,6 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
 
   const selectedItem = items.find(i => i.id === parseInt(formData.item_id));
   const maxQuantity = selectedItem?.quantity_available || 0;
-  
-  // FIX: Define selectedGroupData here so it's available in the render
   const selectedGroupData = groups.find(g => g.id === selectedGroup);
 
   const handleQuantityChange = (value: string) => {
@@ -209,7 +223,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
     }
     if (numValue > maxQuantity) {
       setFormData({ ...formData, quantity_distributed: maxQuantity.toString() });
-      toast.warning(`Maximum available quantity is ${maxQuantity}`);
+      toast.warning(`Maximum unit capacity reached (${maxQuantity})`);
       return;
     }
     setFormData({ ...formData, quantity_distributed: value });
@@ -229,444 +243,424 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
     }
   };
 
+  const totalNeeded = (parseInt(formData.quantity_distributed || '0') * (formData.distribution_type === 'teacher' ? selectedTeachers.length : (selectedGroupData?.teachers_count || 0)));
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Distribute Items to Teachers</h2>
-            <p className="text-sm text-gray-600 mt-1">Assign inventory items to one or multiple teachers</p>
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-6 animate-in fade-in duration-300">
+      <div className="bg-white rounded-[40px] shadow-2xl max-w-5xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-white/20 animate-in zoom-in-95 duration-300">
+        {/* Premium Header */}
+        <div className="bg-slate-900 px-10 py-8 flex items-center justify-between shrink-0 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full -mr-32 -mt-32 blur-3xl" />
+          <div className="relative z-10 flex items-center gap-5 text-white">
+            <div className="p-4 bg-white/10 rounded-[20px] backdrop-blur-xl border border-white/10">
+              <Boxes className="w-8 h-8 text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-black tracking-tight">Initiate Distribution</h2>
+              <p className="text-slate-400 text-sm font-medium flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                Securely allocate administrative assets to personnel
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-5 h-5" />
+          <button 
+            onClick={onClose} 
+            className="relative z-10 p-3 hover:bg-white/10 rounded-2xl transition-all text-white active:scale-90"
+          >
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Row 1: Item and Teacher Selection - Two Columns */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Item Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="item_id">
-                <Package className="w-4 h-4 inline mr-2" />
-                Select Item *
-              </Label>
-              <Select value={formData.item_id} onValueChange={(value) => setFormData({ ...formData, item_id: value, quantity_distributed: '' })}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose an item from inventory" />
-                </SelectTrigger>
-                <SelectContent>
-                  {items.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-gray-500">
-                      No items available
-                    </div>
-                  ) : (
-                    items.map((item) => (
-                      <SelectItem key={item.id} value={item.id.toString()}>
-                        <div className="flex items-center justify-between w-full">
-                          <span className="font-medium">{item.item_name}</span>
-                          <span className="text-xs text-gray-500 ml-2">
-                            ({item.item_code}) • {item.quantity_available} available
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {selectedItem && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-1">
-                  <p className="text-sm font-medium text-blue-900">{selectedItem.item_name}</p>
-                  <div className="flex items-center justify-between text-xs text-blue-700">
-                    <span>Code: {selectedItem.item_code}</span>
-                    <span className="font-semibold">Available: {selectedItem.quantity_available}</span>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-10 bg-[#F8FAFC] custom-scrollbar">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            
+            {/* Left Column: Asset & Volume */}
+            <div className="space-y-8">
+              <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <Layers className="w-5 h-5 text-blue-600" />
                   </div>
+                  <Label className="text-lg font-black text-slate-800">Asset Selection</Label>
                 </div>
-              )}
-            </div>
-
-            {/* Distribution Type Selection */}
-            <div className="space-y-2">
-              <Label>
-                <Users className="w-4 h-4 inline mr-2" />
-                Distribute to *
-              </Label>
-              <Select value={formData.distribution_type} onValueChange={(value) => setFormData({ ...formData, distribution_type: value })}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose distribution type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="teacher">Individual Teachers</SelectItem>
-                  <SelectItem value="group">Distribution Group</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Teacher or Group Selection based on type */}
-              {formData.distribution_type === 'teacher' ? (
-                <>
-                  {/* Teacher Selection */}
-                  <div className="space-y-2">
-                    <Label>
-                      <Users className="w-4 h-4 inline mr-2" />
-                      Select Teachers *
-                    </Label>
-                    
-                    {/* Search Bar */}
-                    <div className="relative">
-                      <Input
-                        placeholder="Search teachers..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                      <User className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                    </div>
-
-                    {/* Select All Button */}
-                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                      <span className="text-sm text-gray-600">
-                        {selectedTeachers.length} of {filteredTeachers.length} selected
-                      </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleSelectAllTeachers}
-                        className="text-xs"
-                      >
-                        {selectedTeachers.length === filteredTeachers.length ? 'Deselect All' : 'Select All'}
-                      </Button>
-                    </div>
-
-                    {/* Teacher List */}
-                    <div className="border rounded-lg max-h-48 overflow-y-auto">
-                      {filteredTeachers.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-gray-500">
-                          {searchQuery ? 'No teachers found' : 'No teachers available'}
+                
+                <div className="space-y-4">
+                  <Select 
+                    value={formData.item_id} 
+                    onValueChange={(value) => setFormData({ ...formData, item_id: value, quantity_distributed: '' })}
+                  >
+                    <SelectTrigger className="h-14 bg-slate-50 border-slate-200 focus:ring-2 focus:ring-blue-600 rounded-2xl font-bold">
+                      <SelectValue placeholder="Identify asset from registry..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl shadow-2xl border-slate-100">
+                      {items.length === 0 ? (
+                        <div className="p-10 text-center text-slate-400">
+                          <Package className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                          <p className="text-sm font-bold uppercase tracking-widest">Registry Empty</p>
                         </div>
                       ) : (
-                        filteredTeachers.map((teacher) => (
-                          <div
-                            key={teacher.id}
-                            className="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-                            onClick={() => handleToggleTeacher(teacher.id)}
-                          >
-                            <Checkbox
-                              checked={selectedTeachers.includes(teacher.id)}
-                              onCheckedChange={() => handleToggleTeacher(teacher.id)}
-                            />
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">{teacher.full_name}</div>
-                              <div className="text-xs text-gray-500">{teacher.department}</div>
+                        items.map((item) => (
+                          <SelectItem key={item.id} value={item.id.toString()} className="py-4 focus:bg-blue-50 rounded-xl">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-black text-slate-900 leading-none">{item.item_name}</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                {item.item_code} • {item.quantity_available} units in stock
+                              </span>
                             </div>
-                          </div>
+                          </SelectItem>
                         ))
                       )}
-                    </div>
-                    <div className="text-xs text-green-700 space-y-1 max-h-20 overflow-y-auto">
-                      {selectedTeachers.slice(0, 3).map(teacherId => {
-                        const teacher = teachers.find(t => t.id === teacherId);
-                        return teacher ? (
-                          <div key={teacherId}>- {teacher.full_name}</div>
-                        ) : null;
-                      })}
-                      {selectedTeachers.length > 3 && (
-                        <div className="text-green-600">... and {selectedTeachers.length - 3} more</div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Group Selection */}
-                  <div className="space-y-2">
-                    <Label>
-                      <Users className="w-4 h-4 inline mr-2" />
-                      Select Distribution Group *
-                    </Label>
-                    
-                    {/* Search Bar */}
-                    <div className="relative">
-                      <Input
-                        placeholder="Search groups..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                      <User className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                    </div>
+                    </SelectContent>
+                  </Select>
 
-                    {/* Group List */}
-                    <div className="border rounded-lg max-h-48 overflow-y-auto">
-                      {groups.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-gray-500">
-                          {searchQuery ? 'No groups found' : 'No groups available'}
+                  {selectedItem && (
+                    <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100 shadow-inner animate-in slide-in-from-top-4 duration-500">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-xs font-black text-blue-600 uppercase tracking-widest mb-1">Synchronized Identity</p>
+                          <p className="text-lg font-black text-slate-900">{selectedItem.item_name}</p>
+                          <p className="text-xs font-bold text-slate-500 mt-0.5">{selectedItem.category}</p>
                         </div>
-                      ) : (
-                        groups.filter(group => 
-                          group.group_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          group.group_type.toLowerCase().includes(searchQuery.toLowerCase())
-                        ).map((group) => (
-                          <div
-                            key={group.id}
-                            className={`flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 ${selectedGroup === group.id ? 'bg-blue-50 border-blue-200' : ''}`}
-                            onClick={() => setSelectedGroup(group.id)}
-                          >
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">{group.group_name}</div>
-                              <div className="text-xs text-gray-500">{group.teachers_count} members</div>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {/* Selected Group Summary */}
-                    {selectedGroup && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <p className="text-sm font-medium text-green-900 mb-1">
-                          Selected Group:
-                        </p>
-                        <div className="text-xs text-green-700">
-                          {selectedGroupData?.group_name}
+                        <div className="text-right">
+                          <span className="text-2xl font-black text-blue-600 leading-none">{selectedItem.quantity_available}</span>
+                          <p className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">Available</p>
                         </div>
                       </div>
-                    )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Volume Optimization */}
+              <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-emerald-50 rounded-lg">
+                    <TrendingUp className="w-5 h-5 text-emerald-600" />
                   </div>
-                </>
-              )}
+                  <Label className="text-lg font-black text-slate-800">Volume Optimization</Label>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="flex items-center gap-5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={decrementQuantity}
+                      disabled={!formData.quantity_distributed || parseInt(formData.quantity_distributed) <= 1}
+                      className="h-16 w-16 rounded-2xl border-slate-100 hover:border-blue-200 hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-all active:scale-90"
+                    >
+                      <Minus className="w-6 h-6" />
+                    </Button>
+                    
+                    <div className="flex-1 relative">
+                      <Input
+                        type="number"
+                        min="1"
+                        max={maxQuantity}
+                        value={formData.quantity_distributed}
+                        onChange={(e) => handleQuantityChange(e.target.value)}
+                        className="h-16 text-center text-3xl font-black rounded-2xl border-slate-200 bg-slate-50 shadow-inner focus:bg-white transition-all"
+                        placeholder="0"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase">Units</span>
+                    </div>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={incrementQuantity}
+                      disabled={!selectedItem || parseInt(formData.quantity_distributed || '0') >= maxQuantity}
+                      className="h-16 w-16 rounded-2xl border-slate-100 hover:border-blue-200 hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-all active:scale-90"
+                    >
+                      <Plus className="w-6 h-6" />
+                    </Button>
+                  </div>
+
+                  {/* Allocation Impact Card */}
+                  {(totalNeeded > 0) && (
+                    <div className={`p-6 rounded-[24px] border transition-all duration-500 ${totalNeeded > maxQuantity ? 'bg-rose-50 border-rose-100' : 'bg-slate-900 border-slate-800 shadow-xl shadow-slate-200'}`}>
+                      <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-xl ${totalNeeded > maxQuantity ? 'bg-rose-100 text-rose-600' : 'bg-blue-600 text-white'}`}>
+                          {totalNeeded > maxQuantity ? (
+                            <AlertTriangle className="w-6 h-6" />
+                          ) : (
+                            <TrendingUp className="w-6 h-6" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className={`text-xs font-black uppercase tracking-widest ${totalNeeded > maxQuantity ? 'text-rose-600' : 'text-slate-400'}`}>
+                            {totalNeeded > maxQuantity ? 'Inventory Deficit' : 'Allocation Pipeline'}
+                          </p>
+                          <p className={`text-sm font-bold ${totalNeeded > maxQuantity ? 'text-rose-900' : 'text-white'} mt-1`}>
+                            {totalNeeded} units total for {formData.distribution_type === 'teacher' ? `${selectedTeachers.length} recipients` : `${selectedGroupData?.teachers_count || 0} members`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className={`text-2xl font-black ${totalNeeded > maxQuantity ? 'text-rose-600' : 'text-blue-400'}`}>
+                            {totalNeeded}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-4 gap-3">
+                    {[1, 5, 10, 'All'].map((val) => (
+                      <Button
+                        key={val}
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          if (val === 'All') handleQuantityChange(maxQuantity.toString());
+                          else handleQuantityChange(val.toString());
+                        }}
+                        className="rounded-xl h-11 border-slate-100 bg-slate-50/50 hover:bg-white hover:border-blue-200 text-xs font-black text-slate-500 hover:text-blue-600 transition-all"
+                        disabled={!selectedItem || (typeof val === 'number' && val > maxQuantity)}
+                      >
+                        {val === 'All' ? `MAX (${maxQuantity})` : `+${val}`}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Recipient Intelligence */}
+            <div className="space-y-8">
+              <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6 h-full flex flex-col">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-50 rounded-lg">
+                      <Users className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <Label className="text-lg font-black text-slate-800">Target Recipients</Label>
+                  </div>
+                  <div className="flex p-1 bg-slate-100 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, distribution_type: 'teacher' })}
+                      className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${formData.distribution_type === 'teacher' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      Individual
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, distribution_type: 'group' })}
+                      className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${formData.distribution_type === 'group' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      Collective
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-5 flex-1 flex flex-col min-h-0">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Input
+                      placeholder={`Filter ${formData.distribution_type === 'teacher' ? 'personnel' : 'distribution channels'}...`}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-12 h-14 rounded-2xl border-slate-200 bg-slate-50/50 shadow-inner focus:bg-white"
+                    />
+                  </div>
+
+                  {formData.distribution_type === 'teacher' ? (
+                    <div className="space-y-4 flex-1 flex flex-col min-h-0">
+                      <div className="flex items-center justify-between px-2">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Selections: {selectedTeachers.length}</span>
+                        <button 
+                          type="button" 
+                          onClick={handleSelectAllTeachers}
+                          className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest"
+                        >
+                          {selectedTeachers.length === filteredTeachers.length ? 'Clear Selection' : 'Batch Select All'}
+                        </button>
+                      </div>
+                      <div className="flex-1 border border-slate-100 rounded-[24px] overflow-y-auto bg-slate-50/30 p-2 space-y-2 shadow-inner custom-scrollbar">
+                        {filteredTeachers.length === 0 ? (
+                          <div className="py-20 text-center">
+                            <User className="w-12 h-12 text-slate-100 mx-auto mb-4" />
+                            <p className="text-sm font-black text-slate-300 uppercase tracking-widest">No Personnel Found</p>
+                          </div>
+                        ) : (
+                          filteredTeachers.map((teacher) => (
+                            <div
+                              key={teacher.id}
+                              className={`group flex items-center gap-4 p-4 transition-all cursor-pointer rounded-2xl ${selectedTeachers.includes(teacher.id) ? 'bg-white shadow-lg shadow-slate-200/50 ring-2 ring-blue-600/10' : 'hover:bg-white hover:shadow-sm'}`}
+                              onClick={() => handleToggleTeacher(teacher.id)}
+                            >
+                              <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedTeachers.includes(teacher.id) ? 'bg-blue-600 border-blue-600 shadow-sm' : 'border-slate-200 bg-white'}`}>
+                                {selectedTeachers.includes(teacher.id) && <CheckSquare className="w-4 h-4 text-white" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-black transition-colors ${selectedTeachers.includes(teacher.id) ? 'text-blue-600' : 'text-slate-900'}`}>{teacher.full_name}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <Badge variant="outline" className="text-[9px] h-4 font-black border-slate-100 text-slate-400 uppercase tracking-tighter">{teacher.department}</Badge>
+                                  <span className="text-[10px] font-medium text-slate-400 truncate">{teacher.email}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 border border-slate-100 rounded-[24px] overflow-y-auto bg-slate-50/30 p-2 space-y-2 shadow-inner custom-scrollbar">
+                      {groups.length === 0 ? (
+                        <div className="py-20 text-center">
+                          <Layers className="w-12 h-12 text-slate-100 mx-auto mb-4" />
+                          <p className="text-sm font-black text-slate-300 uppercase tracking-widest">No Channels Available</p>
+                        </div>
+                      ) : (
+                        groups.filter(group => {
+                          const search = (searchQuery || "").toLowerCase();
+                          const groupName = (group.group_name || "").toLowerCase();
+                          const groupType = (group.group_type || "").toLowerCase();
+                          return groupName.includes(search) || groupType.includes(search);
+                        }).map((group) => (
+                          <div
+                            key={group.id}
+                            className={`group flex items-center gap-4 p-5 transition-all cursor-pointer rounded-2xl ${selectedGroup === group.id ? 'bg-white shadow-xl shadow-slate-200 ring-2 ring-blue-600' : 'hover:bg-white hover:shadow-sm'}`}
+                            onClick={() => setSelectedGroup(group.id)}
+                          >
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${selectedGroup === group.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400 group-hover:text-slate-600'}`}>
+                              <Users className="w-6 h-6" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-black transition-colors ${selectedGroup === group.id ? 'text-blue-600' : 'text-slate-900'}`}>{group.group_name}</p>
+                              <div className="flex items-center gap-3 mt-1">
+                                <Badge variant="outline" className="text-[9px] h-4 font-black uppercase border-slate-100">{group.group_type}</Badge>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{group.teachers_count} Active Members</span>
+                              </div>
+                            </div>
+                            {selectedGroup === group.id && <CheckSquare className="w-5 h-5 text-blue-600" />}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Row 2: Quantity and Distribution Date - Two Columns */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Quantity with Custom Controls */}
-            <div className="space-y-2">
-              <Label htmlFor="quantity">
-                Quantity Per Teacher *
-              </Label>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={decrementQuantity}
-                  disabled={!formData.quantity_distributed || parseInt(formData.quantity_distributed) <= 1}
-                  className="h-10 w-10 flex-shrink-0"
-                >
-                  <Minus className="w-4 h-4" />
-                </Button>
-                
-                <div className="relative flex-1">
+          {/* Operational Parameters */}
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-amber-50 rounded-lg">
+                  <Calendar className="w-5 h-5 text-amber-600" />
+                </div>
+                <Label className="text-lg font-black text-slate-800">Timeline & Condition</Label>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Effective Date</Label>
                   <Input
-                    id="quantity"
-                    type="number"
-                    min="1"
-                    max={maxQuantity}
-                    value={formData.quantity_distributed}
-                    onChange={(e) => handleQuantityChange(e.target.value)}
-                    placeholder="Enter quantity"
-                    className="text-center text-lg font-semibold"
-                    required
+                    type="date"
+                    value={formData.distribution_date}
+                    onChange={(e) => setFormData({ ...formData, distribution_date: e.target.value })}
+                    className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-bold"
                   />
                 </div>
-                
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={incrementQuantity}
-                  disabled={!selectedItem || parseInt(formData.quantity_distributed || '0') >= maxQuantity}
-                  className="h-10 w-10 flex-shrink-0"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Initial Condition</Label>
+                  <Select 
+                    value={formData.condition_on_distribution} 
+                    onValueChange={(value) => setFormData({ ...formData, condition_on_distribution: value })}
+                  >
+                    <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-bold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-100 font-bold">
+                      <SelectItem value="excellent">Excellent Condition</SelectItem>
+                      <SelectItem value="good">Standard (Good)</SelectItem>
+                      <SelectItem value="fair">Acceptable (Fair)</SelectItem>
+                      <SelectItem value="poor">Maintenance Required</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              
-              {/* Quantity Summary */}
-              {((formData.distribution_type === 'teacher' && selectedTeachers.length > 0) || (formData.distribution_type === 'group' && selectedGroup)) && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-amber-900">
-                      {formData.distribution_type === 'teacher' 
-                        ? `${selectedTeachers.length} teachers × ${formData.quantity_distributed || '0'} units each`
-                        : `${selectedGroupData?.teachers_count || 0} members × ${formData.quantity_distributed || '0'} units each`
-                      }
-                    </span>
-                    <span className="font-semibold text-amber-900">
-                      Total: {(parseInt(formData.quantity_distributed || '0') * (formData.distribution_type === 'teacher' ? selectedTeachers.length : (selectedGroupData?.teachers_count || 0)))} units
-                    </span>
-                  </div>
-                  <div className="text-xs text-amber-700 mt-1">
-                    Available: <span className="font-semibold text-amber-900">{maxQuantity}</span> units
-                  </div>
-                </div>
-              )}
-              
-              {/* FIX: Added missing closing brace for the condition */}
-              {(parseInt(formData.quantity_distributed || '0') * (formData.distribution_type === 'teacher' ? selectedTeachers.length : (selectedGroupData?.teachers_count || 0))) > maxQuantity && (
-                <div className="text-xs text-red-600 mt-1 font-medium">
-                  Insufficient inventory!
-                </div>
-              )}
-              
-              {selectedItem && selectedTeachers.length === 0 && formData.distribution_type === 'teacher' && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">
-                    Available: <span className="font-semibold text-gray-900">{selectedItem.quantity_available}</span>
-                  </span>
-                  {formData.quantity_distributed && parseInt(formData.quantity_distributed) > 0 && (
-                    <span className="text-gray-600">
-                      Remaining: <span className="font-semibold text-blue-600">
-                        {selectedItem.quantity_available - parseInt(formData.quantity_distributed)}
-                      </span>
-                    </span>
-                  )}
-                </div>
-              )}
-              
-              {/* Quick quantity buttons */}
-              {selectedItem && selectedItem.quantity_available > 1 && (
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFormData({ ...formData, quantity_distributed: '1' })}
-                    className="text-xs"
-                  >
-                    1
-                  </Button>
-                  {selectedItem.quantity_available >= 5 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFormData({ ...formData, quantity_distributed: '5' })}
-                      className="text-xs"
-                    >
-                      5
-                    </Button>
-                  )}
-                  {selectedItem.quantity_available >= 10 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFormData({ ...formData, quantity_distributed: '10' })}
-                      className="text-xs"
-                    >
-                      10
-                    </Button>
-                  )}
-                  {selectedItem.quantity_available >= 20 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFormData({ ...formData, quantity_distributed: '20' })}
-                      className="text-xs"
-                    >
-                      20
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFormData({ ...formData, quantity_distributed: selectedItem.quantity_available.toString() })}
-                    className="text-xs"
-                  >
-                    All ({selectedItem.quantity_available})
-                  </Button>
-                </div>
-              )}
             </div>
 
-            {/* Distribution Date and Condition */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="distribution_date">
-                  <Calendar className="w-4 h-4 inline mr-2" />
-                  Distribution Date *
-                </Label>
-                <Input
-                  id="distribution_date"
-                  type="date"
-                  value={formData.distribution_date}
-                  onChange={(e) => setFormData({ ...formData, distribution_date: e.target.value })}
-                  required
-                />
+            <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-slate-100 rounded-lg">
+                  <FileText className="w-5 h-5 text-slate-600" />
+                </div>
+                <Label className="text-lg font-black text-slate-800">Operational Logic</Label>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="condition">Item Condition *</Label>
-                <Select value={formData.condition_on_distribution} onValueChange={(value) => setFormData({ ...formData, condition_on_distribution: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="excellent">Excellent</SelectItem>
-                    <SelectItem value="good">Good</SelectItem>
-                    <SelectItem value="fair">Fair</SelectItem>
-                    <SelectItem value="poor">Poor</SelectItem>
-                  </SelectContent>
-                </Select>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Primary Purpose</Label>
+                  <Input
+                    value={formData.purpose}
+                    onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+                    placeholder="e.g., Departmental deployment, Research project..."
+                    className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-bold"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Row 3: Purpose - Full Width */}
-          <div className="space-y-2">
-            <Label htmlFor="purpose">
-              <FileText className="w-4 h-4 inline mr-2" />
-              Purpose / Reason for Distribution
-            </Label>
+          <div className="mt-10 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-3 block">Administrative Notes (Internal Audit Log)</Label>
             <Textarea
-              id="purpose"
-              value={formData.purpose}
-              onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-              placeholder="e.g., Assigned for classroom use, Lab equipment, Personal teaching tools..."
-              rows={3}
-            />
-          </div>
-
-          {/* Row 4: Notes - Full Width */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Any additional notes..."
-              rows={2}
+              placeholder="Provide context for the audit trail. These notes are visible only to property administrators..."
+              className="min-h-[120px] rounded-2xl border-slate-200 bg-slate-50 focus:bg-white p-6 font-medium italic"
             />
           </div>
+        </form>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-              Cancel
-            </Button>
+        {/* Action Infrastructure */}
+        <div className="p-10 border-t bg-white flex items-center justify-between">
+          <Button 
+            type="button" 
+            variant="ghost" 
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 font-black uppercase tracking-widest h-14 px-8 rounded-2xl hover:bg-slate-50"
+          >
+            Abort Operation
+          </Button>
+          
+          <div className="flex items-center gap-6">
+            {totalNeeded > 0 && totalNeeded <= maxQuantity && (
+              <div className="text-right hidden sm:block pr-6 border-r border-slate-100">
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Impact Summary</p>
+                <p className="text-xl font-black text-blue-600">{totalNeeded} Units Deployed</p>
+              </div>
+            )}
+            
             <Button 
-              type="submit" 
+              onClick={handleSubmit}
               disabled={loading || !formData.item_id || 
                 (formData.distribution_type === 'teacher' && selectedTeachers.length === 0) || 
                 (formData.distribution_type === 'group' && !selectedGroup) || 
                 !formData.quantity_distributed || 
-                ((formData.distribution_type === 'teacher' && (parseInt(formData.quantity_distributed || '0') * selectedTeachers.length) > maxQuantity) ||
-                 (formData.distribution_type === 'group' && selectedGroupData && (parseInt(formData.quantity_distributed || '0') * (selectedGroupData?.teachers_count || 0)) > maxQuantity))} 
-              className="flex-1 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7]"
+                (totalNeeded > maxQuantity)}
+              className="bg-slate-900 hover:bg-slate-800 text-white font-black h-14 px-14 rounded-2xl shadow-2xl shadow-slate-200 transition-all active:scale-95 flex items-center gap-3"
             >
-              {loading ? 'Distributing...' : 
-               formData.distribution_type === 'teacher' ? 
-                 (selectedTeachers.length === 1 ? 'Distribute Item' : `Distribute to ${selectedTeachers.length} Teachers`) :
-                 'Distribute to Group'
-              }
+              {loading ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="uppercase tracking-widest">Processing...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 uppercase tracking-widest">
+                  <ShieldCheck className="w-5 h-5" />
+                  <span>Finalize Allocation</span>
+                </div>
+              )}
             </Button>
           </div>
-          
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -200,15 +200,15 @@ class DistributionListController extends Controller
         }
     }
 
-    // Show a specific distribution group
     public function showGroup($id)
     {
         try {
+            \Log::info("Fetching distribution group ID: {$id}");
+            
             $group = DistributionGroup::with(['teachers' => function($query) {
-                    $query->select('teachers.id', 'teacher_id', 'first_name', 'last_name', 'email', 'department', 'status');
-                }])
-                ->where('is_active', true)
-                ->find($id);
+                // Select only necessary fields but ensure we don't break the pivot linkage
+                $query->select('teachers.id', 'teachers.teacher_id', 'first_name', 'last_name', 'email', 'department', 'status');
+            }])->find($id);
 
             if (!$group) {
                 return response()->json([
@@ -217,7 +217,7 @@ class DistributionListController extends Controller
                 ], 404);
             }
 
-            // Add manual teachers_count to avoid SoftDeletes issues
+            // Manually set teachers_count to ensure it's accurate
             $group->teachers_count = $group->teachers->count();
 
             return response()->json([
@@ -234,6 +234,7 @@ class DistributionListController extends Controller
             ], 500);
         }
     }
+
 
     // Create a new distribution group
     public function createGroup(Request $request)
@@ -281,11 +282,14 @@ class DistributionListController extends Controller
 
             // Log the action
             SystemLog::create([
-                'admin_id' => auth()->id(),
+                'log_type' => 'distribution',
+                'user_id' => auth()->id(),
+                'user_type' => 'admin',
                 'action' => 'create_distribution_group',
                 'description' => "Created distribution group: {$group->group_name}",
                 'ip_address' => request()->ip(),
             ]);
+
 
             DB::commit();
 
@@ -353,11 +357,14 @@ class DistributionListController extends Controller
 
             // Log the action
             SystemLog::create([
-                'admin_id' => auth()->id(),
+                'log_type' => 'distribution',
+                'user_id' => auth()->id(),
+                'user_type' => 'admin',
                 'action' => 'update_distribution_group',
                 'description' => "Updated distribution group: {$group->group_name}",
                 'ip_address' => request()->ip(),
             ]);
+
 
             DB::commit();
 
@@ -390,11 +397,14 @@ class DistributionListController extends Controller
 
             // Log the action
             SystemLog::create([
-                'admin_id' => auth()->id(),
+                'log_type' => 'distribution',
+                'user_id' => auth()->id(),
+                'user_type' => 'admin',
                 'action' => 'delete_distribution_group',
                 'description' => "Archived distribution group: {$groupName}",
                 'ip_address' => request()->ip(),
             ]);
+
 
             return response()->json([
                 'success' => true,

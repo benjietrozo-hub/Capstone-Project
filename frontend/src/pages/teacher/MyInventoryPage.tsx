@@ -6,9 +6,10 @@ import { Button, FormField } from '../../components/common/FormElements';
 import { PageLoader } from '../../components/common/Loader';
 import { Modal } from '../../components/common/Modal';
 import { teacherAPI } from '../../api';
-import { Package, LayoutGrid, List, Eye, Info, Calendar, MapPin, Tag, ClipboardList, ChevronRight, Filter, Folder, Search } from 'lucide-react';
+import { Package, LayoutGrid, List, Eye, Info, Calendar, MapPin, Tag, ClipboardList, ChevronRight, Filter, Folder, Search, CheckCircle, XCircle } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import toast from 'react-hot-toast';
+
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
 
@@ -26,7 +27,11 @@ interface InventoryItem {
   acquisition_date?: string;
   notes?: string;
   status: string;
+  lifespan_years?: number;
+  end_of_life_date?: string;
+  is_approaching_end_of_life?: boolean;
 }
+
 
 interface ParentCategory {
   parent_category: string;
@@ -82,6 +87,15 @@ export function MyInventoryPage() {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [generalError, setGeneralError] = useState<string>('');
   
+  const [activeTab, setActiveTab] = useState<'inventory' | 'pending'>('inventory');
+  const [pendingDistributions, setPendingDistributions] = useState<any[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  
+  const [rejectModal, setRejectModal] = useState(false);
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+
+  
   const [formData, setFormData] = useState<FormData>({
     parent_category: '',
     item_code: '',
@@ -107,12 +121,14 @@ export function MyInventoryPage() {
   useEffect(() => {
     if (viewMode === 'main') {
       fetchParentCategories();
+      fetchPendingDistributions();
     } else if (viewMode === 'category' && selectedParentCategory) {
       fetchKinds(selectedParentCategory);
     } else if (viewMode === 'items') {
       fetchItems();
     }
   }, [viewMode, selectedParentCategory, selectedKind, debouncedSearch, statusFilter, sortBy, sortOrder]);
+
 
   const fetchParentCategories = async () => {
     try {
@@ -159,6 +175,44 @@ export function MyInventoryPage() {
       setLoading(false);
     }
   };
+
+  const fetchPendingDistributions = async () => {
+    try {
+      setPendingLoading(true);
+      const response = await teacherAPI.getDistributions({ status: 'pending_acceptance' });
+      setPendingDistributions(response.data || []);
+    } catch (error) {
+      console.error('Failed to load pending distributions:', error);
+    } finally {
+      setPendingLoading(false);
+    }
+  };
+
+  const handleAcceptDistribution = async (id: number) => {
+    try {
+      await teacherAPI.acceptDistribution(id);
+      toast.success('Accountability acknowledged successfully!');
+      fetchPendingDistributions();
+      fetchParentCategories();
+    } catch (error) {
+      toast.error('Failed to accept distribution');
+    }
+  };
+
+  const handleRejectDistribution = async () => {
+    if (!rejectingId || !rejectReason) return;
+    try {
+      await teacherAPI.rejectDistribution(rejectingId, rejectReason);
+      toast.success('Distribution rejected');
+      setRejectModal(false);
+      setRejectReason('');
+      setRejectingId(null);
+      fetchPendingDistributions();
+    } catch (error) {
+      toast.error('Failed to reject distribution');
+    }
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -291,8 +345,17 @@ export function MyInventoryPage() {
     item_name: item.item_name,
     category: item.category,
     quantity: item.quantity,
-    condition: <StatusBadge label={item.condition} condition={item.condition} />,
+    condition: <div className="flex items-center gap-2">
+      <StatusBadge label={item.condition} condition={item.condition} />
+      {item.is_approaching_end_of_life && (
+        <span className="flex h-2 w-2 relative" title={`End of Life: ${formatDate(item.end_of_life_date!)}`}>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+        </span>
+      )}
+    </div>,
     status: <StatusBadge label={item.status} status={item.status} />,
+
     actions: (
       <div className="flex gap-2">
         <Button variant="secondary" onClick={() => handleView(item)}>
@@ -388,8 +451,34 @@ export function MyInventoryPage() {
             )}
           </nav>
 
-          {/* Level 1: Main View (Parent Categories) */}
+          {/* Tab Switcher (Only on Main View) */}
           {viewMode === 'main' && (
+            <div className="flex bg-gray-100/50 p-1 rounded-2xl w-full sm:w-fit border border-gray-200">
+              <button
+                onClick={() => setActiveTab('inventory')}
+                className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'inventory' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                My Inventory
+              </button>
+              <button
+                onClick={() => setActiveTab('pending')}
+                className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === 'pending' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Pending Acceptance
+                {pendingDistributions.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-orange-500 text-[10px] text-white items-center justify-center font-bold">
+                      {pendingDistributions.length}
+                    </span>
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+
+
+          {viewMode === 'main' && activeTab === 'inventory' && (
             <>
               <div className="flex flex-col md:flex-row gap-4 mb-8">
                 <div className="flex-1 relative group">
@@ -458,6 +547,97 @@ export function MyInventoryPage() {
               )}
             </>
           )}
+
+          {/* Pending Acceptance View */}
+          {viewMode === 'main' && activeTab === 'pending' && (
+            <div className="space-y-6">
+              {pendingLoading ? (
+                <PageLoader />
+              ) : pendingDistributions.length === 0 ? (
+                <div className="bg-white p-12 rounded-3xl border border-gray-100 shadow-sm text-center">
+                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle className="w-10 h-10 text-gray-300" />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">Everything is Clear!</h3>
+                  <p className="text-gray-500 font-medium max-w-sm mx-auto">
+                    You don't have any pending item distributions awaiting your acknowledgment.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-6">
+                  {pendingDistributions.map((dist) => (
+                    <div key={dist.id} className="bg-white rounded-3xl border border-orange-100 shadow-sm overflow-hidden flex flex-col lg:flex-row group">
+                      <div className="lg:w-1/3 bg-orange-50/50 p-8 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-orange-100">
+                        <div>
+                          <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 mb-6">
+                            <ClipboardList className="w-6 h-6" />
+                          </div>
+                          <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">New Distribution</h3>
+                          <p className="text-xs text-orange-700 font-black uppercase tracking-widest bg-orange-100 px-3 py-1 rounded-full w-fit">Pending Acknowledgment</p>
+                        </div>
+                        
+                        <div className="mt-8 space-y-4">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <div>
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Distributed On</p>
+                              <p className="text-sm font-bold text-gray-700">{formatDate(dist.distribution_date)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Info className="w-4 h-4 text-gray-400" />
+                            <div>
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Purpose</p>
+                              <p className="text-sm font-bold text-gray-700">{dist.purpose || 'Institutional Assignment'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 p-8">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                          <div>
+                            <h4 className="text-lg font-black text-gray-900 tracking-tight">{dist.category?.category_name}</h4>
+                            <p className="text-sm text-gray-500 font-medium">Please review the serial numbers before accepting.</p>
+                          </div>
+                          <div className="flex gap-3">
+                            <Button 
+                              variant="danger" 
+                              className="px-6 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest border-0 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
+                              onClick={() => { setRejectingId(dist.id); setRejectModal(true); }}
+                            >
+                              Reject
+                            </Button>
+                            <Button 
+                              className="px-8 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest border-0 bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700"
+                              onClick={() => handleAcceptDistribution(dist.id)}
+                            >
+                              Accept & Sign
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {dist.inventory_items?.map((item: any) => (
+                            <div key={item.id} className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-center gap-4 group/item hover:border-blue-200 hover:bg-white transition-all">
+                              <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-400 group-hover/item:text-blue-600 transition-colors">
+                                <Tag className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Serial Number</p>
+                                <p className="text-sm font-black text-gray-900">{item.serial_number}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
 
           {/* Level 2: Category View (Kinds) */}
           {viewMode === 'category' && (
@@ -585,9 +765,12 @@ export function MyInventoryPage() {
                         setSortBy(field);
                         setSortOrder(order);
                       }}
-                      options={[
+                       options={[
+                        { value: 'date_acquired-asc', label: 'Chronological (Oldest First)' },
+
                         { value: 'created_at-desc', label: 'Newest First' },
                         { value: 'item_name-asc', label: 'Name (A-Z)' },
+
                         { value: 'item_name-desc', label: 'Name (Z-A)' },
                         { value: 'item_code-asc', label: 'Code (Asc)' },
                         { value: 'quantity-desc', label: 'Highest Quantity' },
@@ -632,12 +815,22 @@ export function MyInventoryPage() {
                       </div>
                     ) : items.map((item) => (
                       <div key={item.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all flex flex-col group p-6 relative overflow-hidden">
-                        <div className="flex justify-between items-start mb-6">
-                          <div className="p-4 bg-blue-50 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
-                            <Package className="w-6 h-6" />
+                         <div className="flex justify-between items-start mb-6">
+                          <div className="flex gap-2">
+                            <div className="p-4 bg-blue-50 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
+                              <Package className="w-6 h-6" />
+                            </div>
+                            {item.is_approaching_end_of_life && (
+                              <div className="flex flex-col justify-center">
+                                <div className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter animate-pulse border border-amber-200">
+                                  EOL Warning
+                                </div>
+                              </div>
+                            )}
                           </div>
                           <StatusBadge label={item.status} status={item.status} />
                         </div>
+
                         
                         <div className="flex-1 space-y-4">
                           <div>
@@ -687,8 +880,54 @@ export function MyInventoryPage() {
               </CardContent>
             </Card>
           )}
+        </div>
+      </div>
+
+      {/* Reject Distribution Modal */}
+      {rejectModal && (
+        <Modal
+          isOpen={rejectModal}
+          onClose={() => { setRejectModal(false); setRejectReason(''); setRejectingId(null); }}
+          title="Reject Distribution"
+        >
+          <div className="space-y-6">
+            <div className="bg-red-50 p-4 rounded-2xl flex items-start gap-4 border border-red-100">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-red-600 shadow-sm shrink-0">
+                <XCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-red-900 uppercase tracking-tight">Are you sure?</p>
+                <p className="text-xs text-red-700 font-medium">Rejecting this distribution will return the items to the available inventory pool. This action will be logged.</p>
+              </div>
+            </div>
+
+            <FormField
+              label="Reason for Rejection"
+              type="textarea"
+              placeholder="Please explain why you are rejecting this assignment (e.g., 'Never received the items', 'Incorrect serial numbers')..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              required
+            />
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="secondary" onClick={() => { setRejectModal(false); setRejectReason(''); setRejectingId(null); }}>
+                Cancel
+              </Button>
+              <Button 
+                variant="danger" 
+                onClick={handleRejectDistribution}
+                disabled={!rejectReason || rejectReason.length < 5}
+              >
+                Confirm Rejection
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {showModal && (
+
         <Modal
           isOpen={showModal}
           onClose={() => { setShowModal(false); resetForm(); }}

@@ -8,7 +8,10 @@ use App\Models\InventoryItem;
 use App\Models\ItemCategory;
 use App\Models\BorrowRequest;
 use App\Models\DistributionGroup;
+use App\Models\ItemDistribution;
+use App\Models\BulkDistribution;
 use App\Models\Teacher;
+
 use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -184,6 +187,61 @@ class ArchiveController extends Controller
                     });
                 $archivedItems = array_merge($archivedItems, $teachers->toArray());
             }
+            
+            if ($type === 'all' || $type === 'item_distribution') {
+                $distributions = ItemDistribution::onlyTrashed()
+                    ->with(['teacher', 'category'])
+                    ->when($search, function ($query) use ($search) {
+                        $query->whereHas('teacher', function ($q) use ($search) {
+                            $q->where('first_name', 'like', "%{$search}%")
+                              ->orWhere('last_name', 'like', "%{$search}%");
+                        });
+                    })
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id'          => $item->id,
+                            'type'        => 'item_distribution',
+                            'name'        => "Distribution #{$item->id}",
+                            'code'        => "ID-{$item->id}",
+                            'archived_at' => $item->deleted_at,
+                            'archived_by' => 'Admin',
+                            'details'     => [
+                                'teacher'  => $item->teacher ? $item->teacher->full_name : 'Unknown',
+                                'status'   => $item->status,
+                                'date'     => $item->distribution_date,
+                            ],
+                        ];
+                    });
+                $archivedItems = array_merge($archivedItems, $distributions->toArray());
+            }
+
+            if ($type === 'all' || $type === 'bulk_distribution') {
+                $bulkDistributions = BulkDistribution::onlyTrashed()
+                    ->with(['group'])
+                    ->when($search, function ($query) use ($search) {
+                        $query->whereHas('group', function ($q) use ($search) {
+                            $q->where('group_name', 'like', "%{$search}%");
+                        });
+                    })
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id'          => $item->id,
+                            'type'        => 'bulk_distribution',
+                            'name'        => $item->group ? $item->group->group_name : "Bulk Distribution #{$item->id}",
+                            'code'        => "BD-{$item->id}",
+                            'archived_at' => $item->deleted_at,
+                            'archived_by' => 'Admin',
+                            'details'     => [
+                                'total_qty' => $item->total_quantity,
+                                'status'    => $item->status,
+                            ],
+                        ];
+                    });
+                $archivedItems = array_merge($archivedItems, $bulkDistributions->toArray());
+            }
+
 
             // Sort by archived_at descending
             usort($archivedItems, function ($a, $b) {
@@ -301,6 +359,13 @@ class ArchiveController extends Controller
             if ($type === 'all' || $type === 'teachers') {
                 $deleted += Teacher::onlyTrashed()->forceDelete();
             }
+            if ($type === 'all' || $type === 'item_distribution') {
+                $deleted += ItemDistribution::onlyTrashed()->forceDelete();
+            }
+            if ($type === 'all' || $type === 'bulk_distribution') {
+                $deleted += BulkDistribution::onlyTrashed()->forceDelete();
+            }
+
 
             DB::commit();
 
@@ -330,7 +395,10 @@ class ArchiveController extends Controller
                 'borrow_requests'    => BorrowRequest::onlyTrashed()->count(),
                 'distribution_groups'=> DistributionGroup::onlyTrashed()->count(),
                 'teachers'           => Teacher::onlyTrashed()->count(),
+                'item_distribution'  => ItemDistribution::onlyTrashed()->count(),
+                'bulk_distribution'  => BulkDistribution::onlyTrashed()->count(),
             ];
+
 
             $stats['total'] = array_sum($stats);
 
@@ -360,7 +428,10 @@ class ArchiveController extends Controller
             'borrow_request'     => BorrowRequest::class,
             'distribution_group' => DistributionGroup::class,
             'teacher'            => Teacher::class,
+            'item_distribution'  => ItemDistribution::class,
+            'bulk_distribution'  => BulkDistribution::class,
         ];
+
 
         return $models[$type] ?? null;
     }

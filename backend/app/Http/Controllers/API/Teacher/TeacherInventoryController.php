@@ -54,13 +54,17 @@ class TeacherInventoryController extends Controller
         }
 
         // Sorting
-        $allowedSort = ['item_name', 'serial_number', 'status', 'created_at'];
+        $allowedSort = ['item_name', 'serial_number', 'status', 'created_at', 'date_acquired'];
+
         if ($request->sort_by && in_array($request->sort_by, $allowedSort)) {
             $order = $request->sort_order === 'desc' ? 'desc' : 'asc';
             $query->orderBy($request->sort_by, $order);
         } else {
-            $query->orderBy('created_at', 'desc');
+            // Default Sorting: Chronological (Oldest First) then Alphabetical (A-Z)
+            $query->orderBy('date_acquired', 'asc')
+                  ->orderBy('item_name', 'asc');
         }
+
 
         $items = $query->paginate($request->per_page ?? 50);
 

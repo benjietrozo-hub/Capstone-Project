@@ -162,6 +162,24 @@ This plan cross-references three sources:
   - Document a "Backup & Recovery" procedure.
   - Perform a formal restore test to verify data integrity.
 
+#### Task 1.13 — Official Printable Distribution List (PDF)
+**Requirement from v2:** *"The system successfully consolidated borrowed items and assigned equipment into a clean, printable PDF/Web list."*
+
+- **What to do:**
+  - Enhance the "Print" button on the Distribution List page.
+  - Ensure the layout matches the school's official printed distribution list format.
+  - Include headers for "Assigned Personnel," "Quantity," "Serial Number," and "Condition."
+  - Add a signature line for the Inventory Coordinator and Teacher.
+
+#### Task 1.14 — Distribution Request Flow
+**Requirement from v2:** *"Teacher... requesting additional items... Distribution Requests"*
+
+- **What to do:**
+  - Ensure Teachers can specifically request "Distribution" (permanent allocation) vs "Borrowing" (temporary).
+  - Add a "Request Distribution" button in the Browse Inventory view for items that can be permanently assigned (like classroom tools).
+  - Backend: Separate the `borrow_requests` logic or add a `request_type` (borrow vs distribute) to handle different approval workflows.
+
+
 
 ---
 
@@ -203,15 +221,15 @@ This plan cross-references three sources:
 ---
 
 #### Task 3.2 — SMART Objectives Revision
-**Panel Comment (ARC 2.1):** *"Update your objectives, make it SMART."*
+**Requirement from v2 (Section 1.3):** *"To ensure objectives are Specific, Measurable, Attainable, Relevant, and Time-bound."*
 
-Replace generic objectives in Chapter 1. Example rewrites:
+**Exact Objectives to integrate into Chapter 1:**
+1.  **Digitization:** Achieve 100% encoding of existing items within the first 3 months of implementation.
+2.  **Tracking Speed:** Enable retrieval of any item record within 5 seconds during system use.
+3.  **Data Integrity:** Consolidate identical items with 0% duplication errors during the evaluation period.
+4.  **Process Efficiency:** Reduce distribution recording and reporting time by at least 50% within 2 months of use.
+5.  **User Satisfaction:** Achieve at least a 90% satisfaction rating based on User Acceptance Testing (UAT).
 
-| Old (Vague) | New (SMART) |
-|---|---|
-| "To create a system for managing inventory" | "To reduce equipment checkout time from an average of 20 minutes (manual) to under 2 minutes using the digital system, within 1 month of deployment." |
-| "To track borrowed items" | "To achieve 100% traceability of all borrowed inventory items through digital transaction logs, measured by zero unrecorded transactions during the 3-month pilot period." |
-| "To provide reports" | "To generate transaction history reports in under 5 seconds, compared to an estimated 30-minute manual logbook search, by the end of the capstone period." |
 
 ---
 

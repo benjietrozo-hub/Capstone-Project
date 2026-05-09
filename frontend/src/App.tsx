@@ -36,6 +36,7 @@ import { MyReservationsPage } from './pages/teacher/MyReservationsPage';
 import { ActivityLogsPage } from './pages/teacher/ActivityLogsPage';
 import DistributionGroupsPage from './pages/teacher/DistributionGroupsPage';
 import DistributionRequestsPage from './pages/teacher/DistributionRequestsPage';
+import TeacherReportsPage from './pages/teacher/ReportsPage';
 
 // Common Components
 import { ProtectedRoute } from './components/common/ProtectedRoute';
@@ -249,6 +250,16 @@ function App() {
                         <ProtectedRoute requiredRole="teacher">
                           <ProtectedLayout>
                             <DistributionRequestsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="reports"
+                      element={
+                        <ProtectedRoute requiredRole="teacher">
+                          <ProtectedLayout>
+                            <TeacherReportsPage />
                           </ProtectedLayout>
                         </ProtectedRoute>
                       }

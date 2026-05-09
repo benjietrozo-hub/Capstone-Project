@@ -78,9 +78,11 @@ class ItemDistributionController extends Controller
                     'total_distributions' => $totalDistributions,
                     'active_distributions' => $activeDistributions,
                     'returned_distributions' => $returnedDistributions,
+                    'pending_acceptance_distributions' => ItemDistribution::where('status', 'pending_acceptance')->count(),
                     'overdue_distributions' => $overdueDistributions,
                     'total_quantity_distributed' => $totalQuantityDistributed,
                 ]
+
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -132,8 +134,9 @@ class ItemDistributionController extends Controller
                 'teacher_id' => $request->teacher_id,
                 'distributed_by' => auth()->id(),
                 'quantity_distributed' => $quantity,
-                'status' => 'active',
+                'status' => 'pending_acceptance',
                 'distribution_date' => $request->distribution_date,
+
                 'expected_return_date' => $request->expected_return_date,
                 'purpose' => $request->purpose,
                 'notes' => $request->notes,
@@ -141,13 +144,14 @@ class ItemDistributionController extends Controller
             ]);
 
             // Update item statuses and attach to pivot
-            InventoryItem::whereIn('id', $request->inventory_item_ids)->update(['status' => 'borrowed']);
+            InventoryItem::whereIn('id', $request->inventory_item_ids)->update(['status' => 'distributed']);
             
             $syncData = [];
             foreach ($request->inventory_item_ids as $itemId) {
                 $syncData[$itemId] = ['status' => 'distributed', 'created_at' => now(), 'updated_at' => now()];
             }
             $distribution->inventoryItems()->attach($syncData);
+
 
             SystemLog::create([
                 'log_type' => 'distribution',
@@ -235,9 +239,10 @@ class ItemDistributionController extends Controller
 
             $distribution = ItemDistribution::with('inventoryItems')->findOrFail($id);
 
-            if ($distribution->status !== 'active') {
-                return response()->json(['success' => false, 'message' => 'Distribution is not active'], 422);
+            if (!in_array($distribution->status, ['active', 'pending_acceptance'])) {
+                return response()->json(['success' => false, 'message' => 'Distribution is not active or pending'], 422);
             }
+
 
             $itemIdsToReturn = $request->inventory_item_ids ?? $distribution->inventoryItems->pluck('id')->toArray();
 
@@ -288,9 +293,10 @@ class ItemDistributionController extends Controller
 
             $distribution = ItemDistribution::findOrFail($id);
 
-            if ($distribution->status !== 'active') {
-                return response()->json(['success' => false, 'message' => 'Distribution is not active'], 422);
+            if (!in_array($distribution->status, ['active', 'pending_acceptance'])) {
+                return response()->json(['success' => false, 'message' => 'Distribution is not active or pending'], 422);
             }
+
 
             // Update items back to available
             $itemIds = $distribution->inventoryItems->pluck('id')->toArray();

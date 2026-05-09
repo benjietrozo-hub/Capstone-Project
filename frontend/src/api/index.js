@@ -362,6 +362,16 @@ export const teacherAPI = {
   cancelDistributionRequest: (id) =>
     axiosInstance.delete(`/teacher/distribution-requests/${id}`),
 
+  // Item Distributions (Teacher Acceptance Flow)
+  getDistributions: (params) =>
+    axiosInstance.get('/teacher/distributions', { params }),
+
+  acceptDistribution: (id) =>
+    axiosInstance.post(`/teacher/distributions/${id}/accept`),
+
+  rejectDistribution: (id, reason) =>
+    axiosInstance.post(`/teacher/distributions/${id}/reject`, { reason }),
+
   // Activity Logs
   getActivityLogs: (params) =>
     axiosInstance.get('/teacher/activity-logs', { params }),

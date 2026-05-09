@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { X, Users, Search } from "lucide-react";
+import { 
+  X, Users, Search, Info, Plus, ArrowRight, UserPlus, Layers,
+  CheckCircle, ShieldCheck, TrendingUp, Filter, ChevronRight,
+  Settings, Briefcase
+} from "lucide-react";
 import { adminAPI } from "../../api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,8 +27,6 @@ interface CreateGroupModalProps {
   onSuccess: () => void;
 }
 
-console.log("🔍 CreateGroupModal component loaded v2.0 with adminAPI:", typeof adminAPI.createDistributionGroup);
-
 export default function CreateGroupModal({ teachers, onClose, onSuccess }: CreateGroupModalProps) {
   const [formData, setFormData] = useState({
     group_name: "",
@@ -36,15 +38,25 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const filteredTeachers = teachers.filter(t =>
-    (t.full_name && t.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (t.email && t.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredTeachers = teachers.filter(t => {
+    const search = searchQuery.toLowerCase();
+    const fullName = (t.full_name || "").toLowerCase();
+    const email = (t.email || "").toLowerCase();
+    return fullName.includes(search) || email.includes(search);
+  });
 
   const handleToggleTeacher = (id: number) => {
     setSelectedTeachers(prev =>
       prev.includes(id) ? prev.filter(tid => tid !== id) : [...prev, id]
     );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTeachers.length === filteredTeachers.length) {
+      setSelectedTeachers([]);
+    } else {
+      setSelectedTeachers(filteredTeachers.map(t => t.id));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,28 +72,8 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
       return;
     }
 
-    // Validate group name length
-    if (formData.group_name.trim().length < 3) {
-      toast.error("Group name must be at least 3 characters long");
-      return;
-    }
-
-    // Validate group type
-    if (!formData.group_type) {
-      toast.error("Group type is required");
-      return;
-    }
-
-    // Validate visibility
-    if (!formData.visibility) {
-      toast.error("Visibility is required");
-      return;
-    }
-
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-
       const requestData = {
         group_name: formData.group_name,
         group_type: formData.group_type,
@@ -90,165 +82,238 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
         teacher_ids: selectedTeachers,
       };
       
-      console.log("DEBUG: Sending group data:", requestData);
-      console.log("DEBUG: formData:", formData);
-      console.log("DEBUG: selectedTeachers:", selectedTeachers);
-      
       await adminAPI.createDistributionGroup(requestData);
-
       toast.success("Distribution group created successfully");
       onSuccess();
     } catch (error: any) {
-      console.error("Error creating group:", error);
-      console.error("Error details:", {
-        message: error.response?.data?.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        errors: error.response?.data?.errors,
-        config: error.config
-      });
-      
-      // Show specific validation errors if available
-      if (error.response?.data?.errors) {
-        const validationErrors = error.response.data.errors;
-        const errorMessages = Object.values(validationErrors).flat();
-        toast.error((errorMessages[0] as string) || "Validation failed");
-      } else {
-        toast.error(error.response?.data?.message || "Failed to create group");
-      }
+      toast.error(error.response?.data?.message || "Failed to create group");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Create Distribution Group</h2>
-            <p className="text-sm text-gray-600 mt-1">Create a new group for targeted communication</p>
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-6 animate-in fade-in duration-300">
+      <div className="bg-white rounded-[40px] shadow-2xl max-w-5xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-white/20 animate-in zoom-in-95 duration-300">
+        {/* Premium Header */}
+        <div className="bg-slate-900 px-10 py-8 flex items-center justify-between shrink-0 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full -mr-32 -mt-32 blur-3xl" />
+          <div className="relative z-10 flex items-center gap-5 text-white">
+            <div className="p-4 bg-white/10 rounded-[20px] backdrop-blur-xl border border-white/10">
+              <Users className="w-8 h-8 text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-black tracking-tight">Generate Group</h2>
+              <p className="text-slate-400 text-sm font-medium flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                Coordinated recipient logic for batch distribution cycles
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button 
+            onClick={onClose} 
+            className="relative z-10 p-3 hover:bg-white/10 rounded-2xl transition-all text-white active:scale-90"
+          >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Content */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-140px)]">
-          <div className="p-6 space-y-6">
-            {/* Group Details */}
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="group_name">Group Name *</Label>
-                <Input
-                  id="group_name"
-                  name="group_name"
-                  value={formData.group_name}
-                  onChange={(e) => setFormData({ ...formData, group_name: e.target.value })}
-                  placeholder="e.g., Science Department Teachers"
-                  required
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-10 bg-[#F8FAFC] custom-scrollbar">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Left Side: Group Configuration */}
+            <div className="space-y-10">
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 px-1">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <Settings className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <Label className="text-lg font-black text-slate-800">Operational Parameters</Label>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Distribution Hub Identity *</Label>
+                    <Input
+                      value={formData.group_name}
+                      onChange={(e) => setFormData({ ...formData, group_name: e.target.value })}
+                      placeholder="e.g., Senior Research Faculty Cluster"
+                      className="h-14 rounded-2xl border-slate-200 bg-white focus:ring-2 focus:ring-blue-600 text-lg font-bold shadow-sm"
+                      required
+                    />
+                  </div>
 
-              <div>
-                <Label htmlFor="group_type">Group Type *</Label>
-                <Select value={formData.group_type} onValueChange={(value) => {
-                  console.log("🔍 Group type changed to:", value);
-                  setFormData({ ...formData, group_type: value });
-                }}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="department">Department</SelectItem>
-                    <SelectItem value="role">Role</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Logic Category</Label>
+                      <Select 
+                        value={formData.group_type} 
+                        onValueChange={(value) => setFormData({ ...formData, group_type: value })}
+                      >
+                        <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-white font-bold">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-slate-100 font-bold">
+                          <SelectItem value="department">Department Hub</SelectItem>
+                          <SelectItem value="role">Professional Role</SelectItem>
+                          <SelectItem value="custom">Custom Logic Group</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-              <div>
-                <Label htmlFor="visibility">Visibility *</Label>
-                <Select value={formData.visibility} onValueChange={(value) => setFormData({ ...formData, visibility: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="private">Private</SelectItem>
-                    <SelectItem value="shared">Shared</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Access Protocol</Label>
+                      <Select 
+                        value={formData.visibility} 
+                        onValueChange={(value) => setFormData({ ...formData, visibility: value })}
+                      >
+                        <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-white font-bold">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-slate-100 font-bold">
+                          <SelectItem value="private">Restricted (Private)</SelectItem>
+                          <SelectItem value="shared">Administrative (Shared)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Brief description of this group..."
-                  rows={3}
-                />
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Mission Objective / Description</Label>
+                    <Textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Define the operational scope of this distribution group..."
+                      className="rounded-[24px] border-slate-200 bg-white focus:ring-2 focus:ring-blue-600 p-6 min-h-[160px] font-medium italic shadow-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Summary Insight */}
+              <div className="bg-slate-900 rounded-[32px] p-8 space-y-6 shadow-xl shadow-slate-200 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+                <div className="flex items-center justify-between relative z-10">
+                  <h4 className="text-xs font-black text-blue-400 uppercase tracking-[0.2em]">Deployment Insight</h4>
+                  <Badge className="bg-white/10 text-white border-white/10 font-black px-3 h-6 text-[10px] tracking-widest">REAL-TIME</Badge>
+                </div>
+                <div className="space-y-4 relative z-10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 text-xs font-medium">Group Identity</span>
+                    <span className="font-black text-white">{formData.group_name || "PENDING_IDENTIFIER"}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 text-xs font-medium">Recipient Load</span>
+                    <span className="font-black text-blue-400 flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      {selectedTeachers.length} Personnel
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 text-xs font-medium">Security Policy</span>
+                    <span className="font-black text-emerald-400 uppercase tracking-widest text-[10px]">{formData.visibility}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Teacher Selection */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>Select Teachers *</Label>
-                <Badge variant="secondary">
-                  {selectedTeachers.length} selected
-                </Badge>
+            {/* Right Side: Personnel Engine */}
+            <div className="flex flex-col space-y-6 h-full">
+              <div className="flex items-center justify-between px-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                    <UserPlus className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <Label className="text-lg font-black text-slate-800">Personnel Engine</Label>
+                </div>
+                <button 
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest underline underline-offset-4"
+                >
+                  {selectedTeachers.length === filteredTeachers.length ? "Reset Roster" : "Batch Enroll All"}
+                </button>
               </div>
 
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <Input
-                  placeholder="Search teachers..."
+                  placeholder="Query personnel registry..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-14 h-14 rounded-2xl border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-blue-600 font-medium"
                 />
               </div>
 
-              <div className="border rounded-lg max-h-64 overflow-y-auto">
-                {filteredTeachers.map((teacher) => (
-                  <div
-                    key={teacher.id}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0 cursor-pointer"
-                    onClick={() => handleToggleTeacher(teacher.id)}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedTeachers.includes(teacher.id)}
-                      onChange={() => handleToggleTeacher(teacher.id)}
-                      className="rounded border-gray-300"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">{teacher.full_name || 'Unknown Name'}</div>
-                      <div className="text-sm text-gray-600">{teacher.email || 'No Email'}</div>
+              <div className="flex-1 bg-white rounded-[32px] border border-slate-100 overflow-hidden flex flex-col shadow-inner">
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-2">
+                  {filteredTeachers.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center p-10 text-center">
+                      <div className="w-20 h-20 bg-slate-50 rounded-[30px] flex items-center justify-center text-slate-200 mb-4 border border-slate-100 shadow-sm">
+                        <Search className="w-8 h-8" />
+                      </div>
+                      <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Query Unmatched</p>
+                      <p className="text-xs text-slate-300 mt-2 font-medium">Verify identifiers and try again</p>
                     </div>
-                    <Badge variant="outline">{teacher.department || 'No Department'}</Badge>
-                  </div>
-                ))}
+                  ) : (
+                    filteredTeachers.map((teacher) => (
+                      <div
+                        key={teacher.id}
+                        className={`group flex items-center gap-4 p-4 transition-all cursor-pointer rounded-2xl ${selectedTeachers.includes(teacher.id) ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 ring-2 ring-slate-900' : 'hover:bg-slate-50'}`}
+                        onClick={() => handleToggleTeacher(teacher.id)}
+                      >
+                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedTeachers.includes(teacher.id) ? 'bg-blue-600 border-blue-600 shadow-sm' : 'bg-white border-slate-200'}`}>
+                          {selectedTeachers.includes(teacher.id) && <Plus className="w-4 h-4 text-white rotate-45" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-black truncate ${selectedTeachers.includes(teacher.id) ? 'text-white' : 'text-slate-800'}`}>{teacher.full_name}</p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <Badge variant="outline" className={`text-[9px] h-4 font-black uppercase tracking-tighter ${selectedTeachers.includes(teacher.id) ? 'border-white/20 text-blue-400' : 'border-slate-100 text-slate-400'}`}>
+                              {teacher.department}
+                            </Badge>
+                            <span className={`text-[10px] font-medium truncate ${selectedTeachers.includes(teacher.id) ? 'text-slate-400' : 'text-slate-400'}`}>{teacher.email}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
+        </form>
 
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-[#5B8DEF] to-[#0063F7]">
-              {loading ? "Creating..." : "Create Group"}
+        {/* Premium Action Footer */}
+        <div className="p-10 border-t bg-white flex items-center justify-between">
+          <Button 
+            type="button" 
+            variant="ghost" 
+            onClick={onClose} 
+            className="text-slate-400 hover:text-slate-600 font-black uppercase tracking-widest h-14 px-8 rounded-2xl hover:bg-slate-50"
+            disabled={loading}
+          >
+            Discard
+          </Button>
+          <div className="flex items-center gap-8">
+             <div className="text-right hidden sm:block pr-8 border-r border-slate-100">
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Enrolled Recipients</p>
+                <p className="text-xl font-black text-slate-900">{selectedTeachers.length} Personnel</p>
+              </div>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={loading || !formData.group_name.trim() || selectedTeachers.length === 0} 
+              className="bg-slate-900 hover:bg-slate-800 text-white font-black h-14 px-14 rounded-2xl shadow-2xl shadow-slate-200 transition-all active:scale-95 flex items-center gap-3"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Plus className="w-5 h-5" />
+              )}
+              <span className="uppercase tracking-widest">{loading ? "Synchronizing..." : "Initialize Group"}</span>
             </Button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
 }
+

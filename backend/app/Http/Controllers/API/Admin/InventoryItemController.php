@@ -37,8 +37,13 @@ class InventoryItemController extends Controller
             });
         }
 
-        $items = $query->latest()->paginate($request->get('per_page', 50));
+        // Default Sorting: Chronological (Oldest First) then Alphabetical (A-Z)
+        $query->orderBy('date_acquired', 'asc')
+              ->orderBy('item_name', 'asc');
+
+        $items = $query->paginate($request->get('per_page', 50));
         return response()->json($items);
+
     }
 
     public function store(Request $request)
@@ -51,10 +56,12 @@ class InventoryItemController extends Controller
             'property_number' => 'nullable|string|unique:inventory_items,property_number',
             'item_image' => 'nullable|image|max:2048',
             'condition' => 'required|in:excellent,good,fair,poor,damaged',
-            'status' => 'required|in:available,borrowed,maintenance,damaged,archived',
+            'status' => 'required|in:available,borrowed,distributed,maintenance,damaged,archived,disposed',
             'date_acquired' => 'nullable|date',
+            'lifespan_years' => 'nullable|integer|min:1',
             'location' => 'nullable|string|max:255',
             'custom_attributes' => 'nullable|array',
+
         ]);
 
         if ($request->hasFile('item_image')) {
@@ -86,11 +93,13 @@ class InventoryItemController extends Controller
             'category_id' => 'required|exists:item_categories,id',
             'item_name' => 'required|string|max:255',
             'condition' => 'required|in:excellent,good,fair,poor,damaged',
-            'status' => 'required|in:available,borrowed,maintenance,damaged,archived',
+            'status' => 'required|in:available,borrowed,distributed,maintenance,damaged,archived,disposed',
             'property_number' => 'nullable|string|unique:inventory_items,property_number',
             'date_acquired' => 'nullable|date',
+            'lifespan_years' => 'nullable|integer|min:1',
             'location' => 'nullable|string|max:255',
             'custom_attributes' => 'nullable|array',
+
             'item_image' => 'nullable|image|max:2048',
             'serial_numbers' => 'required|array|min:1',
             'serial_numbers.*' => 'required|string|unique:inventory_items,serial_number',
@@ -162,10 +171,12 @@ class InventoryItemController extends Controller
             'property_number' => 'nullable|string|unique:inventory_items,property_number,' . $item->id,
             'item_image' => 'nullable|image|max:2048',
             'condition' => 'sometimes|in:excellent,good,fair,poor,damaged',
-            'status' => 'sometimes|in:available,borrowed,maintenance,damaged,archived',
+            'status' => 'sometimes|in:available,borrowed,distributed,maintenance,damaged,archived,disposed',
             'date_acquired' => 'nullable|date',
+            'lifespan_years' => 'nullable|integer|min:1',
             'location' => 'nullable|string|max:255',
             'custom_attributes' => 'nullable|array',
+
         ]);
 
         if ($request->hasFile('item_image')) {

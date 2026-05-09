@@ -28,6 +28,10 @@ class DashboardController extends Controller
         
         // Get available items count (items with status = 'available')
         $availableItems = \App\Models\InventoryItem::where('status', 'available')->count();
+
+        // Get pending distributions (waiting for teacher acceptance)
+        $pendingDistributions = \App\Models\ItemDistribution::where('teacher_id', $tid)->where('status', 'pending_acceptance')->count();
+
         
         return response()->json([
             'total_requests' => $totalRequests,
@@ -38,7 +42,9 @@ class DashboardController extends Controller
             'rejected_requests' => $rejectedRequests,
             'overdue_items' => $overdueItems,
             'available_items' => $availableItems,
+            'pending_distributions' => $pendingDistributions,
             'recent_requests' => BorrowRequest::with(['category'])->where('teacher_id', $tid)->latest()->limit(5)->get(),
         ]);
     }
 }
+

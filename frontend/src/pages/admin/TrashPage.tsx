@@ -35,8 +35,11 @@ const TrashPage = () => {
     item_category: 'Category',
     borrow_request: 'Borrow Requests',
     distribution_group: 'Distribution Groups',
+    item_distribution: 'Individual Distribution',
+    bulk_distribution: 'Bulk Distribution',
     teacher: 'Teachers',
   };
+
 
   const typeBadgeColors: Record<string, string> = {
     inventory: 'bg-blue-100 text-blue-800',
@@ -44,8 +47,11 @@ const TrashPage = () => {
     item_category: 'bg-purple-100 text-purple-800',
     borrow_request: 'bg-orange-100 text-orange-800',
     distribution_group: 'bg-pink-100 text-pink-800',
+    item_distribution: 'bg-emerald-100 text-emerald-800',
+    bulk_distribution: 'bg-cyan-100 text-cyan-800',
     teacher: 'bg-teal-100 text-teal-800',
   };
+
 
   useEffect(() => {
     fetchArchiveData();
@@ -139,7 +145,14 @@ const TrashPage = () => {
               <div className="text-sm text-gray-600">Teachers</div>
               <div className="text-2xl font-bold text-teal-600">{stats.teachers}</div>
             </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-600">Distributions</div>
+              <div className="text-2xl font-bold text-emerald-600">
+                {(stats as any).item_distribution + (stats as any).bulk_distribution}
+              </div>
+            </div>
           </div>
+
         )}
 
         {/* Filters */}
@@ -168,7 +181,10 @@ const TrashPage = () => {
                 <option value="inventory">Inventory</option>
                 <option value="borrow_requests">Borrow Requests</option>
                 <option value="distribution_groups">Distribution Groups</option>
+                <option value="item_distribution">Individual Distributions</option>
+                <option value="bulk_distribution">Bulk Distributions</option>
                 <option value="teachers">Teachers</option>
+
               </select>
             </div>
           </div>

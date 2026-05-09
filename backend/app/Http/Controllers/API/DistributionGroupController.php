@@ -284,8 +284,8 @@ class DistributionGroupController extends Controller
                 ], 422);
             }
 
-            // Check permission for user-created groups
-            if ($group->list_type === 'user') {
+            // Check permission for user-created groups (Allow Admins to bypass)
+            if ($group->list_type === 'user' && !($request->user() instanceof \App\Models\Admin)) {
                 $user = $request->user();
                 $teacherId = $user instanceof Teacher ? $user->id : null;
                 
@@ -296,6 +296,7 @@ class DistributionGroupController extends Controller
                     ], 403);
                 }
             }
+
 
             $group->teachers()->syncWithoutDetaching($request->teacher_ids);
             $group->load(['teachers', 'creator']);
@@ -335,8 +336,8 @@ class DistributionGroupController extends Controller
                 ], 422);
             }
 
-            // Check permission for user-created groups
-            if ($group->list_type === 'user') {
+            // Check permission for user-created groups (Allow Admins to bypass)
+            if ($group->list_type === 'user' && !($request->user() instanceof \App\Models\Admin)) {
                 $user = $request->user();
                 $teacherId = $user instanceof Teacher ? $user->id : null;
                 
@@ -347,6 +348,7 @@ class DistributionGroupController extends Controller
                     ], 403);
                 }
             }
+
 
             $group->teachers()->detach($request->teacher_ids);
             $group->load(['teachers', 'creator']);

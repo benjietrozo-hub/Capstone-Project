@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { X, Calendar, FileText, CheckCircle } from 'lucide-react';
+import { X, Calendar, FileText, CheckCircle, Package, User, Info, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 interface ReturnDistributionModalProps {
@@ -45,126 +46,172 @@ export default function ReturnDistributionModal({ distribution, onClose, onSucce
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full">
-        <div className="bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-xl">
-          <h2 className="text-xl font-bold text-gray-900">Return Distribution</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-5 h-5" />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-gray-100">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-6 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-4 text-white">
+            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-md">
+              <ArrowLeft className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold">Return Asset</h2>
+              <p className="text-emerald-50 text-sm opacity-90">Process the return of distributed items</p>
+            </div>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="p-2 hover:bg-white/20 rounded-full transition-colors text-white"
+          >
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Distribution Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-            <h3 className="font-semibold text-blue-900">Distribution Details</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-blue-700">Item:</span>
-                <p className="font-medium text-blue-900">{distribution.item.item_name}</p>
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="p-8 space-y-8">
+            {/* Distribution Summary Card */}
+            <div className="bg-gray-50/50 rounded-2xl border border-gray-100 p-6 space-y-4">
+              <div className="flex items-center gap-2 text-gray-800 font-bold text-sm uppercase tracking-wider">
+                <Info className="w-4 h-4 text-emerald-600" />
+                Distribution Details
               </div>
-              <div>
-                <span className="text-blue-700">Teacher:</span>
-                <p className="font-medium text-blue-900">{distribution.teacher.full_name}</p>
-              </div>
-              <div>
-                <span className="text-blue-700">Quantity:</span>
-                <p className="font-medium text-blue-900">{distribution.quantity_distributed} units</p>
-              </div>
-              <div>
-                <span className="text-blue-700">Distributed:</span>
-                <p className="font-medium text-blue-900">
-                  {new Date(distribution.distribution_date).toLocaleDateString()}
-                </p>
-              </div>
-              <div>
-                <span className="text-blue-700">Condition (Out):</span>
-                <p className="font-medium text-blue-900 capitalize">{distribution.condition_on_distribution}</p>
-              </div>
-              {distribution.expected_return_date && (
-                <div>
-                  <span className="text-blue-700">Expected Return:</span>
-                  <p className="font-medium text-blue-900">
-                    {new Date(distribution.expected_return_date).toLocaleDateString()}
+              
+              <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Item Name</span>
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-gray-400" />
+                    <p className="text-sm font-bold text-gray-900">{distribution.item.item_name}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Recipient</span>
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <p className="text-sm font-bold text-gray-900">{distribution.teacher.full_name}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Quantity</span>
+                  <p className="text-sm font-bold text-gray-900">{distribution.quantity_distributed} Units</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Original Condition</span>
+                  <Badge variant="outline" className="capitalize font-bold bg-white text-emerald-700 border-emerald-100">
+                    {distribution.condition_on_distribution}
+                  </Badge>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Issue Date</span>
+                  <p className="text-sm font-bold text-gray-900">
+                    {new Date(distribution.distribution_date).toLocaleDateString(undefined, { dateStyle: 'medium' })}
                   </p>
                 </div>
-              )}
+
+                {distribution.expected_return_date && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">Expected Return</span>
+                    <p className="text-sm font-bold text-emerald-600">
+                      {new Date(distribution.expected_return_date).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
+
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Return Date */}
+                <div className="space-y-3">
+                  <Label htmlFor="actual_return_date" className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-emerald-600" />
+                    Actual Return Date *
+                  </Label>
+                  <Input
+                    id="actual_return_date"
+                    type="date"
+                    value={formData.actual_return_date}
+                    onChange={(e) => setFormData({ ...formData, actual_return_date: e.target.value })}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="h-12 rounded-xl border-gray-200 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+
+                {/* Condition on Return */}
+                <div className="space-y-3">
+                  <Label htmlFor="condition_on_return" className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600" />
+                    Condition on Return *
+                  </Label>
+                  <Select 
+                    value={formData.condition_on_return} 
+                    onValueChange={(value) => setFormData({ ...formData, condition_on_return: value })}
+                  >
+                    <SelectTrigger className="h-12 rounded-xl border-gray-200">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-gray-100">
+                      <SelectItem value="excellent">Excellent</SelectItem>
+                      <SelectItem value="good">Good</SelectItem>
+                      <SelectItem value="fair">Fair</SelectItem>
+                      <SelectItem value="poor">Poor</SelectItem>
+                      <SelectItem value="damaged">Damaged</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Admin Notes */}
+              <div className="space-y-3">
+                <Label htmlFor="admin_notes" className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                  Processing Notes
+                </Label>
+                <Textarea
+                  id="admin_notes"
+                  value={formData.admin_notes}
+                  onChange={(e) => setFormData({ ...formData, admin_notes: e.target.value })}
+                  placeholder="Any observations regarding the item's condition or return status..."
+                  rows={4}
+                  className="rounded-2xl border-gray-200 focus:ring-emerald-500 p-4 min-h-[120px]"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-4 pt-6 border-t border-gray-100">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={onClose} 
+                  className="flex-1 font-bold h-12 rounded-xl text-gray-500"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={loading} 
+                  className="flex-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:shadow-lg hover:shadow-emerald-100 transition-all font-bold h-12 rounded-xl px-12"
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Processing...</span>
+                    </div>
+                  ) : (
+                    "Complete Return"
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Return Date */}
-            <div className="space-y-2">
-              <Label htmlFor="actual_return_date">
-                <Calendar className="w-4 h-4 inline mr-2" />
-                Actual Return Date *
-              </Label>
-              <Input
-                id="actual_return_date"
-                type="date"
-                value={formData.actual_return_date}
-                onChange={(e) => setFormData({ ...formData, actual_return_date: e.target.value })}
-                max={new Date().toISOString().split('T')[0]}
-                required
-              />
-            </div>
-
-            {/* Condition on Return */}
-            <div className="space-y-2">
-              <Label htmlFor="condition_on_return">
-                <CheckCircle className="w-4 h-4 inline mr-2" />
-                Item Condition on Return *
-              </Label>
-              <Select 
-                value={formData.condition_on_return} 
-                onValueChange={(value) => setFormData({ ...formData, condition_on_return: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="excellent">Excellent</SelectItem>
-                  <SelectItem value="good">Good</SelectItem>
-                  <SelectItem value="fair">Fair</SelectItem>
-                  <SelectItem value="poor">Poor</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-gray-600">
-                Original condition: <span className="font-semibold capitalize">{distribution.condition_on_distribution}</span>
-              </p>
-            </div>
-
-            {/* Admin Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="admin_notes">
-                <FileText className="w-4 h-4 inline mr-2" />
-                Admin Notes
-              </Label>
-              <Textarea
-                id="admin_notes"
-                value={formData.admin_notes}
-                onChange={(e) => setFormData({ ...formData, admin_notes: e.target.value })}
-                placeholder="Any notes about the return (damage, missing parts, etc.)..."
-                rows={4}
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={loading} 
-                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-              >
-                {loading ? 'Processing...' : 'Mark as Returned'}
-              </Button>
-            </div>
-          </form>
         </div>
       </div>
     </div>
   );
 }
+

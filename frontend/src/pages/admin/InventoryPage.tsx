@@ -38,7 +38,11 @@ interface InventoryItem {
   condition: string;
   status: string;
   date_acquired: string | null;
+  lifespan_years: number | null;
+  is_approaching_end_of_life?: boolean;
+  end_of_life_date?: string | null;
   custom_attributes: Record<string, any>;
+
 }
 
 export function InventoryPage() {
@@ -122,8 +126,11 @@ export function InventoryPage() {
   const [propertyNumber, setPropertyNumber] = useState('');
   const [condition, setCondition] = useState('good');
   const [status, setStatus] = useState('available');
+  const [dateAcquired, setDateAcquired] = useState('');
+  const [lifespanYears, setLifespanYears] = useState('5');
   const [itemImage, setItemImage] = useState<File | null>(null);
   const [customAttributes, setCustomAttributes] = useState<Record<string, any>>({});
+
   
   // Bulk Add State
   const [addQuantity, setAddQuantity] = useState(1);
@@ -206,14 +213,20 @@ export function InventoryPage() {
       setPropertyNumber(item.property_number || '');
       setCondition(item.condition);
       setStatus(item.status);
+      setDateAcquired(item.date_acquired ? item.date_acquired.split('T')[0] : '');
+      setLifespanYears(item.lifespan_years ? item.lifespan_years.toString() : '5');
       setCustomAttributes(item.custom_attributes || {});
+
     } else {
       setItemName('');
       setSerialNumber('');
       setPropertyNumber('');
       setCondition('good');
       setStatus('available');
+      setDateAcquired(new Date().toISOString().split('T')[0]);
+      setLifespanYears('5');
       setCustomAttributes({});
+
     }
     setItemImage(null);
     setShowItemModal(true);
@@ -254,7 +267,10 @@ export function InventoryPage() {
     formData.append('property_number', propertyNumber || '');
     formData.append('condition', condition);
     formData.append('status', status);
+    formData.append('date_acquired', dateAcquired);
+    formData.append('lifespan_years', lifespanYears);
     if (itemImage) formData.append('item_image', itemImage);
+
 
     // Append JSON as array logic for custom_attributes
     if (Object.keys(customAttributes).length > 0) {
@@ -679,10 +695,18 @@ export function InventoryPage() {
                     
                     <div className="p-5 flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-3">
-                        <div>
+                        <div className="flex flex-col">
                           <h4 className="font-bold text-gray-900 line-clamp-1">{item.item_name}</h4>
-                          <p className="text-xs font-mono text-primary font-bold">SN: {item.serial_number}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-mono text-primary font-bold">SN: {item.serial_number}</p>
+                            {item.is_approaching_end_of_life && (
+                              <div className="bg-amber-100 text-amber-700 p-1 rounded-full animate-pulse" title={`Approaching End of Life (${item.end_of_life_date ? new Date(item.end_of_life_date).toLocaleDateString() : 'N/A'})`}>
+                                <Settings className="w-3 h-3" />
+                              </div>
+                            )}
+                          </div>
                         </div>
+
                         <button 
                           onClick={() => handleOpenItemModal(item, false)}
                           className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
@@ -753,11 +777,19 @@ export function InventoryPage() {
                                 )}
                               </div>
                               <div>
-                                <div className="font-bold text-gray-900">{item.item_name}</div>
+                                <div className="font-bold text-gray-900 flex items-center gap-2">
+                                  {item.item_name}
+                                  {item.is_approaching_end_of_life && (
+                                    <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded font-black uppercase flex items-center gap-1">
+                                      <Settings className="w-2.5 h-2.5" /> End of Life
+                                    </span>
+                                  )}
+                                </div>
                                 {Object.entries(item.custom_attributes || {}).slice(0, 2).map(([k, v]) => (
                                   <div key={k} className="text-xs text-gray-500">{k}: {String(v)}</div>
                                 ))}
                               </div>
+
                             </div>
                           </td>
                           <td className="px-6 py-4">
@@ -956,10 +988,28 @@ export function InventoryPage() {
                     <FormField label="Status" type="select" value={status} onChange={e => setStatus(e.target.value)} disabled={isViewOnly} options={[
                       { value: 'available', label: 'Available' },
                       { value: 'borrowed', label: 'Borrowed' },
+                      { value: 'distributed', label: 'Distributed' },
                       { value: 'maintenance', label: 'Maintenance' },
-                      { value: 'archived', label: 'Archived' }
+                      { value: 'archived', label: 'Archived' },
+                      { value: 'disposed', label: 'Disposed' }
                     ]} />
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <FormField label="Date Acquired" type="date" value={dateAcquired} onChange={e => setDateAcquired(e.target.value)} disabled={isViewOnly} />
+                    <FormField label="Lifespan (Years)" type="number" value={lifespanYears} onChange={e => setLifespanYears(e.target.value)} disabled={isViewOnly} min="1" max="20" />
+                  </div>
+                  
+                  {isViewOnly && item.end_of_life_date && (
+                    <div className={`p-3 rounded-xl border flex items-center gap-3 ${item.is_approaching_end_of_life ? 'bg-amber-50 border-amber-100 text-amber-800' : 'bg-gray-50 border-gray-100 text-gray-700'}`}>
+                      <Settings className={`w-5 h-5 ${item.is_approaching_end_of_life ? 'animate-spin-slow' : ''}`} />
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Expected Retirement</p>
+                        <p className="text-sm font-bold">{new Date(item.end_of_life_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      </div>
+                    </div>
+                  )}
+
                   
                   {!isViewOnly && (
                     <div className="pt-2">

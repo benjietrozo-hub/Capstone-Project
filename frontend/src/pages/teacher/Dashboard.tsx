@@ -28,7 +28,9 @@ interface DashboardStats {
   returned_items: number;
   rejected_requests: number;
   available_items: number;
+  pending_distributions: number;
 }
+
 
 export function TeacherDashboard() {
   const navigate = useNavigate();
@@ -40,7 +42,9 @@ export function TeacherDashboard() {
     returned_items: 0,
     rejected_requests: 0,
     available_items: 0,
+    pending_distributions: 0,
   });
+
   const [loading, setLoading] = useState(true);
   
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -126,7 +130,18 @@ export function TeacherDashboard() {
       change: "0%",
       trend: "neutral"
     },
+    {
+      title: "Pending Acceptance",
+      description: "Items to acknowledge",
+      icon: UserCheck,
+      url: "/teacher/my-inventory?tab=pending",
+      color: "from-amber-500 to-orange-600",
+      value: stats.pending_distributions.toString(),
+      change: stats.pending_distributions > 0 ? "Action Required" : "0",
+      trend: stats.pending_distributions > 0 ? "down" : "neutral"
+    },
   ];
+
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
