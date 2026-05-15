@@ -21,7 +21,9 @@ class DistributionRequestController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = DistributionRequest::with(['teacher', 'item', 'reviewedBy']);
+            $query = DistributionRequest::with([
+                'teacher', 'category', 'item', 'reviewedBy', 'requestedFor'
+            ]);
 
             // Filter by status
             if ($request->has('status') && $request->status !== 'all') {
@@ -30,10 +32,28 @@ class DistributionRequestController extends Controller
 
             $requests = $query->orderBy('created_at', 'desc')->get();
 
-            // Add reviewed_by_admin alias for frontend compatibility
-            $requests->transform(function ($request) {
-                $request->reviewed_by_admin = $request->reviewedBy;
-                return $request;
+            $requests->transform(function ($req) {
+                $req->reviewed_by_admin = $req->reviewedBy;
+
+                // Resolve human-readable entity name
+                $entityName = null;
+                if ($req->requestedFor) {
+                    $type = class_basename($req->requested_for_type);
+                    $entity = $req->requestedFor;
+                    $entityName = match($type) {
+                        'Teacher'    => ($entity->first_name ?? '') . ' ' . ($entity->last_name ?? '') . ' (Personal)',
+                        'Classroom'  => $entity->room_name ?? $entity->room_number ?? "Classroom #{$entity->id}",
+                        'Club'       => $entity->club_name ?? "Club #{$entity->id}",
+                        'Department' => $entity->department_name ?? "Department #{$entity->id}",
+                        default      => "Entity #{$req->requested_for_id}",
+                    };
+                }
+                $req->requested_for_name = $entityName;
+                $req->requested_for_label = $req->requested_for_type
+                    ? class_basename($req->requested_for_type)
+                    : null;
+
+                return $req;
             });
 
             return response()->json([
@@ -84,12 +104,28 @@ class DistributionRequestController extends Controller
     public function show($id)
     {
         try {
-            $request = DistributionRequest::with(['teacher', 'item', 'reviewedBy', 'distribution'])
-                ->findOrFail($id);
+            $req = DistributionRequest::with([
+                'teacher', 'category', 'item', 'reviewedBy', 'distribution', 'requestedFor'
+            ])->findOrFail($id);
+
+            $req->reviewed_by_admin = $req->reviewedBy;
+
+            if ($req->requestedFor) {
+                $type = class_basename($req->requested_for_type);
+                $entity = $req->requestedFor;
+                $req->requested_for_name = match($type) {
+                    'Teacher'    => ($entity->first_name ?? '') . ' ' . ($entity->last_name ?? '') . ' (Personal)',
+                    'Classroom'  => $entity->room_name ?? $entity->room_number ?? "Classroom #{$entity->id}",
+                    'Club'       => $entity->club_name ?? "Club #{$entity->id}",
+                    'Department' => $entity->department_name ?? "Department #{$entity->id}",
+                    default      => "Entity #{$req->requested_for_id}",
+                };
+                $req->requested_for_label = $type;
+            }
 
             return response()->json([
                 'success' => true,
-                'data' => $request
+                'data' => $req
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -149,19 +185,22 @@ class DistributionRequestController extends Controller
 
             DB::beginTransaction();
 
-            // Create item distribution
+            // Create item distribution — assign to the entity the teacher requested for
             $distribution = ItemDistribution::create([
-                'category_id' => $distributionRequest->category_id,
-                'teacher_id' => $distributionRequest->teacher_id,
-                'distributed_by' => $admin->id,
-                'quantity_distributed' => $distributionRequest->quantity_requested,
-                'status' => 'pending_acceptance',
-                'distribution_date' => now(),
-                'purpose' => $distributionRequest->reason,
-
-                'notes' => $distributionRequest->notes,
-                'admin_notes' => $request->admin_notes,
-                'condition_on_distribution' => $request->condition_on_distribution,
+                'category_id'              => $distributionRequest->category_id,
+                'teacher_id'               => $distributionRequest->teacher_id,
+                'distributed_by'           => $admin->id,
+                'quantity_distributed'     => $distributionRequest->quantity_requested,
+                'status'                   => 'pending_acceptance',
+                'distribution_date'        => now(),
+                'purpose'                  => $distributionRequest->reason,
+                'notes'                    => $distributionRequest->notes,
+                'admin_notes'              => $request->admin_notes,
+                'condition_on_distribution'=> $request->condition_on_distribution,
+                // Assign to the entity (polymorphic)
+                'assignable_type'          => $distributionRequest->requested_for_type,
+                'assignable_id'            => $distributionRequest->requested_for_id,
+                'assignment_type'          => 'permanent',
             ]);
 
             // Update item statuses to distributed
@@ -188,13 +227,13 @@ class DistributionRequestController extends Controller
             
             // Log the action
             SystemLog::create([
+                'log_type' => 'distribution_request',
                 'user_id' => $admin->id,
                 'user_type' => 'admin',
                 'action' => 'approve',
-                'model' => 'DistributionRequest',
-                'model_id' => $id,
                 'description' => "Admin approved and distributed {$distributionRequest->quantity_requested} unit(s) of {$distributionRequest->category->category_name} to {$distributionRequest->teacher->first_name} {$distributionRequest->teacher->last_name}",
                 'ip_address' => $request->ip(),
+                'severity' => 'info',
             ]);
 
             DB::commit();
@@ -226,7 +265,7 @@ class DistributionRequestController extends Controller
         try {
             $admin = Auth::guard('sanctum')->user();
 
-            $distributionRequest = DistributionRequest::with(['teacher', 'item'])
+            $distributionRequest = DistributionRequest::with(['teacher', 'category', 'item'])
                 ->findOrFail($id);
 
             if ($distributionRequest->status !== 'pending') {
@@ -249,15 +288,23 @@ class DistributionRequestController extends Controller
             // Notify teacher
             NotificationService::notifyDistributionRequestRejected($distributionRequest);
 
+            // Get the item/category name
+            $itemName = 'items';
+            if ($distributionRequest->category) {
+                $itemName = $distributionRequest->category->category_name;
+            } elseif ($distributionRequest->item) {
+                $itemName = $distributionRequest->item->item_name;
+            }
+
             // Log the action
             SystemLog::create([
+                'log_type' => 'distribution_request',
                 'user_id' => $admin->id,
                 'user_type' => 'admin',
                 'action' => 'reject',
-                'model' => 'DistributionRequest',
-                'model_id' => $id,
-                'description' => "Admin rejected distribution request for {$distributionRequest->quantity_requested} unit(s) of {$distributionRequest->item->item_name} from {$distributionRequest->teacher->first_name} {$distributionRequest->teacher->last_name}",
+                'description' => "Admin rejected distribution request for {$distributionRequest->quantity_requested} unit(s) of {$itemName} from {$distributionRequest->teacher->first_name} {$distributionRequest->teacher->last_name}",
                 'ip_address' => $request->ip(),
+                'severity' => 'info',
             ]);
 
             DB::commit();

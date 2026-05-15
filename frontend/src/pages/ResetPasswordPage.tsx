@@ -87,7 +87,7 @@ export function ResetPasswordPage() {
         <Card className="w-full max-w-[400px] shadow-2xl border-0 bg-[#1C2536] text-white my-auto">
           <CardHeader className="space-y-3 pb-4 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7] rounded-t-lg">
             <div className="flex justify-center">
-              <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-lg">
+              <div className="w-16 h-16 rounded bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-lg">
                 <Package className="w-8 h-8 text-white" />
               </div>
             </div>

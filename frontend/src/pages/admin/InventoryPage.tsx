@@ -393,9 +393,9 @@ export function InventoryPage() {
         {/* --- MAIN CATEGORIES VIEW --- */}
         {viewMode === 'main' && (
           <>
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center bg-white p-4 rounded-sm shadow-sm border border-gray-100">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                <div className="p-2 bg-primary/10 rounded text-primary">
                   <Folder className="w-5 h-5" />
                 </div>
                 <div>
@@ -411,7 +411,7 @@ export function InventoryPage() {
             {loadingParents ? (
               <InventorySkeleton />
             ) : parents.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
+              <div className="text-center py-20 bg-white rounded-sm border border-gray-200">
                 <Folder className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900">No Master Categories Found</h3>
                 <p className="text-gray-500 mt-1 mb-4">Create your first category to start managing inventory.</p>
@@ -426,7 +426,7 @@ export function InventoryPage() {
                       setSelectedParentCategory(parent.parent_category);
                       setViewMode('category');
                     }}
-                    className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col"
+                    className="bg-white rounded overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col"
                   >
                     <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
                       {parent.image ? (
@@ -443,7 +443,7 @@ export function InventoryPage() {
                       <div className="absolute top-3 right-3 z-10">
                         <Button 
                           variant="secondary" 
-                          className="h-10 px-3 flex items-center gap-2 rounded-xl bg-white shadow-md hover:bg-gray-50 border border-gray-100"
+                          className="h-10 px-3 flex items-center gap-2 rounded-sm bg-white shadow-md hover:bg-gray-50 border border-gray-100"
                           onClick={(e) => {
                             e.stopPropagation();
                             setMasterToRename(parent.parent_category);
@@ -492,9 +492,9 @@ export function InventoryPage() {
         {/* --- CATEGORY VIEW --- */}
         {viewMode === 'category' && (
           <>
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center bg-white p-4 rounded-sm shadow-sm border border-gray-100">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                <div className="p-2 bg-primary/10 rounded text-primary">
                   <Layers className="w-5 h-5" />
                 </div>
                 <div>
@@ -510,7 +510,7 @@ export function InventoryPage() {
             {loadingCategories ? (
               <InventorySkeleton />
             ) : categories.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
+              <div className="text-center py-20 bg-white rounded-sm border border-gray-200">
                 <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900">No Categories Found</h3>
                 <p className="text-gray-500 mt-1 mb-4">Create your first category to start managing inventory.</p>
@@ -525,7 +525,7 @@ export function InventoryPage() {
                       setSelectedCategory(cat);
                       setViewMode('items');
                     }}
-                    className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col"
+                    className="bg-white rounded overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col"
                   >
                     <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
                       {cat.category_image ? (
@@ -549,13 +549,13 @@ export function InventoryPage() {
                         <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors">{cat.category_name}</h3>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleOpenCategoryModal(cat); }}
-                          className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-sm transition-colors"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); }}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-sm transition-colors"
                         >
                           <Archive className="w-4 h-4" />
                         </button>
@@ -587,7 +587,7 @@ export function InventoryPage() {
           <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
             
             {/* Category Header Card */}
-            <div className="bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 flex flex-col md:flex-row">
+            <div className="bg-white rounded overflow-hidden shadow-md border border-gray-100 flex flex-col md:flex-row">
               <div className="w-full md:w-48 h-48 md:h-auto bg-gray-100 flex items-center justify-center shrink-0">
                  {selectedCategory.category_image ? (
                     <img 
@@ -607,11 +607,11 @@ export function InventoryPage() {
                 <p className="text-gray-600 mb-6 max-w-3xl">{selectedCategory.description}</p>
                 
                 <div className="flex flex-wrap gap-6 mt-auto">
-                  <div className="bg-green-50 px-4 py-2 rounded-lg border border-green-100">
+                  <div className="bg-green-50 px-4 py-2 rounded border border-green-100">
                     <span className="block text-xs font-bold text-green-600 uppercase mb-1">Available Units</span>
                     <span className="text-2xl font-black text-green-700">{selectedCategory.available_items}</span>
                   </div>
-                  <div className="bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                  <div className="bg-gray-50 px-4 py-2 rounded border border-gray-200">
                     <span className="block text-xs font-bold text-gray-500 uppercase mb-1">Total Units</span>
                     <span className="text-2xl font-black text-gray-700">{selectedCategory.total_items}</span>
                   </div>
@@ -626,9 +626,9 @@ export function InventoryPage() {
 
             {/* Serialized Items List */}
             {/* Units Display Control */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-center bg-white p-4 rounded-sm border border-gray-100 shadow-sm">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
+                <div className="p-2 bg-primary/10 rounded">
                   <Package className="w-4 h-4 text-primary" />
                 </div>
                 <h3 className="font-bold text-gray-800">
@@ -636,10 +636,10 @@ export function InventoryPage() {
                 </h3>
               </div>
 
-              <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+              <div className="flex items-center bg-gray-100 p-1 rounded-sm">
                 <button
                   onClick={() => setDisplayMode('card')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
                     displayMode === 'card' 
                       ? 'bg-white text-primary shadow-sm' 
                       : 'text-gray-500 hover:text-gray-700'
@@ -650,7 +650,7 @@ export function InventoryPage() {
                 </button>
                 <button
                   onClick={() => setDisplayMode('list')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
                     displayMode === 'list' 
                       ? 'bg-white text-primary shadow-sm' 
                       : 'text-gray-500 hover:text-gray-700'
@@ -663,12 +663,12 @@ export function InventoryPage() {
             </div>
 
             {loadingItems ? (
-              <div className="py-20 text-center bg-white rounded-xl border border-gray-100">
+              <div className="py-20 text-center bg-white rounded-sm border border-gray-100">
                 <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-gray-500">Loading units...</p>
               </div>
             ) : items.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
+              <div className="text-center py-20 bg-white rounded-sm border border-gray-100">
                 <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900">No Units Found</h3>
                 <p className="text-gray-500 mt-1 mb-4">Add your first unit to this category to start tracking.</p>
@@ -677,7 +677,7 @@ export function InventoryPage() {
             ) : displayMode === 'card' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {items.map((item) => (
-                  <div key={item.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all group flex flex-col">
+                  <div key={item.id} className="bg-white rounded overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all group flex flex-col">
                     <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
                       {item.item_image ? (
                         <img 
@@ -709,13 +709,13 @@ export function InventoryPage() {
 
                         <button 
                           onClick={() => handleOpenItemModal(item, false)}
-                          className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-sm transition-colors"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleDeleteItem(item.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-sm transition-colors"
                         >
                           <Archive className="w-4 h-4" />
                         </button>
@@ -752,7 +752,7 @@ export function InventoryPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-sm shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left">
                     <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
@@ -769,7 +769,7 @@ export function InventoryPage() {
                         <tr key={item.id} className="border-b last:border-0 hover:bg-blue-50/30 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
+                              <div className="w-10 h-10 rounded-sm bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
                                 {item.item_image ? (
                                   <img src={`http://localhost:8000/storage/${item.item_image}`} alt="" className="w-full h-full object-cover" />
                                 ) : (
@@ -841,7 +841,7 @@ export function InventoryPage() {
       {/* --- CATEGORY MODAL --- */}
       {showCategoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center shrink-0">
               <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Layers className="w-5 h-5 text-primary" />
@@ -862,7 +862,7 @@ export function InventoryPage() {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Category Image</label>
-                    <input type="file" accept="image/*" onChange={e => setCatImage(e.target.files?.[0] || null)} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                    <input type="file" accept="image/*" onChange={e => setCatImage(e.target.files?.[0] || null)} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                   </div>
                 </div>
               </div>
@@ -878,7 +878,7 @@ export function InventoryPage() {
                   <p className="text-xs text-gray-500">Define fields specific to this category (e.g. "RAM Size", "Color").</p>
                   
                   {customFields.map((field, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                    <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded border border-gray-200">
                       <input type="text" value={field.field_name} onChange={e => { const newFields = [...customFields]; newFields[idx].field_name = e.target.value; setCustomFields(newFields); }} placeholder="Field Name" className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary outline-none" required />
                       <select value={field.field_type} onChange={e => { const newFields = [...customFields]; newFields[idx].field_type = e.target.value; setCustomFields(newFields); }} className="w-32 px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary outline-none">
                         <option value="text">Text</option>
@@ -906,7 +906,7 @@ export function InventoryPage() {
       {/* --- SERIALIZED ITEM MODAL --- */}
       {showItemModal && selectedCategory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center shrink-0">
               <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Package className="w-5 h-5 text-primary" />
@@ -926,7 +926,7 @@ export function InventoryPage() {
                   <FormField label="Asset Name / Model" value={itemName} onChange={e => setItemName(e.target.value)} required disabled={isViewOnly} />
                   
                   {!editingItem && (
-                    <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 mb-4">
+                    <div className="bg-primary/5 p-4 rounded-sm border border-primary/10 mb-4">
                       <div className="flex items-center gap-2 mb-3">
                         <Hash className="w-4 h-4 text-primary" />
                         <h5 className="text-sm font-bold text-primary uppercase tracking-tight">Bulk Entry Settings</h5>
@@ -965,7 +965,7 @@ export function InventoryPage() {
                                 setBulkSerials(newSerials);
                               }}
                               placeholder={`Serial Number for Unit ${idx + 1}`}
-                              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary outline-none disabled:bg-gray-50 disabled:text-gray-500"
+                              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary outline-none disabled:bg-gray-50 disabled:text-gray-500"
                               required
                               disabled={isViewOnly}
                             />
@@ -1000,12 +1000,12 @@ export function InventoryPage() {
                     <FormField label="Lifespan (Years)" type="number" value={lifespanYears} onChange={e => setLifespanYears(e.target.value)} disabled={isViewOnly} min="1" max="20" />
                   </div>
                   
-                  {isViewOnly && item.end_of_life_date && (
-                    <div className={`p-3 rounded-xl border flex items-center gap-3 ${item.is_approaching_end_of_life ? 'bg-amber-50 border-amber-100 text-amber-800' : 'bg-gray-50 border-gray-100 text-gray-700'}`}>
-                      <Settings className={`w-5 h-5 ${item.is_approaching_end_of_life ? 'animate-spin-slow' : ''}`} />
+                  {isViewOnly && editingItem?.end_of_life_date && (
+                    <div className={`p-3 rounded-sm border flex items-center gap-3 ${editingItem.is_approaching_end_of_life ? 'bg-amber-50 border-amber-100 text-amber-800' : 'bg-gray-50 border-gray-100 text-gray-700'}`}>
+                      <Settings className={`w-5 h-5 ${editingItem.is_approaching_end_of_life ? 'animate-spin-slow' : ''}`} />
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Expected Retirement</p>
-                        <p className="text-sm font-bold">{new Date(item.end_of_life_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        <p className="text-sm font-bold">{new Date(editingItem.end_of_life_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                       </div>
                     </div>
                   )}
@@ -1014,7 +1014,7 @@ export function InventoryPage() {
                   {!isViewOnly && (
                     <div className="pt-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Actual Photo of Unit</label>
-                      <input type="file" accept="image/*" onChange={e => setItemImage(e.target.files?.[0] || null)} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                      <input type="file" accept="image/*" onChange={e => setItemImage(e.target.files?.[0] || null)} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                     </div>
                   )}
                 </div>
@@ -1065,7 +1065,7 @@ export function InventoryPage() {
                         if (isCategoryField) return null;
 
                         return (
-                          <div key={k} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200 group">
+                          <div key={k} className="flex items-center gap-2 bg-gray-50 p-2 rounded border border-gray-200 group">
                             <div className="flex-1">
                               <span className="text-[10px] font-bold text-gray-400 uppercase block">{k}</span>
                               {isViewOnly ? (
@@ -1094,26 +1094,26 @@ export function InventoryPage() {
                     </div>
 
                     {showAddAttrRow && !isViewOnly && (
-                      <div className="mt-3 bg-primary/5 p-3 rounded-xl border border-primary/10 animate-in slide-in-from-top-2 duration-200">
+                      <div className="mt-3 bg-primary/5 p-3 rounded-sm border border-primary/10 animate-in slide-in-from-top-2 duration-200">
                         <div className="grid grid-cols-2 gap-2 mb-2">
                           <input 
                             type="text" 
                             placeholder="Attribute Name" 
                             value={newAttrKey}
                             onChange={e => setNewAttrKey(e.target.value)}
-                            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary outline-none"
+                            className="px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary outline-none"
                           />
                           <input 
                             type="text" 
                             placeholder="Value" 
                             value={newAttrValue}
                             onChange={e => setNewAttrValue(e.target.value)}
-                            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary outline-none"
+                            className="px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary outline-none"
                           />
                         </div>
                         <div className="flex justify-end gap-2">
                           <button type="button" onClick={() => setShowAddAttrRow(false)} className="text-xs font-medium text-gray-500 px-2 py-1">Cancel</button>
-                          <button type="button" onClick={handleAddAttribute} className="text-xs font-bold text-white bg-primary px-3 py-1 rounded-lg shadow-sm">Add</button>
+                          <button type="button" onClick={handleAddAttribute} className="text-xs font-bold text-white bg-primary px-3 py-1 rounded shadow-sm">Add</button>
                         </div>
                       </div>
                     )}
@@ -1160,7 +1160,7 @@ export function InventoryPage() {
                   type="file" 
                   accept="image/*" 
                   onChange={e => setMasterImage(e.target.files?.[0] || null)} 
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" 
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" 
                 />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">

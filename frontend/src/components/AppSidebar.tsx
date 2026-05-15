@@ -19,7 +19,8 @@ import {
   Truck,
   Trash2,
   Archive,
-  Send
+  Send,
+  ShieldCheck
 } from "lucide-react";
 
 import {
@@ -48,7 +49,8 @@ const adminItems: MenuItem[] = [
   { title: "Reservations", url: "/admin/reservations", icon: Calendar },
 
   { title: "Distribution List", url: "/admin/distribution", icon: List },
-  { title: "User Management", url: "/admin/teachers", icon: Users },
+  { title: "Teacher Management", url: "/admin/teachers", icon: Users },
+  { title: "Admin Management", url: "/admin/admins", icon: ShieldCheck },
   { title: "Activity Logs", url: "/admin/logs", icon: Activity },
   { title: "Reports", url: "/admin/reports", icon: FileText },
   { title: "Archive", url: "/admin/trash", icon: Archive },
@@ -120,7 +122,7 @@ export function AppSidebar() {
               <input
                 type="text"
                 placeholder="Search"
-                className="w-full bg-sidebar-accent/50 text-sidebar-foreground placeholder:text-sidebar-foreground/50 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sidebar-primary/50 border border-sidebar-border/30"
+                className="w-full bg-sidebar-accent/50 text-sidebar-foreground placeholder:text-sidebar-foreground/50 rounded pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sidebar-primary/50 border border-sidebar-border/30"
               />
             </div>
           </div>
@@ -137,7 +139,7 @@ export function AppSidebar() {
                     <SidebarMenuButton 
                       asChild 
                       className={`
-                        group relative rounded-lg transition-all duration-200
+                        group relative rounded transition-all duration-200
                         ${isActive 
                           ? 'bg-gradient-to-r from-[#5B8DEF] to-[#0063F7] text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40' 
                           : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-white'
@@ -178,7 +180,7 @@ export function AppSidebar() {
                       <SidebarMenuButton 
                         asChild 
                         className={`
-                          group relative rounded-lg transition-all duration-200
+                          group relative rounded transition-all duration-200
                           ${isActive 
                             ? 'bg-gradient-to-r from-[#5B8DEF] to-[#0063F7] text-white shadow-lg shadow-blue-500/30' 
                             : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-white'

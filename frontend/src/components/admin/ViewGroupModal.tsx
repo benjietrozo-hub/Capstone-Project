@@ -138,7 +138,7 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
               <Button 
                 variant="outline" 
                 onClick={handleCopyEmails} 
-                className="h-11 rounded-xl gap-2 border-slate-200 hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-all font-bold px-5"
+                className="h-11 rounded-sm gap-2 border-slate-200 hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-all font-bold px-5"
               >
                 <Mail className="w-4 h-4" />
                 Copy Emails
@@ -146,7 +146,7 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
               <Button 
                 variant="outline" 
                 onClick={handleExportGroup} 
-                className="h-11 rounded-xl gap-2 border-slate-200 hover:bg-white hover:text-emerald-600 hover:border-emerald-200 transition-all font-bold px-5"
+                className="h-11 rounded-sm gap-2 border-slate-200 hover:bg-white hover:text-emerald-600 hover:border-emerald-200 transition-all font-bold px-5"
               >
                 <Download className="w-4 h-4" />
                 Export CSV
@@ -156,7 +156,7 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
             <div className="flex items-center gap-3">
               <Button 
                 variant="outline" 
-                className="h-11 rounded-xl gap-2 border-slate-200 hover:bg-white hover:text-slate-900 transition-all font-bold px-5"
+                className="h-11 rounded-sm gap-2 border-slate-200 hover:bg-white hover:text-slate-900 transition-all font-bold px-5"
               >
                 <Edit className="w-4 h-4" />
                 Modify Group
@@ -164,7 +164,7 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
               <Button
                 variant="ghost"
                 onClick={() => setShowArchiveDialog(true)}
-                className="h-11 rounded-xl gap-2 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all font-bold px-5"
+                className="h-11 rounded-sm gap-2 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all font-bold px-5"
               >
                 <Archive className="w-4 h-4" />
                 Archive
@@ -176,14 +176,14 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
             <div className="px-10 py-8">
               {/* Group Metadata */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col">
+                <div className="p-6 bg-slate-50 rounded-sm border border-slate-100 flex flex-col">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Member Count</span>
                   <div className="flex items-center gap-3">
                     <span className="text-3xl font-black text-slate-800">{group.teachers_count}</span>
                     <span className="text-xs font-bold text-slate-400">Verified Personnel</span>
                   </div>
                 </div>
-                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col md:col-span-2">
+                <div className="p-6 bg-slate-50 rounded-sm border border-slate-100 flex flex-col md:col-span-2">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Group Description</span>
                   <p className="text-sm font-medium text-slate-600 leading-relaxed">
                     {group.description || "No official description has been provided for this distribution group."}
@@ -208,10 +208,10 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
                     {group.teachers.map((teacher) => (
                       <div
                         key={teacher.id}
-                        className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-3xl hover:shadow-xl hover:shadow-slate-200/50 hover:border-blue-100 transition-all group"
+                        className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-sm hover:shadow-xl hover:shadow-slate-200/50 hover:border-blue-100 transition-all group"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                          <div className="w-12 h-12 bg-slate-100 rounded flex items-center justify-center group-hover:bg-blue-50 transition-colors">
                             <span className="font-black text-slate-400 group-hover:text-blue-500">
                               {teacher.full_name.charAt(0)}
                             </span>
@@ -229,7 +229,7 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-[40px] border border-dashed border-slate-200">
-                    <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-slate-200 mb-4 shadow-sm">
+                    <div className="w-16 h-16 bg-white rounded-sm flex items-center justify-center text-slate-200 mb-4 shadow-sm">
                       <Users className="w-8 h-8" />
                     </div>
                     <h3 className="text-lg font-bold text-slate-400">No Members Found</h3>
@@ -244,7 +244,7 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
           <div className="px-10 py-8 border-t border-slate-100 bg-slate-50/50 flex justify-end shrink-0">
             <Button 
               onClick={onClose}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold h-12 px-10 rounded-2xl shadow-lg shadow-slate-200 transition-all active:scale-95"
+              className="bg-slate-900 hover:bg-slate-800 text-white font-bold h-12 px-10 rounded shadow-lg shadow-slate-200 transition-all active:scale-95"
             >
               Close Record
             </Button>
@@ -256,7 +256,7 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
       <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
         <AlertDialogContent className="rounded-[32px] p-8">
           <AlertDialogHeader>
-            <div className="w-16 h-16 bg-red-50 rounded-3xl flex items-center justify-center text-red-600 mb-6">
+            <div className="w-16 h-16 bg-red-50 rounded-sm flex items-center justify-center text-red-600 mb-6">
               <Archive className="w-8 h-8" />
             </div>
             <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Archive Distribution Group?</AlertDialogTitle>
@@ -267,13 +267,13 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-3 mt-8">
-            <AlertDialogCancel disabled={loading} className="h-12 rounded-2xl font-bold border-slate-200 px-8">
+            <AlertDialogCancel disabled={loading} className="h-12 rounded font-bold border-slate-200 px-8">
               Keep Group
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleArchive}
               disabled={loading}
-              className="h-12 rounded-2xl bg-red-600 hover:bg-red-700 font-bold px-10"
+              className="h-12 rounded bg-red-600 hover:bg-red-700 font-bold px-10"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

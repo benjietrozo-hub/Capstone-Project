@@ -137,18 +137,29 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
     }, [user?.id, role]);
 
-    const attemptReconnect = () => {
+    const attemptReconnect = useCallback(() => {
         if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-            console.log('[WebSocket] Max reconnection attempts reached');
+            if (reconnectAttemptsRef.current === maxReconnectAttempts) {
+                console.warn('[WebSocket] Maximum reconnection attempts reached. Real-time updates disabled.');
+                reconnectAttemptsRef.current++; // Prevent further logging
+            }
             return;
         }
 
         reconnectAttemptsRef.current++;
         const delay = Math.min(1000 * Math.pow(1.5, reconnectAttemptsRef.current), 15000);
         
-        console.log(`[WebSocket] Reconnecting in ${Math.round(delay/1000)}s... (Attempt ${reconnectAttemptsRef.current})`);
-        setTimeout(connect, delay);
-    };
+        // Only log every few attempts to reduce noise
+        if (reconnectAttemptsRef.current <= 3 || reconnectAttemptsRef.current % 5 === 0) {
+            console.log(`[WebSocket] Reconnecting in ${Math.round(delay/1000)}s... (Attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
+        }
+        
+        setTimeout(() => {
+            if (user?.id && role) {
+                connect();
+            }
+        }, delay);
+    }, [connect, user?.id, role, maxReconnectAttempts]);
 
     const handleMessage = (data: any) => {
         if (!data || !data.type) return;

@@ -46,7 +46,7 @@ export function ForgotPasswordPage() {
         <Card className="w-full max-w-[400px] shadow-2xl border-0 bg-[#1C2536] text-white my-auto">
           <CardHeader className="space-y-3 pb-4 bg-gradient-to-r from-[#5B8DEF] to-[#0063F7] rounded-t-lg">
             <div className="flex justify-center">
-              <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-lg">
+              <div className="w-16 h-16 rounded bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-lg">
                 {submitted ? (
                   <Mail className="w-8 h-8 text-white" />
                 ) : (
@@ -97,7 +97,7 @@ export function ForgotPasswordPage() {
               </form>
             ) : (
               <div className="space-y-4">
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
+                <div className="bg-white/5 border border-white/10 rounded p-4 text-center">
                   <p className="text-gray-300 text-sm">
                     If an account exists with <span className="text-[#5B8DEF] font-semibold">{email}</span>, 
                     you will receive a password reset link shortly.

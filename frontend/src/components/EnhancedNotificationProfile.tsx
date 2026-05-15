@@ -47,7 +47,7 @@ const EnhancedNotificationProfile: React.FC = () => {
         {/* Notification Bell */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="relative p-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+          className="relative p-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
         >
           <Bell className="w-6 h-6" />
           {unreadCount > 0 && (
@@ -59,7 +59,7 @@ const EnhancedNotificationProfile: React.FC = () => {
 
         {/* Notification Dropdown */}
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+          <div className="absolute right-0 mt-2 w-96 bg-white rounded shadow-lg border border-gray-200 z-50">
             {/* Header */}
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -67,7 +67,7 @@ const EnhancedNotificationProfile: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => setShowEmailModal(true)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded"
                     title="Send Email Notification"
                   >
                     <Mail className="w-4 h-4" />

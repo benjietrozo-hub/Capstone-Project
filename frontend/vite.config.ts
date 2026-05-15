@@ -10,17 +10,13 @@ export default defineConfig({
     },
   },
   server: {
-    host: 'localhost', // Use localhost instead of 0.0.0.0 to avoid network issues
+    host: '0.0.0.0', // Listen on all network interfaces (allows Android access)
     port: 5173,
     strictPort: true, // Don't try other ports if 5173 is occupied
     hmr: {
-      port: 5173, // Use same port for HMR
+      host: 'localhost', // HMR uses localhost for stability
     },
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      }
-    }
+    // Note: Proxy not used - we use dynamic hostname detection in axios.js instead
+    // This allows the same code to work on localhost AND network IPs
   }
 })

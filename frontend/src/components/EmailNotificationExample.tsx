@@ -37,7 +37,7 @@ const EmailNotificationExample: React.FC = () => {
       {/* Enhanced Notification Profile */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold mb-4">Notification Center</h2>
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="bg-white p-4 rounded shadow">
           <EnhancedNotificationProfile />
         </div>
       </div>
@@ -46,7 +46,7 @@ const EmailNotificationExample: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <button
           onClick={() => setShowEmailModal(true)}
-          className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
+          className="bg-blue-600 text-white p-4 rounded hover:bg-blue-700 flex items-center justify-center space-x-2"
         >
           <Mail className="w-5 h-5" />
           <span>Send Email</span>
@@ -54,7 +54,7 @@ const EmailNotificationExample: React.FC = () => {
 
         <button
           onClick={() => setShowHistory(true)}
-          className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 flex items-center justify-center space-x-2"
+          className="bg-green-600 text-white p-4 rounded hover:bg-green-700 flex items-center justify-center space-x-2"
         >
           <History className="w-5 h-5" />
           <span>Email History</span>
@@ -62,14 +62,14 @@ const EmailNotificationExample: React.FC = () => {
 
         <button
           onClick={() => setShowEmailModal(true)}
-          className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 flex items-center justify-center space-x-2"
+          className="bg-purple-600 text-white p-4 rounded hover:bg-purple-700 flex items-center justify-center space-x-2"
         >
           <Users className="w-5 h-5" />
           <span>Bulk Email</span>
         </button>
 
         <button
-          className="bg-orange-600 text-white p-4 rounded-lg hover:bg-orange-700 flex items-center justify-center space-x-2"
+          className="bg-orange-600 text-white p-4 rounded hover:bg-orange-700 flex items-center justify-center space-x-2"
         >
           <Bell className="w-5 h-5" />
           <span>Templates</span>
@@ -77,7 +77,7 @@ const EmailNotificationExample: React.FC = () => {
       </div>
 
       {/* Quick Email Form */}
-      <div className="bg-white p-6 rounded-lg shadow mb-6">
+      <div className="bg-white p-6 rounded shadow mb-6">
         <h3 className="text-lg font-semibold mb-4">Quick Email Test</h3>
         <div className="flex space-x-4">
           <input
@@ -85,12 +85,12 @@ const EmailNotificationExample: React.FC = () => {
             placeholder="Enter recipient email..."
             value={recipientEmail}
             onChange={(e) => setRecipientEmail(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <button
             onClick={handleQuickEmail}
             disabled={!recipientEmail}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
           >
             <Send className="w-4 h-4" />
             <span>Send Quick Email</span>
@@ -101,7 +101,7 @@ const EmailNotificationExample: React.FC = () => {
       {/* Email History Modal */}
       {showHistory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Email History</h2>
@@ -128,10 +128,10 @@ const EmailNotificationExample: React.FC = () => {
       />
 
       {/* Usage Examples */}
-      <div className="bg-white p-6 rounded-lg shadow">
+      <div className="bg-white p-6 rounded shadow">
         <h3 className="text-lg font-semibold mb-4">Usage Examples</h3>
         <div className="space-y-4">
-          <div className="p-4 bg-gray-50 rounded-lg">
+          <div className="p-4 bg-gray-50 rounded">
             <h4 className="font-medium mb-2">1. Send Custom Email</h4>
             <pre className="text-sm bg-gray-800 text-gray-100 p-3 rounded overflow-x-auto">
 {`const { sendEmailNotification } = useNotifications();
@@ -147,7 +147,7 @@ await sendEmailNotification({
             </pre>
           </div>
 
-          <div className="p-4 bg-gray-50 rounded-lg">
+          <div className="p-4 bg-gray-50 rounded">
             <h4 className="font-medium mb-2">2. Use Email Service Directly</h4>
             <pre className="text-sm bg-gray-800 text-gray-100 p-3 rounded overflow-x-auto">
 {`import emailService from '@/services/emailService';
@@ -160,7 +160,7 @@ await emailService.sendTemplateEmail({
             </pre>
           </div>
 
-          <div className="p-4 bg-gray-50 rounded-lg">
+          <div className="p-4 bg-gray-50 rounded">
             <h4 className="font-medium mb-2">3. Send Bulk Emails</h4>
             <pre className="text-sm bg-gray-800 text-gray-100 p-3 rounded overflow-x-auto">
 {`await emailService.sendBulkEmails([

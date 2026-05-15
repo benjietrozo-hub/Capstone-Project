@@ -115,11 +115,11 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-slate-100">
+      <div className="bg-white rounded-sm shadow-2xl max-w-5xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-slate-100">
         {/* Header Section */}
         <div className="bg-gradient-to-r from-[#1E293B] to-[#334155] px-8 py-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-500/20 rounded-2xl backdrop-blur-md">
+            <div className="p-3 bg-blue-500/20 rounded backdrop-blur-md">
               <Layers className="w-6 h-6 text-blue-400" />
             </div>
             <div>
@@ -151,12 +151,12 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
                     value={formData.item_id} 
                     onValueChange={(value) => setFormData({ ...formData, item_id: value, quantity_per_teacher: '1' })}
                   >
-                    <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50/50 hover:bg-white transition-all">
+                    <SelectTrigger className="h-14 rounded border-slate-200 bg-slate-50/50 hover:bg-white transition-all">
                       <SelectValue placeholder="Choose inventory item" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl shadow-xl border-slate-100">
+                    <SelectContent className="rounded shadow-xl border-slate-100">
                       {items.map((item) => (
-                        <SelectItem key={item.id} value={item.id.toString()} className="py-3 rounded-xl">
+                        <SelectItem key={item.id} value={item.id.toString()} className="py-3 rounded-sm">
                           <div className="flex flex-col">
                             <span className="font-bold text-slate-900">{item.item_name}</span>
                             <span className="text-[10px] text-slate-400 font-mono">CODE: {item.item_code} • {item.quantity_available} units left</span>
@@ -167,7 +167,7 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
                   </Select>
                   
                   {selectedItem && (
-                    <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 animate-in zoom-in-95 duration-200">
+                    <div className="p-4 rounded bg-blue-50 border border-blue-100 animate-in zoom-in-95 duration-200">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-[10px] font-black text-blue-600 uppercase tracking-tight">Active Selection</span>
                         <Badge className="bg-blue-600 text-white border-none">{selectedItem.quantity_available} In Stock</Badge>
@@ -186,12 +186,12 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
                     value={formData.group_id} 
                     onValueChange={(value) => setFormData({ ...formData, group_id: value, quantity_per_teacher: '1' })}
                   >
-                    <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50/50 hover:bg-white transition-all">
+                    <SelectTrigger className="h-14 rounded border-slate-200 bg-slate-50/50 hover:bg-white transition-all">
                       <SelectValue placeholder="Choose target group" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl shadow-xl border-slate-100">
+                    <SelectContent className="rounded shadow-xl border-slate-100">
                       {groups.map((group) => (
-                        <SelectItem key={group.id} value={group.id.toString()} className="py-3 rounded-xl">
+                        <SelectItem key={group.id} value={group.id.toString()} className="py-3 rounded-sm">
                           <div className="flex flex-col">
                             <span className="font-bold text-slate-900">{group.group_name}</span>
                             <span className="text-[10px] text-slate-400">{group.teachers_count} Teachers • {group.group_type}</span>
@@ -202,7 +202,7 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
                   </Select>
 
                   {selectedGroup && (
-                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 animate-in zoom-in-95 duration-200">
+                    <div className="p-4 rounded bg-emerald-50 border border-emerald-100 animate-in zoom-in-95 duration-200">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tight">Recipients</span>
                         <Badge className="bg-emerald-600 text-white border-none">{selectedGroup.teachers_count} Members</Badge>
@@ -219,17 +219,17 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
                   Distribution Settings
                 </Label>
                 
-                <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-6 space-y-6">
+                <div className="bg-slate-50/50 border border-slate-100 rounded-sm p-6 space-y-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-1">
                       <h4 className="text-sm font-bold text-slate-900">Units per recipient</h4>
                       <p className="text-xs text-slate-400">Specify how many units each teacher receives</p>
                     </div>
-                    <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-4 bg-white p-2 rounded border border-slate-200 shadow-sm">
                       <button 
                         type="button"
                         onClick={() => handleQuantityChange((parseInt(formData.quantity_per_teacher || '1') - 1).toString())}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-colors disabled:opacity-30"
+                        className="w-10 h-10 rounded-sm flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-colors disabled:opacity-30"
                         disabled={parseInt(formData.quantity_per_teacher || '1') <= 1}
                       >
                         <Minus className="w-5 h-5" />
@@ -243,7 +243,7 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
                       <button 
                         type="button"
                         onClick={() => handleQuantityChange((parseInt(formData.quantity_per_teacher || '1') + 1).toString())}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-colors"
+                        className="w-10 h-10 rounded-sm flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-colors"
                       >
                         <Plus className="w-5 h-5" />
                       </button>
@@ -252,7 +252,7 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
 
                   {/* Visual Inventory Status */}
                   {selectedItem && selectedGroup && (
-                    <div className={`p-5 rounded-2xl border ${isInventorySufficient ? 'bg-blue-50/50 border-blue-100' : 'bg-red-50 border-red-100'} transition-colors`}>
+                    <div className={`p-5 rounded border ${isInventorySufficient ? 'bg-blue-50/50 border-blue-100' : 'bg-red-50 border-red-100'} transition-colors`}>
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                           {isInventorySufficient ? (
@@ -293,17 +293,17 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
                       type="date"
                       value={formData.distribution_date}
                       onChange={(e) => setFormData({ ...formData, distribution_date: e.target.value })}
-                      className="pl-12 h-14 rounded-2xl border-slate-200"
+                      className="pl-12 h-14 rounded border-slate-200"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-black text-slate-500 uppercase tracking-widest px-1">Initial Condition</Label>
                   <Select value={formData.condition_on_distribution} onValueChange={(value) => setFormData({ ...formData, condition_on_distribution: value })}>
-                    <SelectTrigger className="h-14 rounded-2xl border-slate-200">
+                    <SelectTrigger className="h-14 rounded border-slate-200">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl shadow-xl">
+                    <SelectContent className="rounded shadow-xl">
                       <SelectItem value="excellent">Excellent / Pristine</SelectItem>
                       <SelectItem value="good">Good / Functional</SelectItem>
                       <SelectItem value="fair">Fair / Used</SelectItem>
@@ -319,14 +319,14 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
               
               <div className="space-y-4">
                 <Label className="text-xs font-black text-slate-500 uppercase tracking-widest px-1">Administrative Context</Label>
-                <div className="space-y-6 bg-slate-50/50 border border-slate-100 rounded-3xl p-8">
+                <div className="space-y-6 bg-slate-50/50 border border-slate-100 rounded-sm p-8">
                   <div className="space-y-2">
                     <Label className="text-sm font-bold text-slate-700">Official Purpose</Label>
                     <Input
                       value={formData.purpose}
                       onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
                       placeholder="e.g., SY 2024-2025 Faculty Distribution"
-                      className="h-12 rounded-xl border-slate-200 bg-white"
+                      className="h-12 rounded-sm border-slate-200 bg-white"
                     />
                   </div>
 
@@ -337,7 +337,7 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                       placeholder="Add any internal tracking notes or special instructions..."
                       rows={5}
-                      className="rounded-2xl border-slate-200 bg-white p-4"
+                      className="rounded border-slate-200 bg-white p-4"
                     />
                   </div>
                 </div>
@@ -370,7 +370,7 @@ export default function CreateGroupDistributionModal({ onClose, onSuccess }: Cre
                 <Button 
                   onClick={handleSubmit} 
                   disabled={loading || !formData.item_id || !formData.group_id || !isInventorySufficient} 
-                  className="w-full h-14 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-black shadow-lg transition-all active:scale-[0.98] mt-4 flex items-center gap-3"
+                  className="w-full h-14 rounded bg-white hover:bg-slate-100 text-slate-900 font-black shadow-lg transition-all active:scale-[0.98] mt-4 flex items-center gap-3"
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />

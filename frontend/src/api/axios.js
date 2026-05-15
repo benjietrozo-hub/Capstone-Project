@@ -1,6 +1,26 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+// Dynamic API URL that adapts to current network
+// - In development: uses current hostname (works with any IP)
+// - In production: uses environment variable
+const getApiUrl = () => {
+  // If explicitly set in .env, use that (for production)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Development: automatically use current hostname
+  // This works whether you access via localhost, 10.0.28.66, or any other IP
+  if (import.meta.env.DEV) {
+    const hostname = window.location.hostname;
+    return `http://${hostname}:8000/api`;
+  }
+  
+  // Fallback
+  return 'http://127.0.0.1:8000/api';
+};
+
+const API_URL = getApiUrl();
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -10,6 +30,22 @@ const axiosInstance = axios.create({
     'Accept': 'application/json',
   },
 });
+
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  
+  isRefreshing = false;
+  failedQueue = [];
+};
 
 // Add token and correlation ID to requests
 axiosInstance.interceptors.request.use(
@@ -36,31 +72,63 @@ axiosInstance.interceptors.response.use(
       console.warn('Network error - please check your connection');
       return Promise.reject(error);
     }
-    
-    // Handle token expiration
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('role');
-      window.location.href = '/login';
-      return Promise.reject(error);
-    }
-    
-    // Handle token expiration (403)
-    if (error.response?.status === 403) {
-      console.log('Token expired, attempting refresh...');
-      // Try to refresh token
-      refreshToken().then(() => {
-        // Retry original request with new token
-        return axiosInstance(error.config);
-      }).catch(() => {
-        // Refresh failed, redirect to login
+
+    const originalRequest = error.config;
+
+    // Handle token expiration (401)
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise(function (resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            originalRequest.headers['Authorization'] = 'Bearer ' + token;
+            return axiosInstance(originalRequest);
+          })
+          .catch(err => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshTokenValue = localStorage.getItem('refresh_token');
+      
+      if (!refreshTokenValue) {
+        // No refresh token available, logout
         localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         localStorage.removeItem('role');
         window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      return new Promise((resolve, reject) => {
+        axiosInstance
+          .post('/auth/refresh-token', {
+            refresh_token: refreshTokenValue
+          })
+          .then(response => {
+            const { token } = response.data;
+            localStorage.setItem('token', token);
+            axiosInstance.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+            originalRequest.headers['Authorization'] = 'Bearer ' + token;
+            processQueue(null, token);
+            resolve(axiosInstance(originalRequest));
+          })
+          .catch(err => {
+            console.error('Token refresh failed:', err);
+            localStorage.removeItem('token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('role');
+            window.location.href = '/login';
+            processQueue(err, null);
+            reject(err);
+          });
       });
-      return Promise.reject(error);
     }
     
     // Handle 404 errors gracefully
@@ -78,26 +146,5 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-// Refresh token function
-async function refreshToken() {
-  const refreshToken = localStorage.getItem('refresh_token');
-  if (!refreshToken) {
-    throw new Error('No refresh token available');
-  }
-
-  try {
-    const response = await axiosInstance.post('/api/auth/refresh-token', {
-      refresh_token: refreshToken
-    });
-    
-    const { token } = response.data;
-    localStorage.setItem('token', token);
-    return token;
-  } catch (error) {
-    console.error('Token refresh failed:', error);
-    throw error;
-  }
-}
 
 export default axiosInstance;

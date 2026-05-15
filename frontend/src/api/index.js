@@ -20,6 +20,9 @@ export const authAPI = {
 
   getMe: () =>
     axiosInstance.get('/auth/me'),
+
+  refreshToken: (refreshToken) =>
+    axiosInstance.post('/auth/refresh-token', { refresh_token: refreshToken }),
 };
 
 export const adminAPI = {
@@ -150,6 +153,22 @@ export const adminAPI = {
   getTeacherDepartments: () =>
     axiosInstance.get('/admin/teacher-departments'),
 
+  // Admins
+  getAdmins: (params) =>
+    axiosInstance.get('/admin/admins', { params }),
+
+  createAdmin: (data) =>
+    axiosInstance.post('/admin/admins', data),
+
+  getAdmin: (id) =>
+    axiosInstance.get(`/admin/admins/${id}`),
+
+  updateAdmin: (id, data) =>
+    axiosInstance.put(`/admin/admins/${id}`, data),
+
+  deleteAdmin: (id) =>
+    axiosInstance.delete(`/admin/admins/${id}`),
+
   // Reports
   getReports: (params) =>
     axiosInstance.get('/admin/reports', { params }),
@@ -263,6 +282,26 @@ export const adminAPI = {
     axiosInstance.put(`/admin/distribution/groups/${id}`, data),
   deleteDistributionGroup: (id) =>
     axiosInstance.delete(`/admin/distribution/groups/${id}`),
+
+  // Distributions Management
+  getDistributionTeachers: (params) =>
+    axiosInstance.get('/admin/distribution', { params }),
+  getDistributionStatistics: () =>
+    axiosInstance.get('/admin/distribution/statistics'),
+  getDistributionDepartments: () =>
+    axiosInstance.get('/admin/distribution/departments'),
+  getDistributions: (params) =>
+    axiosInstance.get('/admin/distributions', { params }),
+  getBulkDistributions: (params) =>
+    axiosInstance.get('/admin/bulk-distributions', { params }),
+  cancelDistribution: (id) =>
+    axiosInstance.post(`/admin/distributions/${id}/cancel`),
+  reportDamagedDistribution: (id) =>
+    axiosInstance.post(`/admin/distributions/${id}/damaged`),
+  reportLostDistribution: (id) =>
+    axiosInstance.post(`/admin/distributions/${id}/lost`),
+  getDistributionCoreStats: () =>
+    axiosInstance.get('/admin/distributions/statistics'),
 };
 
 export const teacherAPI = {
@@ -378,4 +417,20 @@ export const teacherAPI = {
 
   getActivityLogStats: () =>
     axiosInstance.get('/teacher/activity-logs/statistics'),
+
+  // Entity Access
+  getMyEntities: () =>
+    axiosInstance.get('/teacher/my-entities'),
+
+  getMyClassrooms: () =>
+    axiosInstance.get('/teacher/my-classrooms'),
+
+  getMyClubs: () =>
+    axiosInstance.get('/teacher/my-clubs'),
+
+  getMyDepartments: () =>
+    axiosInstance.get('/teacher/my-departments'),
+
+  getTeachers: (params) =>
+    axiosInstance.get('/teacher/teachers', { params }),
 };

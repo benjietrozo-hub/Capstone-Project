@@ -131,7 +131,7 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>

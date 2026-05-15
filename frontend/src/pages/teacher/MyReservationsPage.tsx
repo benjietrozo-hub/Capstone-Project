@@ -256,8 +256,8 @@ export function MyReservationsPage() {
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+          <div className="bg-white p-4 rounded shadow-sm border border-blue-50 flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-50 rounded-sm flex items-center justify-center text-blue-600">
               <Package className="w-6 h-6" />
             </div>
             <div>
@@ -266,8 +266,8 @@ export function MyReservationsPage() {
             </div>
           </div>
           
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-amber-50 flex items-center gap-4">
-            <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
+          <div className="bg-white p-4 rounded shadow-sm border border-amber-50 flex items-center gap-4">
+            <div className="w-12 h-12 bg-amber-50 rounded-sm flex items-center justify-center text-amber-600">
               <Clock className="w-6 h-6" />
             </div>
             <div>
@@ -278,8 +278,8 @@ export function MyReservationsPage() {
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-red-50 flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-red-600">
+          <div className="bg-white p-4 rounded shadow-sm border border-red-50 flex items-center gap-4">
+            <div className="w-12 h-12 bg-red-50 rounded-sm flex items-center justify-center text-red-600">
               <AlertCircle className="w-6 h-6" />
             </div>
             <div>
@@ -297,18 +297,18 @@ export function MyReservationsPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-          <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between mb-2">
+          <div className="bg-white p-1.5 rounded shadow-sm border border-gray-100 flex items-center justify-between mb-2">
             <TabsList className="grid grid-cols-2 w-full max-w-md bg-transparent border-0 p-0">
               <TabsTrigger 
                 value="borrowed" 
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-xl transition-all duration-300 py-2.5 font-bold text-sm"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-sm transition-all duration-300 py-2.5 font-bold text-sm"
               >
                 <Package className="w-4 h-4 mr-2" />
                 Borrowed Items
               </TabsTrigger>
               <TabsTrigger 
                 value="requests" 
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-xl transition-all duration-300 py-2.5 font-bold text-sm"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-sm transition-all duration-300 py-2.5 font-bold text-sm"
               >
                 <ClipboardList className="w-4 h-4 mr-2" />
                 Borrow Requests
@@ -324,7 +324,7 @@ export function MyReservationsPage() {
           </div>
 
           <TabsContent value="borrowed" className="mt-0 focus-visible:outline-none">
-            <Card className="border-0 shadow-sm overflow-hidden rounded-2xl">
+            <Card className="border-0 shadow-sm overflow-hidden rounded">
               <CardHeader className="bg-white border-b border-gray-50 py-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
@@ -373,7 +373,7 @@ export function MyReservationsPage() {
                     <Filter className="w-4 h-4" />
                   </div>
                   <select
-                    className="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 block pl-10 pr-4 py-2.5 font-bold transition-all outline-none"
+                    className="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 block pl-10 pr-4 py-2.5 font-bold transition-all outline-none"
                     value={requestStatus}
                     onChange={(e) => setRequestStatus(e.target.value)}
                   >
@@ -385,7 +385,7 @@ export function MyReservationsPage() {
                   </select>
                 </div>
               </div>
-              <div className="flex items-center gap-2 bg-blue-50/50 px-4 py-2 rounded-xl border border-blue-100/50">
+              <div className="flex items-center gap-2 bg-blue-50/50 px-4 py-2 rounded-sm border border-blue-100/50">
                 <Info className="w-4 h-4 text-blue-600" />
                 <p className="text-xs text-blue-800 font-bold tracking-tight">
                   Borrowed items are managed in the main tab
@@ -393,7 +393,7 @@ export function MyReservationsPage() {
               </div>
             </div>
 
-            <Card className="border-0 shadow-sm overflow-hidden rounded-2xl">
+            <Card className="border-0 shadow-sm overflow-hidden rounded">
               <CardHeader className="bg-white border-b border-gray-50 py-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
@@ -440,7 +440,7 @@ export function MyReservationsPage() {
           {selectedRequest && (
             <div className="space-y-6">
               {/* Status Header */}
-              <div className={`p-4 rounded-2xl flex items-center justify-between ${
+              <div className={`p-4 rounded flex items-center justify-between ${
                 selectedRequest.status === 'borrowed' ? 'bg-blue-50' :
                 selectedRequest.status === 'approved' ? 'bg-green-50' :
                 selectedRequest.status === 'pending' ? 'bg-amber-50' :
@@ -477,7 +477,7 @@ export function MyReservationsPage() {
 
                 <div className="space-y-1 sm:col-span-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Purpose</label>
-                  <p className="text-sm font-medium text-gray-700 bg-gray-50/50 p-3 rounded-xl border border-gray-100 italic leading-relaxed">
+                  <p className="text-sm font-medium text-gray-700 bg-gray-50/50 p-3 rounded-sm border border-gray-100 italic leading-relaxed">
                     "{selectedRequest.purpose || 'No purpose specified'}"
                   </p>
                 </div>
@@ -511,7 +511,7 @@ export function MyReservationsPage() {
                     const isDueToday = returnDate.getTime() === today.getTime();
                     
                     return (
-                      <div className={`flex items-center gap-2 p-2 rounded-lg border font-bold text-xs ${
+                      <div className={`flex items-center gap-2 p-2 rounded border font-bold text-xs ${
                         isOverdue ? 'bg-red-50 text-red-700 border-red-100' : 
                         isDueToday ? 'bg-amber-50 text-amber-700 border-amber-100' : 
                         'bg-blue-50 text-blue-700 border-blue-100'
@@ -539,7 +539,7 @@ export function MyReservationsPage() {
               {selectedRequest.admin_notes && (
                 <div className="space-y-2 pt-4 border-t border-gray-100">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Administrator Feedback</label>
-                  <div className="bg-blue-50/30 p-4 rounded-2xl border border-blue-100/50 relative overflow-hidden group">
+                  <div className="bg-blue-50/30 p-4 rounded border border-blue-100/50 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
                       <Info className="w-8 h-8 text-blue-600" />
                     </div>
@@ -553,7 +553,7 @@ export function MyReservationsPage() {
               <div className="pt-4 flex justify-end">
                 <button
                   onClick={() => setShowDetailModal(false)}
-                  className="bg-gray-900 text-white font-black px-8 py-3 rounded-xl hover:bg-black transition-all shadow-lg hover:shadow-xl active:scale-95 text-sm uppercase tracking-widest"
+                  className="bg-gray-900 text-white font-black px-8 py-3 rounded-sm hover:bg-black transition-all shadow-lg hover:shadow-xl active:scale-95 text-sm uppercase tracking-widest"
                 >
                   Close View
                 </button>

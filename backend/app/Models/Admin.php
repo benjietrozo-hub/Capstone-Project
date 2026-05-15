@@ -23,6 +23,10 @@ class Admin extends Authenticatable
         'profile_image',
         'status',
         'last_login',
+        'admin_type',
+        'permissions',
+        'can_manage_all_admins',
+        'can_manage_own_profile_only',
     ];
 
     protected $hidden = [
@@ -34,6 +38,9 @@ class Admin extends Authenticatable
         'email_verified_at' => 'datetime',
         'last_login' => 'datetime',
         'password' => 'hashed',
+        'permissions' => 'array',
+        'can_manage_all_admins' => 'boolean',
+        'can_manage_own_profile_only' => 'boolean',
     ];
 
     protected $appends = ['full_name'];

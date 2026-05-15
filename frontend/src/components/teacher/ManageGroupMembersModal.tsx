@@ -128,7 +128,7 @@ const ManageGroupMembersModal: React.FC<ManageGroupMembersModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-bold text-gray-900">{group.group_name}</h2>
@@ -151,7 +151,7 @@ const ManageGroupMembersModal: React.FC<ManageGroupMembersModalProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search teachers..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -172,7 +172,7 @@ const ManageGroupMembersModal: React.FC<ManageGroupMembersModalProps> = ({
                   {filteredMembers.map((teacher) => (
                     <div
                       key={teacher.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded"
                     >
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900">{teacher.full_name}</p>
@@ -184,7 +184,7 @@ const ManageGroupMembersModal: React.FC<ManageGroupMembersModalProps> = ({
                         <button
                           onClick={() => handleRemoveTeacher(teacher.id)}
                           disabled={loading}
-                          className="ml-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                          className="ml-2 p-2 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
                         >
                           <UserMinus className="w-4 h-4" />
                         </button>
@@ -201,7 +201,7 @@ const ManageGroupMembersModal: React.FC<ManageGroupMembersModalProps> = ({
                 Available Teachers ({availableTeachers.length})
               </h3>
               {!canModify ? (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
                   <p className="text-sm text-yellow-800">
                     System groups cannot be modified. Only administrators can manage system group memberships.
                   </p>
@@ -215,7 +215,7 @@ const ManageGroupMembersModal: React.FC<ManageGroupMembersModalProps> = ({
                   {filteredAvailable.map((teacher) => (
                     <div
                       key={teacher.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded"
                     >
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900">{teacher.full_name}</p>
@@ -226,7 +226,7 @@ const ManageGroupMembersModal: React.FC<ManageGroupMembersModalProps> = ({
                       <button
                         onClick={() => handleAddTeacher(teacher.id)}
                         disabled={loading}
-                        className="ml-2 p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                        className="ml-2 p-2 text-green-600 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
                       >
                         <UserPlus className="w-4 h-4" />
                       </button>

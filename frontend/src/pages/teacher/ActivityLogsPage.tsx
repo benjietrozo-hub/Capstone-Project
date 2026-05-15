@@ -256,7 +256,7 @@ export function ActivityLogsPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Activities</option>
               <option value="pending">Pending</option>
@@ -304,7 +304,7 @@ export function ActivityLogsPage() {
                     </div>
 
                     {/* Activity Details */}
-                    <div className="bg-gray-50 rounded-lg p-4 mb-3">
+                    <div className="bg-gray-50 rounded p-4 mb-3">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
                           <p className="text-xs text-gray-600 mb-1">Item Code</p>

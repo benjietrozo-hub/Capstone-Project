@@ -222,14 +222,14 @@ export function BorrowRequestsPage() {
       </div>
       
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-white p-5 rounded shadow-sm border border-gray-100">
           <div className="flex-1 w-full sm:w-auto">
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors">
                 <FileText className="w-4 h-4" />
               </div>
               <select
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 block pl-10 pr-4 py-3 font-bold transition-all outline-none"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 block pl-10 pr-4 py-3 font-bold transition-all outline-none"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
               >
@@ -247,7 +247,7 @@ export function BorrowRequestsPage() {
             <Button
               variant="outline"
               onClick={handleExportCSV}
-              className="flex-1 sm:flex-none rounded-xl border-gray-200 font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all h-12"
+              className="flex-1 sm:flex-none rounded-sm border-gray-200 font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all h-12"
             >
               <Download className="w-4 h-4" />
               Export CSV
@@ -255,7 +255,7 @@ export function BorrowRequestsPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded shadow-sm border border-gray-100 overflow-hidden">
           {loading ? (
             <div className="p-8"><TableSkeleton rows={8} cols={7} /></div>
           ) : (
@@ -285,7 +285,7 @@ export function BorrowRequestsPage() {
                         <span className="text-sm font-bold text-gray-700">{req.category?.category_name || 'N/A'}</span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className="inline-flex items-center justify-center px-3 py-1 bg-gray-100 rounded-lg text-sm font-black text-gray-700">
+                        <span className="inline-flex items-center justify-center px-3 py-1 bg-gray-100 rounded text-sm font-black text-gray-700">
                           {req.quantity_requested}
                         </span>
                       </td>
@@ -312,7 +312,7 @@ export function BorrowRequestsPage() {
                               setSelectedViewRequest(req);
                               setShowViewModal(true);
                             }}
-                            className="p-2 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                            className="p-2 text-indigo-600 bg-indigo-50 rounded-sm hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -329,7 +329,7 @@ export function BorrowRequestsPage() {
                                   });
                                   setShowApprovalModal(true);
                                 }}
-                                className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
+                                className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
                               >
                                 Approve
                               </button>
@@ -338,7 +338,7 @@ export function BorrowRequestsPage() {
                                   setSelectedRequest(req);
                                   setShowRejectionModal(true);
                                 }}
-                                className="px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-600 hover:text-white transition-all"
+                                className="px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-red-600 hover:text-white transition-all"
                               >
                                 Reject
                               </button>
@@ -348,7 +348,7 @@ export function BorrowRequestsPage() {
                           {req.status === 'approved' && (
                             <button
                               onClick={() => handleIssue(req.id)}
-                              className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
+                              className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
                             >
                               Issue
                             </button>
@@ -357,7 +357,7 @@ export function BorrowRequestsPage() {
                           {req.status === 'borrowed' && (
                             <button
                               onClick={() => handleReturn(req.id)}
-                              className="px-4 py-1.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
+                              className="px-4 py-1.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
                             >
                               Return
                             </button>
@@ -386,10 +386,10 @@ export function BorrowRequestsPage() {
         {/* Improved Modals for consistent feel */}
         {showApprovalModal && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="bg-white w-full max-w-md rounded-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
               <div className="bg-emerald-600 px-6 py-6 text-white relative">
                 <div className="absolute right-4 top-4">
-                  <button onClick={() => setShowApprovalModal(false)} className="hover:bg-white/20 p-1 rounded-lg transition-colors">
+                  <button onClick={() => setShowApprovalModal(false)} className="hover:bg-white/20 p-1 rounded transition-colors">
                     <XCircle className="w-5 h-5" />
                   </button>
                 </div>
@@ -406,7 +406,7 @@ export function BorrowRequestsPage() {
                     </span>
                   </div>
                   
-                  <div className="border border-gray-100 rounded-2xl max-h-[180px] overflow-y-auto bg-gray-50/50 p-2 space-y-1">
+                  <div className="border border-gray-100 rounded max-h-[180px] overflow-y-auto bg-gray-50/50 p-2 space-y-1">
                     {availableItems.length === 0 ? (
                       <div className="py-8 text-center">
                         <p className="text-xs font-bold text-red-500 uppercase">Insufficient stock available!</p>
@@ -415,7 +415,7 @@ export function BorrowRequestsPage() {
                       availableItems.map((item: any) => (
                         <label 
                           key={item.id} 
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                          className={`flex items-center gap-3 p-3 rounded-sm border transition-all cursor-pointer ${
                             approvalForm.inventory_item_ids.includes(item.id) 
                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' 
                             : 'bg-white text-gray-700 border-gray-100 hover:border-indigo-200'
@@ -451,7 +451,7 @@ export function BorrowRequestsPage() {
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Expected Return Date</label>
                     <input
                       type="date"
-                      className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                      className="w-full h-12 bg-gray-50 border border-gray-200 rounded-sm px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
                       value={approvalForm.expected_return_date}
                       onChange={(e) => setApprovalForm({...approvalForm, expected_return_date: e.target.value})}
                       required
@@ -461,7 +461,7 @@ export function BorrowRequestsPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Admin Notes (Optional)</label>
                     <textarea
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-sm px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
                       value={approvalForm.admin_notes}
                       onChange={(e) => setApprovalForm({ ...approvalForm, admin_notes: e.target.value })}
                       rows={2}
@@ -474,13 +474,13 @@ export function BorrowRequestsPage() {
                   <button
                     type="button"
                     onClick={() => setShowApprovalModal(false)}
-                    className="flex-1 h-12 rounded-xl text-sm font-black text-gray-500 hover:bg-gray-50 transition-colors uppercase tracking-widest"
+                    className="flex-1 h-12 rounded-sm text-sm font-black text-gray-500 hover:bg-gray-50 transition-colors uppercase tracking-widest"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-[2] h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-emerald-100 transition-all active:scale-95"
+                    className="flex-[2] h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm text-sm font-black uppercase tracking-widest shadow-lg shadow-emerald-100 transition-all active:scale-95"
                   >
                     Confirm Approval
                   </button>
@@ -493,7 +493,7 @@ export function BorrowRequestsPage() {
         {/* Rejection Modal Upgrade */}
         {showRejectionModal && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="bg-white w-full max-w-sm rounded-sm overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="bg-red-600 px-6 py-6 text-white relative">
                 <h3 className="text-xl font-black uppercase tracking-tight">Reject Request</h3>
                 <p className="text-red-100 text-xs font-bold mt-1">Provide a justification for the denial.</p>
@@ -503,7 +503,7 @@ export function BorrowRequestsPage() {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Reason for Rejection *</label>
                   <textarea
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-sm font-medium focus:ring-2 focus:ring-red-500/20 transition-all outline-none min-h-[120px]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded px-4 py-4 text-sm font-medium focus:ring-2 focus:ring-red-500/20 transition-all outline-none min-h-[120px]"
                     value={rejectionForm.admin_notes}
                     onChange={(e) => setRejectionForm({ admin_notes: e.target.value })}
                     required
@@ -515,13 +515,13 @@ export function BorrowRequestsPage() {
                   <button
                     type="button"
                     onClick={() => setShowRejectionModal(false)}
-                    className="flex-1 h-12 rounded-xl text-sm font-black text-gray-500 hover:bg-gray-50 transition-colors uppercase tracking-widest"
+                    className="flex-1 h-12 rounded-sm text-sm font-black text-gray-500 hover:bg-gray-50 transition-colors uppercase tracking-widest"
                   >
                     Back
                   </button>
                   <button
                     onClick={handleReject}
-                    className="flex-[2] h-12 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-red-100 transition-all active:scale-95"
+                    className="flex-[2] h-12 bg-red-600 hover:bg-red-700 text-white rounded-sm text-sm font-black uppercase tracking-widest shadow-lg shadow-red-100 transition-all active:scale-95"
                   >
                     Deny Request
                   </button>
@@ -565,7 +565,7 @@ export function BorrowRequestsPage() {
 
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Status</p>
-                    <div className={`inline-flex px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border-2 ${
+                    <div className={`inline-flex px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border-2 ${
                       selectedViewRequest.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
                       selectedViewRequest.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
                       selectedViewRequest.status === 'borrowed' ? 'bg-blue-50 text-blue-600 border-blue-200' :
@@ -589,7 +589,7 @@ export function BorrowRequestsPage() {
                 {selectedViewRequest.purpose && (
                   <div className="space-y-3 pt-6 border-t border-gray-50">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Statement of Purpose</p>
-                    <div className="bg-gray-50/80 p-5 rounded-3xl border border-gray-100/50 italic text-gray-700 leading-relaxed text-sm">
+                    <div className="bg-gray-50/80 p-5 rounded-sm border border-gray-100/50 italic text-gray-700 leading-relaxed text-sm">
                       "{selectedViewRequest.purpose}"
                     </div>
                   </div>
@@ -598,14 +598,14 @@ export function BorrowRequestsPage() {
                 <div className="flex gap-4 pt-4">
                   <button
                     onClick={handleDownloadPDF}
-                    className="flex-1 h-14 bg-white border-2 border-gray-100 hover:border-indigo-600 hover:bg-indigo-50 text-indigo-600 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all"
+                    className="flex-1 h-14 bg-white border-2 border-gray-100 hover:border-indigo-600 hover:bg-indigo-50 text-indigo-600 rounded text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all"
                   >
                     <Download className="w-4 h-4" />
                     Download Manifest
                   </button>
                   <button
                     onClick={() => setShowViewModal(false)}
-                    className="flex-1 h-14 bg-gray-900 hover:bg-black text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-gray-100"
+                    className="flex-1 h-14 bg-gray-900 hover:bg-black text-white rounded text-xs font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-gray-100"
                   >
                     Close Preview
                   </button>

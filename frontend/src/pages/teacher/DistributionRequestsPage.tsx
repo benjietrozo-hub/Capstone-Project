@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Package, Plus, Search, Clock, CheckCircle, XCircle, Trash2 } from 'lucide-react';
-import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import RequestDistributionModal from '@/components/teacher/RequestDistributionModal';
+import { teacherAPI, authAPI } from '@/api';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
 
@@ -58,9 +58,7 @@ export default function DistributionRequestsPage() {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/teacher/profile`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const response = await authAPI.getMe();
       setCurrentUser(response.data.data);
     } catch (error) {
       console.error('Error fetching current user:', error);
@@ -70,18 +68,15 @@ export default function DistributionRequestsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
 
       const [requestsRes, statsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/teacher/distribution-requests`, {
-          headers: { Authorization: `Bearer ${token}` }
+        teacherAPI.getTeacherDistributionRequests({
+          status: statusFilter !== 'all' ? statusFilter : undefined
         }),
-        axios.get(`${import.meta.env.VITE_API_URL}/teacher/distribution-requests/statistics`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        teacherAPI.getDistributionRequestStats()
       ]);
 
-      setRequests(requestsRes.data.data);
+      setRequests(requestsRes.data.data || []);
       setStatistics(statsRes.data.data);
     } catch (error: any) {
       console.error('Error fetching data:', error);
@@ -95,11 +90,7 @@ export default function DistributionRequestsPage() {
     if (!confirm('Are you sure you want to cancel this request?')) return;
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(
-        `${import.meta.env.VITE_API_URL}/teacher/distribution-requests/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await teacherAPI.cancelDistributionRequest(id);
 
       toast.success('Request cancelled successfully');
       fetchData();
@@ -118,7 +109,7 @@ export default function DistributionRequestsPage() {
     return variants[status] || <Badge>{status}</Badge>;
   };
 
-  const filteredRequests = requests.filter(req => {
+  const filteredRequests = (requests || []).filter(req => {
     const matchesSearch = searchQuery === '' ||
       req.category?.category_name.toLowerCase().includes(searchQuery.toLowerCase());
     
@@ -138,7 +129,7 @@ export default function DistributionRequestsPage() {
   return (
     <div>
       <NavHeader 
-        title="Distribution Requests" 
+        title="My Distribution" 
         subtitle="Request items you need for your teaching"
         showBackButton={true}
         showHomeButton={true}
@@ -155,7 +146,7 @@ export default function DistributionRequestsPage() {
       
       {/* Mobile Subtitle */}
       <div className="sm:hidden bg-white border-b px-4 py-3">
-        <h1 className="text-lg font-bold text-gray-900 mb-1">Distribution Requests</h1>
+        <h1 className="text-lg font-bold text-gray-900 mb-1">My Distribution</h1>
         <p className="text-sm text-gray-600">Request items you need for your teaching</p>
       </div>
       
@@ -163,7 +154,7 @@ export default function DistributionRequestsPage() {
       {/* Header - Mobile friendly layout */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="hidden sm:block">
-          <h1 className="text-2xl font-bold text-gray-900">Distribution Requests</h1>
+          <h1 className="text-2xl font-bold text-gray-900">My Distribution</h1>
         </div>
         <Button 
           onClick={() => setShowRequestModal(true)} 
@@ -320,7 +311,7 @@ export default function DistributionRequestsPage() {
                     )}
 
                     {request.reviewed_at && (
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
+                      <div className="bg-gray-50 border border-gray-200 rounded p-4 mt-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-semibold text-gray-900">Review Information</span>
                           <span className="text-xs text-gray-600">

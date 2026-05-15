@@ -1,25 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import axios from '../../api/axios';
+import { teacherAPI } from '@/api';
 import { Button } from '../ui/button';
 import { useToast } from '../../hooks/use-toast';
 
 interface CreateDistributionGroupModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  initialData?: any;
 }
 
 const CreateDistributionGroupModal: React.FC<CreateDistributionGroupModalProps> = ({
   onClose,
   onSuccess,
+  initialData
 }) => {
   const [formData, setFormData] = useState({
-    group_name: '',
-    group_type: 'custom',
-    description: '',
-    visibility: 'shared',
-    department: '',
-    teacher_ids: [] as number[],
+    group_name: initialData?.group_name || '',
+    group_type: initialData?.group_type || 'custom',
+    description: initialData?.description || '',
+    visibility: initialData?.visibility || 'shared',
+    department: initialData?.department || '',
+    teacher_ids: initialData?.teachers?.map((t: any) => t.id) || [] as number[],
   });
   const [teachers, setTeachers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,7 +35,7 @@ const CreateDistributionGroupModal: React.FC<CreateDistributionGroupModalProps> 
   const fetchTeachers = async () => {
     try {
       setLoadingTeachers(true);
-      const response = await axios.get('/admin/teachers');
+      const response = await teacherAPI.getTeachers({ all: true });
       setTeachers(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch teachers:', error);
@@ -47,16 +49,24 @@ const CreateDistributionGroupModal: React.FC<CreateDistributionGroupModalProps> 
     setLoading(true);
 
     try {
-      await axios.post('/teacher/distribution-groups', formData);
-      toast({
-        title: 'Success',
-        description: 'Distribution group created successfully',
-      });
+      if (initialData?.id) {
+        await teacherAPI.updateDistributionGroup(initialData.id, formData);
+        toast({
+          title: 'Success',
+          description: 'Distribution group updated successfully',
+        });
+      } else {
+        await teacherAPI.createDistributionGroup(formData);
+        toast({
+          title: 'Success',
+          description: 'Distribution group created successfully',
+        });
+      }
       onSuccess();
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to create distribution group',
+        description: error.response?.data?.message || `Failed to ${initialData ? 'update' : 'create'} distribution group`,
         variant: 'destructive',
       });
     } finally {
@@ -75,9 +85,11 @@ const CreateDistributionGroupModal: React.FC<CreateDistributionGroupModalProps> 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">Create Distribution Group</h2>
+          <h2 className="text-xl font-bold text-gray-900">
+            {initialData ? 'Edit' : 'Create'} Distribution Group
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -96,7 +108,7 @@ const CreateDistributionGroupModal: React.FC<CreateDistributionGroupModalProps> 
               type="text"
               value={formData.group_name}
               onChange={(e) => setFormData({ ...formData, group_name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="e.g., Lab Equipment Coordinators"
               required
             />
@@ -110,7 +122,7 @@ const CreateDistributionGroupModal: React.FC<CreateDistributionGroupModalProps> 
             <select
               value={formData.group_type}
               onChange={(e) => setFormData({ ...formData, group_type: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
               <option value="custom">Custom</option>
@@ -129,7 +141,7 @@ const CreateDistributionGroupModal: React.FC<CreateDistributionGroupModalProps> 
                 type="text"
                 value={formData.department}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="e.g., Science, ICT, TLE"
               />
             </div>
@@ -143,7 +155,7 @@ const CreateDistributionGroupModal: React.FC<CreateDistributionGroupModalProps> 
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               rows={3}
               placeholder="Describe the purpose of this distribution group..."
             />
@@ -190,7 +202,7 @@ const CreateDistributionGroupModal: React.FC<CreateDistributionGroupModalProps> 
             {loadingTeachers ? (
               <p className="text-sm text-gray-600">Loading teachers...</p>
             ) : (
-              <div className="border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
+              <div className="border border-gray-300 rounded max-h-48 overflow-y-auto">
                 {teachers.map((teacher) => (
                   <label
                     key={teacher.id}
@@ -229,7 +241,7 @@ const CreateDistributionGroupModal: React.FC<CreateDistributionGroupModalProps> 
               Cancel
             </Button>
             <Button type="submit" className="flex-1" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Group'}
+              {loading ? (initialData ? 'Updating...' : 'Creating...') : (initialData ? 'Update Group' : 'Create Group')}
             </Button>
           </div>
         </form>

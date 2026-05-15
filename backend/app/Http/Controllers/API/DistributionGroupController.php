@@ -185,6 +185,8 @@ class DistributionGroupController extends Controller
                 'description' => 'nullable|string',
                 'visibility' => 'sometimes|required|string|in:private,shared',
                 'is_active' => 'sometimes|boolean',
+                'teacher_ids' => 'sometimes|nullable|array',
+                'teacher_ids.*' => 'exists:teachers,id',
             ]);
 
             if ($validator->fails()) {
@@ -201,6 +203,11 @@ class DistributionGroupController extends Controller
                 'visibility',
                 'is_active'
             ]));
+
+            // Update teachers if provided
+            if ($request->has('teacher_ids')) {
+                $group->teachers()->sync($request->teacher_ids);
+            }
 
             $group->load(['teachers', 'creator']);
 

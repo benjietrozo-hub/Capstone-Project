@@ -419,7 +419,7 @@ export function MyInventoryPage() {
           <nav className="flex items-center flex-wrap gap-2 text-[11px] font-black uppercase tracking-widest mb-4">
             <button 
               onClick={handleBackToMain}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${viewMode === 'main' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-gray-500 border border-gray-100 hover:text-blue-600 hover:border-blue-200'}`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded transition-all ${viewMode === 'main' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-gray-500 border border-gray-100 hover:text-blue-600 hover:border-blue-200'}`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               Inventory
@@ -430,7 +430,7 @@ export function MyInventoryPage() {
                 <ChevronRight className="w-3 h-3 text-gray-300" />
                 <button 
                   onClick={handleBackToCategory}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${viewMode === 'category' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-gray-500 border border-gray-100 hover:text-blue-600 hover:border-blue-200'}`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded transition-all ${viewMode === 'category' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-gray-500 border border-gray-100 hover:text-blue-600 hover:border-blue-200'}`}
                 >
                   <Folder className="w-3.5 h-3.5" />
                   {selectedParentCategory}
@@ -441,7 +441,7 @@ export function MyInventoryPage() {
             {viewMode === 'items' && (
               <>
                 <ChevronRight className="w-3 h-3 text-gray-300" />
-                <span className="bg-white px-3 py-1.5 rounded-lg border border-gray-100 text-gray-900 shadow-sm flex items-center gap-2">
+                <span className="bg-white px-3 py-1.5 rounded border border-gray-100 text-gray-900 shadow-sm flex items-center gap-2">
                   <Tag className="w-3.5 h-3.5 text-blue-600" />
                   {selectedKind}
                 </span>
@@ -453,16 +453,16 @@ export function MyInventoryPage() {
 
           {/* Tab Switcher (Only on Main View) */}
           {viewMode === 'main' && (
-            <div className="flex bg-gray-100/50 p-1 rounded-2xl w-full sm:w-fit border border-gray-200">
+            <div className="flex bg-gray-100/50 p-1 rounded w-full sm:w-fit border border-gray-200">
               <button
                 onClick={() => setActiveTab('inventory')}
-                className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'inventory' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`px-6 py-2.5 rounded-sm text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'inventory' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 My Inventory
               </button>
               <button
                 onClick={() => setActiveTab('pending')}
-                className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === 'pending' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`px-6 py-2.5 rounded-sm text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === 'pending' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 Pending Acceptance
                 {pendingDistributions.length > 0 && (
@@ -487,7 +487,7 @@ export function MyInventoryPage() {
                   </div>
                   <input
                     type="text"
-                    className="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 block pl-11 pr-4 py-3.5 font-bold transition-all outline-none shadow-sm"
+                    className="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 block pl-11 pr-4 py-3.5 font-bold transition-all outline-none shadow-sm"
                     placeholder="Search master categories..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -503,14 +503,14 @@ export function MyInventoryPage() {
                     <div 
                       key={cat.parent_category}
                       onClick={() => handleParentClick(cat.parent_category)}
-                      className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group relative overflow-hidden"
+                      className="bg-white p-6 rounded-sm border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group relative overflow-hidden"
                     >
                       <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
                         <Folder className="w-32 h-32" />
                       </div>
                       
                       <div className="flex items-start justify-between mb-6">
-                        <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
+                        <div className="w-14 h-14 bg-blue-50 rounded flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
                           <Folder className="w-6 h-6" />
                         </div>
                         <div className="flex flex-col items-end gap-1">
@@ -535,9 +535,9 @@ export function MyInventoryPage() {
                   
                   <div 
                     onClick={() => openAddModal('main')}
-                    className="bg-gray-50 p-6 rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center hover:bg-white hover:border-blue-300 transition-all cursor-pointer group min-h-[220px]"
+                    className="bg-gray-50 p-6 rounded-sm border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center hover:bg-white hover:border-blue-300 transition-all cursor-pointer group min-h-[220px]"
                   >
-                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-gray-400 group-hover:text-blue-600 shadow-sm mb-4">
+                    <div className="w-12 h-12 bg-white rounded flex items-center justify-center text-gray-400 group-hover:text-blue-600 shadow-sm mb-4">
                       <Folder className="w-6 h-6" />
                     </div>
                     <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">New Category</h3>
@@ -554,7 +554,7 @@ export function MyInventoryPage() {
               {pendingLoading ? (
                 <PageLoader />
               ) : pendingDistributions.length === 0 ? (
-                <div className="bg-white p-12 rounded-3xl border border-gray-100 shadow-sm text-center">
+                <div className="bg-white p-12 rounded-sm border border-gray-100 shadow-sm text-center">
                   <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <CheckCircle className="w-10 h-10 text-gray-300" />
                   </div>
@@ -566,10 +566,10 @@ export function MyInventoryPage() {
               ) : (
                 <div className="grid grid-cols-1 gap-6">
                   {pendingDistributions.map((dist) => (
-                    <div key={dist.id} className="bg-white rounded-3xl border border-orange-100 shadow-sm overflow-hidden flex flex-col lg:flex-row group">
+                    <div key={dist.id} className="bg-white rounded-sm border border-orange-100 shadow-sm overflow-hidden flex flex-col lg:flex-row group">
                       <div className="lg:w-1/3 bg-orange-50/50 p-8 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-orange-100">
                         <div>
-                          <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 mb-6">
+                          <div className="w-12 h-12 bg-orange-100 rounded flex items-center justify-center text-orange-600 mb-6">
                             <ClipboardList className="w-6 h-6" />
                           </div>
                           <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">New Distribution</h3>
@@ -603,13 +603,13 @@ export function MyInventoryPage() {
                           <div className="flex gap-3">
                             <Button 
                               variant="danger" 
-                              className="px-6 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest border-0 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
+                              className="px-6 h-11 rounded-sm text-[10px] font-black uppercase tracking-widest border-0 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
                               onClick={() => { setRejectingId(dist.id); setRejectModal(true); }}
                             >
                               Reject
                             </Button>
                             <Button 
-                              className="px-8 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest border-0 bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700"
+                              className="px-8 h-11 rounded-sm text-[10px] font-black uppercase tracking-widest border-0 bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700"
                               onClick={() => handleAcceptDistribution(dist.id)}
                             >
                               Accept & Sign
@@ -619,8 +619,8 @@ export function MyInventoryPage() {
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {dist.inventory_items?.map((item: any) => (
-                            <div key={item.id} className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-center gap-4 group/item hover:border-blue-200 hover:bg-white transition-all">
-                              <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-400 group-hover/item:text-blue-600 transition-colors">
+                            <div key={item.id} className="bg-gray-50 p-4 rounded border border-gray-100 flex items-center gap-4 group/item hover:border-blue-200 hover:bg-white transition-all">
+                              <div className="w-10 h-10 bg-white rounded-sm shadow-sm flex items-center justify-center text-gray-400 group-hover/item:text-blue-600 transition-colors">
                                 <Tag className="w-5 h-5" />
                               </div>
                               <div>
@@ -649,7 +649,7 @@ export function MyInventoryPage() {
                   </div>
                   <input
                     type="text"
-                    className="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 block pl-11 pr-4 py-3.5 font-bold transition-all outline-none shadow-sm"
+                    className="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 block pl-11 pr-4 py-3.5 font-bold transition-all outline-none shadow-sm"
                     placeholder={`Search kinds in ${selectedParentCategory}...`}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -665,14 +665,14 @@ export function MyInventoryPage() {
                     <div 
                       key={kind.category}
                       onClick={() => handleKindClick(kind.category)}
-                      className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group relative overflow-hidden"
+                      className="bg-white p-6 rounded-sm border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group relative overflow-hidden"
                     >
                       <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
                         <Package className="w-32 h-32" />
                       </div>
                       
                       <div className="flex items-start justify-between mb-6">
-                        <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
+                        <div className="w-14 h-14 bg-indigo-50 rounded flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
                           <Tag className="w-6 h-6" />
                         </div>
                         <div className="bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
@@ -692,9 +692,9 @@ export function MyInventoryPage() {
                   
                   <div 
                     onClick={() => openAddModal('category')}
-                    className="bg-gray-50 p-6 rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center hover:bg-white hover:border-indigo-300 transition-all cursor-pointer group min-h-[220px]"
+                    className="bg-gray-50 p-6 rounded-sm border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center hover:bg-white hover:border-indigo-300 transition-all cursor-pointer group min-h-[220px]"
                   >
-                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-gray-400 group-hover:text-indigo-600 shadow-sm mb-4">
+                    <div className="w-12 h-12 bg-white rounded flex items-center justify-center text-gray-400 group-hover:text-indigo-600 shadow-sm mb-4">
                       <Tag className="w-6 h-6" />
                     </div>
                     <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">New Kind</h3>
@@ -707,11 +707,11 @@ export function MyInventoryPage() {
 
           {/* Level 3: Items View */}
           {viewMode === 'items' && (
-            <Card className="rounded-3xl border-0 shadow-sm overflow-hidden">
+            <Card className="rounded-sm border-0 shadow-sm overflow-hidden">
               <CardHeader className="bg-white border-b border-gray-50 py-6 px-8">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200">
+                    <div className="p-3 bg-blue-600 rounded shadow-lg shadow-blue-200">
                       <Package className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -722,22 +722,22 @@ export function MyInventoryPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
+                    <div className="flex bg-gray-50 p-1 rounded-sm border border-gray-100">
                       <button 
                         onClick={() => setDisplayMode('card')}
-                        className={`p-2 rounded-lg transition-all ${displayMode === 'card' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
+                        className={`p-2 rounded transition-all ${displayMode === 'card' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
                       >
                         <LayoutGrid className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => setDisplayMode('list')}
-                        className={`p-2 rounded-lg transition-all ${displayMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
+                        className={`p-2 rounded transition-all ${displayMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
                       >
                         <List className="w-4 h-4" />
                       </button>
                     </div>
                     <Button 
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-[10px] h-10 px-6 rounded-xl shadow-lg shadow-blue-100"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-[10px] h-10 px-6 rounded-sm shadow-lg shadow-blue-100"
                       onClick={() => openAddModal('items')}
                     >
                       Add Item
@@ -798,7 +798,7 @@ export function MyInventoryPage() {
                 {loading ? (
                   <PageLoader />
                 ) : displayMode === 'list' ? (
-                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                  <div className="bg-white rounded border border-gray-100 overflow-hidden">
                     <Table
                       columns={columns}
                       data={items.map(item => renderRow(item))}
@@ -810,14 +810,14 @@ export function MyInventoryPage() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {items.length === 0 ? (
-                      <div className="col-span-full p-8 text-center text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                      <div className="col-span-full p-8 text-center text-gray-500 bg-gray-50 rounded border border-dashed border-gray-200">
                         No items found matching your filters.
                       </div>
                     ) : items.map((item) => (
-                      <div key={item.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all flex flex-col group p-6 relative overflow-hidden">
+                      <div key={item.id} className="bg-white rounded-sm border border-gray-100 shadow-sm hover:shadow-xl transition-all flex flex-col group p-6 relative overflow-hidden">
                          <div className="flex justify-between items-start mb-6">
                           <div className="flex gap-2">
-                            <div className="p-4 bg-blue-50 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
+                            <div className="p-4 bg-blue-50 rounded group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
                               <Package className="w-6 h-6" />
                             </div>
                             {item.is_approaching_end_of_life && (
@@ -852,7 +852,7 @@ export function MyInventoryPage() {
 
                         <div className="mt-6 flex flex-col gap-3">
                           <Button 
-                            className="w-full text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 h-11 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 border-0"
+                            className="w-full text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 h-11 rounded-sm bg-gray-50 text-gray-600 hover:bg-gray-100 border-0"
                             onClick={() => handleView(item)}
                           >
                             <Eye className="w-4 h-4" />
@@ -860,13 +860,13 @@ export function MyInventoryPage() {
                           </Button>
                           <div className="grid grid-cols-2 gap-3">
                             <Button 
-                              className="h-11 text-[10px] font-black uppercase tracking-widest rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all border-0" 
+                              className="h-11 text-[10px] font-black uppercase tracking-widest rounded-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all border-0" 
                               onClick={() => handleEdit(item)}
                             >
                               Edit
                             </Button>
                             <Button 
-                              className="h-11 text-[10px] font-black uppercase tracking-widest rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all border-0" 
+                              className="h-11 text-[10px] font-black uppercase tracking-widest rounded-sm bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all border-0" 
                               onClick={() => handleDelete(item.id)}
                             >
                               Delete
@@ -891,8 +891,8 @@ export function MyInventoryPage() {
           title="Reject Distribution"
         >
           <div className="space-y-6">
-            <div className="bg-red-50 p-4 rounded-2xl flex items-start gap-4 border border-red-100">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-red-600 shadow-sm shrink-0">
+            <div className="bg-red-50 p-4 rounded flex items-start gap-4 border border-red-100">
+              <div className="w-10 h-10 bg-white rounded-sm flex items-center justify-center text-red-600 shadow-sm shrink-0">
                 <XCircle className="w-6 h-6" />
               </div>
               <div>
@@ -938,7 +938,7 @@ export function MyInventoryPage() {
               <div className="bg-red-50 text-red-600 p-3 rounded">{generalError}</div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50/50 p-4 rounded border border-blue-100">
               <FormField
                 label="Master Category (e.g. Electronics)"
                 value={formData.parent_category}
@@ -1080,7 +1080,7 @@ export function MyInventoryPage() {
         >
           <div className="space-y-6 py-2">
             <div className="flex items-center gap-4 border-b pb-4">
-              <div className="p-4 bg-blue-50 rounded-2xl">
+              <div className="p-4 bg-blue-50 rounded">
                 <Package className="w-8 h-8 text-blue-600" />
               </div>
               <div>
@@ -1142,7 +1142,7 @@ export function MyInventoryPage() {
               <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                 <ClipboardList className="w-3 h-3" /> Description & Notes
               </h4>
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
+              <div className="p-4 bg-gray-50 rounded-sm border border-gray-100 space-y-3">
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Description</p>
                   <p className="text-sm text-gray-700 leading-relaxed">{selectedItem.description || 'No description provided.'}</p>
@@ -1155,10 +1155,10 @@ export function MyInventoryPage() {
             </div>
 
             <div className="pt-4 flex gap-3">
-              <Button className="flex-1 rounded-xl font-bold" onClick={() => { setShowViewModal(false); handleEdit(selectedItem); }}>
+              <Button className="flex-1 rounded-sm font-bold" onClick={() => { setShowViewModal(false); handleEdit(selectedItem); }}>
                 Edit Item
               </Button>
-              <Button variant="secondary" onClick={() => setShowViewModal(false)} className="px-6 rounded-xl font-bold">
+              <Button variant="secondary" onClick={() => setShowViewModal(false)} className="px-6 rounded-sm font-bold">
                 Close
               </Button>
             </div>

@@ -233,7 +233,7 @@ export default function BulkDistributionsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-200">
+            <div className="p-2 bg-blue-600 rounded shadow-lg shadow-blue-200">
               <Layers className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Bulk Distributions</h1>
@@ -265,7 +265,7 @@ export default function BulkDistributionsPage() {
           ].map((stat, i) => (
             <div key={i} className="group bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 bg-${stat.color}-50 rounded-2xl text-${stat.color}-600 group-hover:scale-110 transition-transform`}>
+                <div className={`p-3 bg-${stat.color}-50 rounded text-${stat.color}-600 group-hover:scale-110 transition-transform`}>
                   <stat.icon className="w-5 h-5" />
                 </div>
                 <ArrowUpRight className="w-4 h-4 text-slate-200" />
@@ -288,16 +288,16 @@ export default function BulkDistributionsPage() {
                 placeholder="Search by asset identifier or target group..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-14 h-16 rounded-2xl border-slate-200 bg-slate-50/50 shadow-inner focus:bg-white text-lg font-medium"
+                className="pl-14 h-16 rounded border-slate-200 bg-slate-50/50 shadow-inner focus:bg-white text-lg font-medium"
               />
             </div>
 
             <div className="flex gap-4 w-full md:w-auto">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[220px] h-16 rounded-2xl border-slate-200 bg-slate-50/50 font-bold">
+                <SelectTrigger className="w-full md:w-[220px] h-16 rounded border-slate-200 bg-slate-50/50 font-bold">
                   <SelectValue placeholder="Pipeline Status" />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border-slate-100">
+                <SelectContent className="rounded border-slate-100">
                   <SelectItem value="all">Global Lifecycle</SelectItem>
                   <SelectItem value="pending">Awaiting Review</SelectItem>
                   <SelectItem value="processing">Active Cycle</SelectItem>
@@ -324,7 +324,7 @@ export default function BulkDistributionsPage() {
               </div>
               <h3 className="text-2xl font-black text-slate-900">Registry Entry Empty</h3>
               <p className="text-slate-400 mt-2 font-medium">No bulk distributions match your current filtered parameters.</p>
-              <Button onClick={() => setShowCreateModal(true)} variant="outline" className="mt-8 rounded-2xl h-12 px-8 border-slate-200 font-black">Initiate New Operation</Button>
+              <Button onClick={() => setShowCreateModal(true)} variant="outline" className="mt-8 rounded h-12 px-8 border-slate-200 font-black">Initiate New Operation</Button>
             </CardContent>
           </Card>
         ) : (
@@ -333,7 +333,7 @@ export default function BulkDistributionsPage() {
               <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8">
                 <div className="flex-1 space-y-6">
                   <div className="flex items-center gap-4">
-                    <div className={`p-4 rounded-3xl ${distribution.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : distribution.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'} transition-colors group-hover:scale-105 duration-500`}>
+                    <div className={`p-4 rounded-sm ${distribution.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : distribution.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'} transition-colors group-hover:scale-105 duration-500`}>
                       <Package className="w-8 h-8" />
                     </div>
                     <div>
@@ -351,7 +351,7 @@ export default function BulkDistributionsPage() {
                       <div className="flex items-center gap-2 text-slate-700 font-bold">
                         <Users className="w-4 h-4 text-slate-400" />
                         <span>{distribution.group.group_name}</span>
-                        <Badge variant="outline" className="text-[10px] h-5 rounded-lg border-slate-100">{distribution.group.teachers_count} Members</Badge>
+                        <Badge variant="outline" className="text-[10px] h-5 rounded border-slate-100">{distribution.group.teachers_count} Members</Badge>
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -375,7 +375,7 @@ export default function BulkDistributionsPage() {
                 <div className="flex items-center gap-4 w-full xl:w-auto xl:pl-8 xl:border-l border-slate-100">
                   <Button
                     variant="outline"
-                    className="flex-1 xl:flex-none h-14 w-14 rounded-2xl border-slate-100 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                    className="flex-1 xl:flex-none h-14 w-14 rounded border-slate-100 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
                     onClick={() => {
                       setSelectedDistribution(distribution);
                       setShowDetailsModal(true);
@@ -386,7 +386,7 @@ export default function BulkDistributionsPage() {
                   
                   {distribution.status === 'pending' && (
                     <Button
-                      className="flex-[2] xl:flex-none h-14 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-100 transition-all active:scale-95 gap-3"
+                      className="flex-[2] xl:flex-none h-14 px-8 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-100 transition-all active:scale-95 gap-3"
                       onClick={() => handleProcessDistribution(distribution.id)}
                     >
                       <Play className="w-5 h-5" />
@@ -397,7 +397,7 @@ export default function BulkDistributionsPage() {
                   {['pending', 'processing'].includes(distribution.status) && (
                     <Button
                       variant="outline"
-                      className="flex-1 xl:flex-none h-14 w-14 rounded-2xl border-slate-100 text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all"
+                      className="flex-1 xl:flex-none h-14 w-14 rounded border-slate-100 text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all"
                       onClick={() => triggerCancelWorkflow(distribution.id)}
                     >
                       <Archive className="w-6 h-6" />
@@ -431,7 +431,7 @@ export default function BulkDistributionsPage() {
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full -mr-32 -mt-32 blur-3xl" />
               <div className="relative z-10 space-y-1">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/10 rounded-xl backdrop-blur-md">
+                  <div className="p-2 bg-white/10 rounded-sm backdrop-blur-md">
                     <Package className="w-6 h-6 text-blue-400" />
                   </div>
                   <h2 className="text-3xl font-black tracking-tight">Cycle Intelligence</h2>
@@ -442,7 +442,7 @@ export default function BulkDistributionsPage() {
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setShowDetailsModal(false)}
-                className="relative z-10 h-12 w-12 rounded-2xl text-white hover:bg-white/10"
+                className="relative z-10 h-12 w-12 rounded text-white hover:bg-white/10"
               >
                 <X className="w-6 h-6" />
               </Button>
@@ -539,7 +539,7 @@ export default function BulkDistributionsPage() {
                         <tr key={itemDist.id} className="group hover:bg-slate-50/50 transition-colors">
                           <td className="px-8 py-5">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-400 group-hover:text-blue-600 transition-colors uppercase">
+                              <div className="w-10 h-10 bg-slate-100 rounded-sm flex items-center justify-center font-black text-slate-400 group-hover:text-blue-600 transition-colors uppercase">
                                 {itemDist.teacher.full_name.charAt(0)}
                               </div>
                               <span className="font-bold text-slate-800">{itemDist.teacher.full_name}</span>
@@ -592,7 +592,7 @@ export default function BulkDistributionsPage() {
             <div className="p-10 border-t border-slate-100 bg-white flex justify-end">
                <Button 
                 onClick={() => setShowDetailsModal(false)}
-                className="h-14 px-10 rounded-2xl bg-slate-900 text-white font-black hover:bg-slate-800 transition-all active:scale-95"
+                className="h-14 px-10 rounded bg-slate-900 text-white font-black hover:bg-slate-800 transition-all active:scale-95"
                >
                  Close Analysis
                </Button>
@@ -622,22 +622,22 @@ export default function BulkDistributionsPage() {
                     value={verifyPassword} 
                     onChange={(e) => setVerifyPassword(e.target.value)}
                     placeholder="Enter security token..."
-                    className="h-14 rounded-2xl border-slate-200 bg-slate-50 focus:bg-white text-lg shadow-inner"
+                    className="h-14 rounded border-slate-200 bg-slate-50 focus:bg-white text-lg shadow-inner"
                     onKeyDown={(e) => e.key === 'Enter' && handleCancelExecution()}
                     autoFocus
                   />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-slate-100 rounded-lg">
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-slate-100 rounded">
                     <Settings className="w-4 h-4 text-slate-400" />
                   </div>
                 </div>
               </div>
               
               <div className="flex gap-4">
-                <Button variant="ghost" onClick={() => { setShowVerifyModal(false); setVerifyPassword(''); setPendingActionId(null); }} className="flex-1 h-14 rounded-2xl font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50">Cancel</Button>
+                <Button variant="ghost" onClick={() => { setShowVerifyModal(false); setVerifyPassword(''); setPendingActionId(null); }} className="flex-1 h-14 rounded font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50">Cancel</Button>
                 <Button 
                   onClick={handleCancelExecution} 
                   disabled={verifying}
-                  className="flex-[2] h-14 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black shadow-lg shadow-rose-100 active:scale-95 transition-all"
+                  className="flex-[2] h-14 rounded bg-rose-600 hover:bg-rose-700 text-white font-black shadow-lg shadow-rose-100 active:scale-95 transition-all"
                 >
                   {verifying ? (
                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />

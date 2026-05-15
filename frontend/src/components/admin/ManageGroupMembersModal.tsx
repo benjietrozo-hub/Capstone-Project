@@ -209,10 +209,10 @@ export default function ManageGroupMembersModal({
                 placeholder="Search global directory or current group..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 h-14 rounded-2xl border-slate-200 bg-white shadow-sm focus:ring-blue-500/20"
+                className="pl-12 h-14 rounded border-slate-200 bg-white shadow-sm focus:ring-blue-500/20"
               />
             </div>
-            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest px-4 py-2 bg-slate-100 rounded-xl">
+            <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest px-4 py-2 bg-slate-100 rounded-sm">
               <Info className="w-4 h-4" />
               Synchronized Local Cache
             </div>
@@ -245,10 +245,10 @@ export default function ManageGroupMembersModal({
                     filteredCurrentMembers.map((teacher) => (
                       <div
                         key={teacher.id}
-                        className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-3xl hover:shadow-xl hover:shadow-slate-200/50 hover:border-emerald-100 transition-all group"
+                        className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-sm hover:shadow-xl hover:shadow-slate-200/50 hover:border-emerald-100 transition-all group"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
+                          <div className="w-12 h-12 bg-slate-100 rounded flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
                             <span className="font-black text-slate-400 group-hover:text-emerald-500">
                               {teacher.full_name.charAt(0)}
                             </span>
@@ -262,7 +262,7 @@ export default function ManageGroupMembersModal({
                           variant="ghost"
                           size="icon"
                           onClick={() => handleRemoveMember(teacher.id)}
-                          className="h-10 w-10 rounded-xl text-slate-300 hover:text-red-600 hover:bg-red-50 transition-all"
+                          className="h-10 w-10 rounded-sm text-slate-300 hover:text-red-600 hover:bg-red-50 transition-all"
                         >
                           <Trash2 className="w-5 h-5" />
                         </Button>
@@ -285,7 +285,7 @@ export default function ManageGroupMembersModal({
                         variant="ghost"
                         size="sm"
                         onClick={handleSelectAll}
-                        className="text-xs font-black text-blue-600 hover:bg-blue-50 h-8 px-4 rounded-lg uppercase tracking-tighter"
+                        className="text-xs font-black text-blue-600 hover:bg-blue-50 h-8 px-4 rounded uppercase tracking-tighter"
                       >
                         {selectedTeachers.length === filteredAvailableTeachers.length ? "Clear All" : "Select Result Set"}
                       </Button>
@@ -307,13 +307,13 @@ export default function ManageGroupMembersModal({
                       filteredAvailableTeachers.map((teacher) => (
                         <label
                           key={teacher.id}
-                          className={`flex items-center justify-between p-5 border rounded-3xl cursor-pointer transition-all ${selectedTeachers.includes(teacher.id) ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-500/10' : 'bg-white border-slate-50 hover:border-blue-100'}`}
+                          className={`flex items-center justify-between p-5 border rounded-sm cursor-pointer transition-all ${selectedTeachers.includes(teacher.id) ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-500/10' : 'bg-white border-slate-50 hover:border-blue-100'}`}
                         >
                           <div className="flex items-center gap-4">
                             <Checkbox
                               checked={selectedTeachers.includes(teacher.id)}
                               onCheckedChange={() => handleSelectTeacher(teacher.id)}
-                              className="w-5 h-5 rounded-lg border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                              className="w-5 h-5 rounded border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                             />
                             <div>
                               <div className="font-bold text-slate-900 leading-none mb-1">{teacher.full_name}</div>
@@ -333,7 +333,7 @@ export default function ManageGroupMembersModal({
                       <Button
                         onClick={handleAddMembers}
                         disabled={loading}
-                        className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-lg flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all"
+                        className="w-full h-14 rounded bg-slate-900 hover:bg-slate-800 text-white font-black text-lg flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all"
                       >
                         {loading ? (
                           <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -366,7 +366,7 @@ export default function ManageGroupMembersModal({
           </div>
           <Button 
             onClick={onClose}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold h-11 px-10 rounded-xl transition-all"
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold h-11 px-10 rounded-sm transition-all"
           >
             Finished Processing
           </Button>

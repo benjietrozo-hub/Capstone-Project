@@ -9,14 +9,32 @@ use Illuminate\Support\Facades\Auth;
 
 class TeacherInventoryController extends Controller
 {
+    private function getOwnedItemsQuery($teacherId)
+    {
+        return InventoryItem::whereHas('distributions', function ($q) use ($teacherId) {
+            $q->where('item_distributions.status', 'active')
+              ->where(function($query) use ($teacherId) {
+                  $query->where('item_distributions.teacher_id', $teacherId)
+                        ->orWhere(function($sub) use ($teacherId) {
+                            $sub->where('assignable_type', 'App\Models\Classroom')
+                                ->whereIn('assignable_id', \App\Models\Classroom::where('assigned_teacher_id', $teacherId)->pluck('id'));
+                        })
+                        ->orWhere(function($sub) use ($teacherId) {
+                            $sub->where('assignable_type', 'App\Models\Club')
+                                ->whereIn('assignable_id', \App\Models\Club::where('advisor_teacher_id', $teacherId)->pluck('id'));
+                        })
+                        ->orWhere(function($sub) use ($teacherId) {
+                            $sub->where('assignable_type', 'App\Models\Department')
+                                ->whereIn('assignable_id', \App\Models\Department::where('head_teacher_id', $teacherId)->pluck('id'));
+                        });
+              });
+        })->with('category');
+    }
+
     public function index(Request $request)
     {
         $teacherId = Auth::id();
-
-        $query = InventoryItem::whereHas('distributions', function ($q) use ($teacherId) {
-            $q->where('teacher_id', $teacherId)
-              ->where('item_distributions.status', 'active');
-        })->with('category');
+        $query = $this->getOwnedItemsQuery($teacherId);
 
         // Search across name, serial number
         if ($request->search) {
@@ -65,10 +83,7 @@ class TeacherInventoryController extends Controller
                   ->orderBy('item_name', 'asc');
         }
 
-
         $items = $query->paginate($request->per_page ?? 50);
-
-        // Map to match the old frontend format if necessary, but returning the InventoryItem is usually fine.
         return response()->json($items);
     }
 
@@ -80,12 +95,7 @@ class TeacherInventoryController extends Controller
     public function show(string $id)
     {
         $teacherId = Auth::id();
-
-        $item = InventoryItem::whereHas('distributions', function ($q) use ($teacherId) {
-            $q->where('teacher_id', $teacherId)
-              ->where('item_distributions.status', 'active');
-        })->with('category')->findOrFail($id);
-
+        $item = $this->getOwnedItemsQuery($teacherId)->findOrFail($id);
         return response()->json($item);
     }
 
@@ -105,11 +115,7 @@ class TeacherInventoryController extends Controller
     public function parentCategories()
     {
         $teacherId = Auth::id();
-
-        $items = InventoryItem::whereHas('distributions', function ($q) use ($teacherId) {
-            $q->where('teacher_id', $teacherId)
-              ->where('item_distributions.status', 'active');
-        })->with('category')->get();
+        $items = $this->getOwnedItemsQuery($teacherId)->get();
 
         $parents = $items->groupBy(function($item) {
             return $item->category && $item->category->parent_category ? $item->category->parent_category : 'Uncategorized';
@@ -130,11 +136,7 @@ class TeacherInventoryController extends Controller
     public function categories(Request $request)
     {
         $teacherId = Auth::id();
-
-        $query = InventoryItem::whereHas('distributions', function ($q) use ($teacherId) {
-            $q->where('teacher_id', $teacherId)
-              ->where('item_distributions.status', 'active');
-        })->with('category');
+        $query = $this->getOwnedItemsQuery($teacherId);
 
         if ($request->parent_category) {
             if ($request->parent_category === 'Uncategorized') {
@@ -168,11 +170,7 @@ class TeacherInventoryController extends Controller
     public function statistics()
     {
         $teacherId = Auth::id();
-
-        $items = InventoryItem::whereHas('distributions', function ($q) use ($teacherId) {
-            $q->where('teacher_id', $teacherId)
-              ->where('item_distributions.status', 'active');
-        })->with('category')->get();
+        $items = $this->getOwnedItemsQuery($teacherId)->get();
 
         $stats = [
             'total_items'    => $items->count(),

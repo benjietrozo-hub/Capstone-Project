@@ -90,7 +90,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold flex items-center">
@@ -139,7 +139,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-sm">
               <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
@@ -155,7 +155,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                     type="email"
                     value={formData.recipient_email}
                     onChange={(e) => setFormData({...formData, recipient_email: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -168,7 +168,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                     type="text"
                     value={formData.subject}
                     onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -180,7 +180,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({...formData, type: e.target.value as 'notification' | 'alert' | 'report' | 'reminder'})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     {emailTypes.map(type => (
                       <option key={type.value} value={type.value}>
@@ -198,7 +198,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                     value={formData.message}
                     onChange={(e) => setFormData({...formData, message: e.target.value})}
                     rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -212,7 +212,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                       type="text"
                       value={formData.related_id}
                       onChange={(e) => setFormData({...formData, related_id: e.target.value ? parseInt(e.target.value) : undefined})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -223,7 +223,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                       type="text"
                       value={formData.related_type}
                       onChange={(e) => setFormData({...formData, related_type: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -239,7 +239,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                   <select
                     value={templateData.type}
                     onChange={(e) => setTemplateData({...templateData, type: e.target.value as any})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     {emailTemplates.map(template => (
                       <option key={template.value} value={template.value}>
@@ -257,7 +257,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                     type="email"
                     value={templateData.recipient}
                     onChange={(e) => setTemplateData({...templateData, recipient: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -277,7 +277,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                       }
                     }}
                     rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                   />
                 </div>
               </>
@@ -304,7 +304,7 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
   }
 ]`}
                   rows={10}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                 />
               </div>
             )}
@@ -313,14 +313,14 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center"
               >
                 {loading ? (
                   <>

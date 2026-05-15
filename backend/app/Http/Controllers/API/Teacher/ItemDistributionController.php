@@ -19,8 +19,24 @@ class ItemDistributionController extends Controller
     {
         try {
             $teacherId = Auth::id();
+            
+            // Build query to include direct assignments AND entity assignments
             $query = ItemDistribution::with(['category', 'distributedBy', 'inventoryItems'])
-                ->where('teacher_id', $teacherId);
+                ->where(function($q) use ($teacherId) {
+                    $q->where('teacher_id', $teacherId)
+                      ->orWhere(function($sub) use ($teacherId) {
+                          $sub->where('assignable_type', 'App\Models\Classroom')
+                              ->whereIn('assignable_id', \App\Models\Classroom::where('assigned_teacher_id', $teacherId)->pluck('id'));
+                      })
+                      ->orWhere(function($sub) use ($teacherId) {
+                          $sub->where('assignable_type', 'App\Models\Club')
+                              ->whereIn('assignable_id', \App\Models\Club::where('advisor_teacher_id', $teacherId)->pluck('id'));
+                      })
+                      ->orWhere(function($sub) use ($teacherId) {
+                          $sub->where('assignable_type', 'App\Models\Department')
+                              ->whereIn('assignable_id', \App\Models\Department::where('head_teacher_id', $teacherId)->pluck('id'));
+                      });
+                });
 
             if ($request->has('status')) {
                 $query->where('status', $request->status);

@@ -8,7 +8,7 @@ interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Skeleton({ className, ...props }: SkeletonProps) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-gray-200 dark:bg-gray-700", className)}
+      className={cn("animate-pulse rounded-sm bg-gray-200 dark:bg-gray-700", className)}
       {...props}
     />
   );
@@ -18,7 +18,7 @@ export function InventorySkeleton() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {[1, 2, 3, 4, 5, 6].map((i) => (
-        <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div key={i} className="bg-white rounded-sm shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-5">
             <div className="flex justify-between items-start mb-4">
               <Skeleton className="h-6 w-3/4" />
@@ -52,18 +52,18 @@ export function DashboardSkeleton() {
     <div className="p-6 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div key={i} className="bg-white p-6 rounded-sm shadow-sm border border-gray-100">
             <Skeleton className="h-4 w-24 mb-2" />
             <Skeleton className="h-8 w-16" />
           </div>
         ))}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-100">
           <Skeleton className="h-6 w-48 mb-6" />
           <Skeleton className="h-64 w-full" />
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-100">
           <Skeleton className="h-6 w-48 mb-6" />
           <Skeleton className="h-64 w-full" />
         </div>
@@ -74,7 +74,7 @@ export function DashboardSkeleton() {
 
 export function TableSkeleton({ rows = 5, cols = 5 }) {
   return (
-    <div className="w-full bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+    <div className="w-full bg-white rounded-sm border border-gray-100 overflow-hidden shadow-sm">
       <div className="bg-gray-50/50 p-4 border-b border-gray-100">
         <div className="flex gap-6 px-2">
           {Array.from({ length: cols }).map((_, i) => (

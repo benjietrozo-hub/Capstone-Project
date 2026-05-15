@@ -7,6 +7,7 @@ use App\Http\Controllers\API\Auth\UnifiedAuthController;
 use App\Http\Controllers\API\Admin\InventoryController as AdminInventoryController;
 use App\Http\Controllers\API\Admin\BorrowRequestController as AdminBorrowRequestController;
 use App\Http\Controllers\API\Admin\TeacherManagementController;
+use App\Http\Controllers\API\Admin\AdminManagementController;
 use App\Http\Controllers\API\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\API\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\API\Admin\SystemLogController;
@@ -16,6 +17,12 @@ use App\Http\Controllers\API\DistributionGroupController;
 use App\Http\Controllers\API\Admin\ItemCategoryController;
 use App\Http\Controllers\API\Admin\InventoryItemController;
 use App\Http\Controllers\API\Admin\BorrowHistoryController;
+use App\Http\Controllers\API\Admin\DepartmentController;
+use App\Http\Controllers\API\Admin\ClassroomController;
+use App\Http\Controllers\API\Admin\ClubController;
+use App\Http\Controllers\API\Teacher\EntityController;
+use App\Http\Controllers\API\ItemTransferController;
+use App\Http\Controllers\API\ItemConditionLogController;
 
 use App\Http\Controllers\API\Teacher\InventoryController as TeacherInventoryController;
 use App\Http\Controllers\API\Teacher\BorrowRequestController as TeacherBorrowRequestController;
@@ -33,6 +40,9 @@ Route::get('/test', function() {
 Route::prefix('auth')->group(function () {
     // Unified login endpoint
     Route::post('/login', [UnifiedAuthController::class, 'login']);
+    
+    // Token refresh endpoint (public - uses refresh token)
+    Route::post('/refresh-token', [UnifiedAuthController::class, 'refreshToken']);
     
     // Password reset endpoints
     Route::post('/forgot-password', [UnifiedAuthController::class, 'forgotPassword']);
@@ -84,6 +94,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     
     Route::apiResource('teachers', TeacherManagementController::class);
     Route::get('/teacher-departments', [TeacherManagementController::class, 'departments']);
+    
+    Route::apiResource('admins', AdminManagementController::class);
     
     Route::apiResource('reports', AdminReportController::class);
     Route::put('/reports/{id}/resolve', [AdminReportController::class, 'resolve']);
@@ -159,6 +171,39 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
     Route::delete('/notifications/read/all', [NotificationController::class, 'deleteAllRead']);
+
+    // Entity Management - Departments
+    Route::get('/departments/statistics', [DepartmentController::class, 'statistics']);
+    Route::get('/departments/{id}/inventory', [DepartmentController::class, 'inventory']);
+    Route::apiResource('departments', DepartmentController::class);
+
+    // Entity Management - Classrooms
+    Route::get('/classrooms/statistics', [ClassroomController::class, 'statistics']);
+    Route::get('/classrooms/{id}/inventory', [ClassroomController::class, 'inventory']);
+    Route::apiResource('classrooms', ClassroomController::class);
+
+    // Entity Management - Clubs
+    Route::get('/clubs/statistics', [ClubController::class, 'statistics']);
+    Route::get('/clubs/categories', [ClubController::class, 'categories']);
+    Route::get('/clubs/{id}/inventory', [ClubController::class, 'inventory']);
+    Route::apiResource('clubs', ClubController::class);
+
+    // Item Transfers (Admin)
+    Route::get('/item-transfers', [ItemTransferController::class, 'index']);
+    Route::post('/item-transfers', [ItemTransferController::class, 'store']);
+    Route::get('/item-transfers/{id}', [ItemTransferController::class, 'show']);
+    Route::post('/item-transfers/{id}/approve', [ItemTransferController::class, 'approve']);
+    Route::post('/item-transfers/{id}/reject', [ItemTransferController::class, 'reject']);
+    Route::post('/item-transfers/{id}/complete', [ItemTransferController::class, 'complete']);
+    Route::post('/item-transfers/{id}/cancel', [ItemTransferController::class, 'cancel']);
+
+    // Item Condition Logs (Admin)
+    Route::get('/item-condition-logs', [ItemConditionLogController::class, 'index']);
+    Route::post('/item-condition-logs', [ItemConditionLogController::class, 'store']);
+    Route::get('/item-condition-logs/{id}', [ItemConditionLogController::class, 'show']);
+    Route::post('/item-condition-logs/report-damage', [ItemConditionLogController::class, 'reportDamage']);
+    Route::post('/item-condition-logs/log-repair', [ItemConditionLogController::class, 'logRepair']);
+    Route::post('/item-condition-logs/record-disposal', [ItemConditionLogController::class, 'recordDisposal']);
 });
 
 // Protected Teacher Routes
@@ -228,4 +273,16 @@ Route::prefix('teacher')->middleware(['auth:sanctum'])->group(function () {
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
     Route::delete('/notifications/read/all', [NotificationController::class, 'deleteAllRead']);
+
+    // Teacher Entity Access
+    Route::get('/my-entities', [EntityController::class, 'myEntities']);
+    Route::get('/my-classrooms', [EntityController::class, 'myClassrooms']);
+    Route::get('/my-clubs', [EntityController::class, 'myClubs']);
+    Route::get('/my-departments', [EntityController::class, 'myDepartments']);
+    Route::get('/classroom/{id}/inventory', [EntityController::class, 'classroomInventory']);
+    Route::get('/club/{id}/inventory', [EntityController::class, 'clubInventory']);
+    Route::get('/department/{id}/inventory', [EntityController::class, 'departmentInventory']);
+    
+    // Teachers listing for groups
+    Route::get('/teachers', [\App\Http\Controllers\API\Admin\TeacherManagementController::class, 'index']);
 });

@@ -84,8 +84,8 @@ class UnifiedAuthController extends Controller
             // Successful login - reset attempts
             $loginAttempt->resetAttempts();
 
-            // Create token with expiration
-            $token = $admin->createToken('admin-token', ['*'], now()->addHour())->plainTextToken;
+            // Create token with expiration (3 hours)
+            $token = $admin->createToken('admin-token', ['*'], now()->addHours(3))->plainTextToken;
 
             // Create refresh token (longer expiration)
             $refreshToken = $admin->createToken('admin-refresh', ['*'], now()->addDays(7))->plainTextToken;
@@ -136,8 +136,8 @@ class UnifiedAuthController extends Controller
             // Successful login - reset attempts
             $loginAttempt->resetAttempts();
 
-            // Create token with expiration
-            $token = $teacher->createToken('teacher-token', ['*'], now()->addHour())->plainTextToken;
+            // Create token with expiration (3 hours)
+            $token = $teacher->createToken('teacher-token', ['*'], now()->addHours(3))->plainTextToken;
 
             // Create refresh token (longer expiration)
             $refreshToken = $teacher->createToken('teacher-refresh', ['*'], now()->addDays(7))->plainTextToken;
@@ -221,6 +221,42 @@ class UnifiedAuthController extends Controller
         
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logged out successfully']);
+    }
+
+    public function refreshToken(Request $request)
+    {
+        $request->validate([
+            'refresh_token' => 'required|string',
+        ]);
+
+        $refreshTokenString = $request->refresh_token;
+
+        // Try to find the token in database
+        $personalAccessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($refreshTokenString);
+
+        if (!$personalAccessToken) {
+            return response()->json(['message' => 'Invalid refresh token'], 401);
+        }
+
+        // Check if token has expired
+        if ($personalAccessToken->expires_at && $personalAccessToken->expires_at->isPast()) {
+            return response()->json(['message' => 'Refresh token expired'], 401);
+        }
+
+        $user = $personalAccessToken->tokenable;
+
+        // Check if user is still active
+        if ($user->status !== 'active') {
+            return response()->json(['message' => 'User account is inactive'], 401);
+        }
+
+        // Create new access token (3 hours)
+        $newToken = $user->createToken('access-token', ['*'], now()->addHours(3))->plainTextToken;
+
+        return response()->json([
+            'token' => $newToken,
+            'user' => $user,
+        ]);
     }
 
     public function forgotPassword(Request $request)

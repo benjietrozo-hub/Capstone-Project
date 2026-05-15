@@ -64,8 +64,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       });
 
       if (response.data.success) {
-        const notifs = response.data.data.data || response.data.data || [];
+        // Handle both paginated { data: { data: [...] } } and plain { data: [...] }
+        const raw = response.data.data;
+        const notifs: Notification[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
         setNotifications(notifs);
+        // Derive unread count from the fetched list
         const unread = notifs.filter((n: Notification) => !n.is_read).length;
         setUnreadCount(unread);
       }
@@ -210,13 +213,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     };
   }, [addListener, removeListener]);
 
-  // Fetch notifications on mount
+  // Fetch notifications on mount and whenever token/user changes
   useEffect(() => {
     if (token && user?.id) {
-      fetchNotifications();
-      fetchUnreadCount();
+      fetchNotifications(); // This sets both notifications + unreadCount
     }
-  }, [token, user?.id, fetchNotifications, fetchUnreadCount]);
+  }, [token, user?.id, fetchNotifications]);
 
   // Poll for notifications every 30 seconds as fallback
   useEffect(() => {

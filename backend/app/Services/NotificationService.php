@@ -160,12 +160,20 @@ class NotificationService
      */
     public static function notifyDistributionRequestCreated($distributionRequest)
     {
+        // Get the item/category name
+        $itemName = 'items';
+        if ($distributionRequest->category) {
+            $itemName = $distributionRequest->category->category_name;
+        } elseif ($distributionRequest->item) {
+            $itemName = $distributionRequest->item->item_name;
+        }
+
         // Notify all admins
         self::broadcast(
             'admin',
             'distribution_request_created',
             'New Distribution Request',
-            "{$distributionRequest->teacher->first_name} {$distributionRequest->teacher->last_name} requested {$distributionRequest->quantity_requested} unit(s) of {$distributionRequest->item->item_name}",
+            "{$distributionRequest->teacher->first_name} {$distributionRequest->teacher->last_name} requested {$distributionRequest->quantity_requested} unit(s) of {$itemName}",
             $distributionRequest->id,
             'distribution_request'
         );
@@ -176,12 +184,20 @@ class NotificationService
      */
     public static function notifyDistributionRequestApproved($distributionRequest)
     {
+        // Get the item/category name
+        $itemName = 'items';
+        if ($distributionRequest->category) {
+            $itemName = $distributionRequest->category->category_name;
+        } elseif ($distributionRequest->item) {
+            $itemName = $distributionRequest->item->item_name;
+        }
+
         self::send(
             $distributionRequest->teacher_id,
             'teacher',
             'distribution_approved',
             'Distribution Request Approved',
-            "Your request for {$distributionRequest->quantity_requested} unit(s) of {$distributionRequest->item->item_name} has been approved and distributed",
+            "Your request for {$distributionRequest->quantity_requested} unit(s) of {$itemName} has been approved and distributed",
             $distributionRequest->id,
             'distribution_request'
         );
@@ -192,13 +208,21 @@ class NotificationService
      */
     public static function notifyDistributionRequestRejected($distributionRequest)
     {
+        // Get the item/category name
+        $itemName = 'items';
+        if ($distributionRequest->category) {
+            $itemName = $distributionRequest->category->category_name;
+        } elseif ($distributionRequest->item) {
+            $itemName = $distributionRequest->item->item_name;
+        }
+
         $reason = $distributionRequest->admin_notes ? " Reason: {$distributionRequest->admin_notes}" : "";
         self::send(
             $distributionRequest->teacher_id,
             'teacher',
             'distribution_rejected',
             'Distribution Request Rejected',
-            "Your request for {$distributionRequest->quantity_requested} unit(s) of {$distributionRequest->item->item_name} has been rejected.{$reason}",
+            "Your request for {$distributionRequest->quantity_requested} unit(s) of {$itemName} has been rejected.{$reason}",
             $distributionRequest->id,
             'distribution_request'
         );
@@ -259,12 +283,20 @@ class NotificationService
      */
     public static function notifyItemDistributed($distribution)
     {
+        // Get the item/category name
+        $itemName = 'items';
+        if ($distribution->category) {
+            $itemName = $distribution->category->category_name;
+        } elseif ($distribution->item) {
+            $itemName = $distribution->item->item_name;
+        }
+
         self::send(
             $distribution->teacher_id,
             'teacher',
             'item_distributed',
             'Items Distributed',
-            "{$distribution->quantity_distributed} unit(s) of {$distribution->item->item_name} have been distributed to you",
+            "{$distribution->quantity_distributed} unit(s) of {$itemName} have been distributed to you",
             $distribution->id,
             'item_distribution'
         );
@@ -275,12 +307,20 @@ class NotificationService
      */
     public static function notifyDistributionReturned($distribution)
     {
+        // Get the item/category name
+        $itemName = 'items';
+        if ($distribution->category) {
+            $itemName = $distribution->category->category_name;
+        } elseif ($distribution->item) {
+            $itemName = $distribution->item->item_name;
+        }
+
         self::send(
             $distribution->teacher_id,
             'teacher',
             'distribution_returned',
             'Distribution Return Confirmed',
-            "Your return of {$distribution->quantity_distributed} unit(s) of {$distribution->item->item_name} has been confirmed",
+            "Your return of {$distribution->quantity_distributed} unit(s) of {$itemName} has been confirmed",
             $distribution->id,
             'item_distribution'
         );

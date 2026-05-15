@@ -21,6 +21,7 @@ import { InventoryPage } from './pages/admin/InventoryPage';
 import { BorrowRequestsPage } from './pages/admin/RequestsPage';
 import { ReservationsPage } from './pages/admin/ReservationsPage';
 import { TeachersPage } from './pages/admin/TeachersPage';
+import { AdminsPage } from './pages/admin/AdminsPage';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { LogsPage } from './pages/admin/LogsPage';
 
@@ -37,6 +38,7 @@ import { ActivityLogsPage } from './pages/teacher/ActivityLogsPage';
 import DistributionGroupsPage from './pages/teacher/DistributionGroupsPage';
 import DistributionRequestsPage from './pages/teacher/DistributionRequestsPage';
 import TeacherReportsPage from './pages/teacher/ReportsPage';
+import NotificationsPage from './pages/shared/NotificationsPage';
 
 // Common Components
 import { ProtectedRoute } from './components/common/ProtectedRoute';
@@ -134,6 +136,16 @@ function App() {
                       }
                     />
                     <Route
+                      path="admins"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <AdminsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="logs"
                       element={
                         <ProtectedRoute requiredRole="admin">
@@ -180,6 +192,16 @@ function App() {
                         <ProtectedRoute requiredRole="admin">
                           <ProtectedLayout>
                             <TrashPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="notifications"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <NotificationsPage />
                           </ProtectedLayout>
                         </ProtectedRoute>
                       }
@@ -260,6 +282,16 @@ function App() {
                         <ProtectedRoute requiredRole="teacher">
                           <ProtectedLayout>
                             <TeacherReportsPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="notifications"
+                      element={
+                        <ProtectedRoute requiredRole="teacher">
+                          <ProtectedLayout>
+                            <NotificationsPage />
                           </ProtectedLayout>
                         </ProtectedRoute>
                       }

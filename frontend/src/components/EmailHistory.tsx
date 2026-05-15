@@ -54,7 +54,7 @@ const EmailHistory: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-white rounded shadow">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold flex items-center">
@@ -79,7 +79,7 @@ const EmailHistory: React.FC = () => {
                 placeholder="Search emails..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -87,7 +87,7 @@ const EmailHistory: React.FC = () => {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Types</option>
               <option value="notification">Notifications</option>
@@ -214,13 +214,13 @@ const EmailHistory: React.FC = () => {
             </span>
             <div className="flex space-x-2">
               <button
-                className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-sm hover:bg-gray-50"
               >
                 <Download className="w-4 h-4 inline mr-1" />
                 Export
               </button>
               <button
-                className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                className="px-3 py-1 text-sm bg-red-600 text-white rounded-sm hover:bg-red-700"
               >
                 Delete Selected
               </button>

@@ -47,11 +47,11 @@ export default function ReturnDistributionModal({ distribution, onClose, onSucce
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-gray-100">
+      <div className="bg-white rounded shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-gray-100">
         {/* Header */}
         <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4 text-white">
-            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-md">
+            <div className="p-3 bg-white/20 rounded-sm backdrop-blur-md">
               <ArrowLeft className="w-6 h-6" />
             </div>
             <div>
@@ -70,7 +70,7 @@ export default function ReturnDistributionModal({ distribution, onClose, onSucce
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           <div className="p-8 space-y-8">
             {/* Distribution Summary Card */}
-            <div className="bg-gray-50/50 rounded-2xl border border-gray-100 p-6 space-y-4">
+            <div className="bg-gray-50/50 rounded border border-gray-100 p-6 space-y-4">
               <div className="flex items-center gap-2 text-gray-800 font-bold text-sm uppercase tracking-wider">
                 <Info className="w-4 h-4 text-emerald-600" />
                 Distribution Details
@@ -137,7 +137,7 @@ export default function ReturnDistributionModal({ distribution, onClose, onSucce
                     value={formData.actual_return_date}
                     onChange={(e) => setFormData({ ...formData, actual_return_date: e.target.value })}
                     max={new Date().toISOString().split('T')[0]}
-                    className="h-12 rounded-xl border-gray-200 focus:ring-emerald-500"
+                    className="h-12 rounded-sm border-gray-200 focus:ring-emerald-500"
                     required
                   />
                 </div>
@@ -152,10 +152,10 @@ export default function ReturnDistributionModal({ distribution, onClose, onSucce
                     value={formData.condition_on_return} 
                     onValueChange={(value) => setFormData({ ...formData, condition_on_return: value })}
                   >
-                    <SelectTrigger className="h-12 rounded-xl border-gray-200">
+                    <SelectTrigger className="h-12 rounded-sm border-gray-200">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-gray-100">
+                    <SelectContent className="rounded-sm border-gray-100">
                       <SelectItem value="excellent">Excellent</SelectItem>
                       <SelectItem value="good">Good</SelectItem>
                       <SelectItem value="fair">Fair</SelectItem>
@@ -178,7 +178,7 @@ export default function ReturnDistributionModal({ distribution, onClose, onSucce
                   onChange={(e) => setFormData({ ...formData, admin_notes: e.target.value })}
                   placeholder="Any observations regarding the item's condition or return status..."
                   rows={4}
-                  className="rounded-2xl border-gray-200 focus:ring-emerald-500 p-4 min-h-[120px]"
+                  className="rounded border-gray-200 focus:ring-emerald-500 p-4 min-h-[120px]"
                 />
               </div>
 
@@ -188,14 +188,14 @@ export default function ReturnDistributionModal({ distribution, onClose, onSucce
                   type="button" 
                   variant="ghost" 
                   onClick={onClose} 
-                  className="flex-1 font-bold h-12 rounded-xl text-gray-500"
+                  className="flex-1 font-bold h-12 rounded-sm text-gray-500"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={loading} 
-                  className="flex-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:shadow-lg hover:shadow-emerald-100 transition-all font-bold h-12 rounded-xl px-12"
+                  className="flex-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:shadow-lg hover:shadow-emerald-100 transition-all font-bold h-12 rounded-sm px-12"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">

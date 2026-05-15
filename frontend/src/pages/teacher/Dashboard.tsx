@@ -224,7 +224,7 @@ export function TeacherDashboard() {
         <Card className="mb-6 border-2 border-primary/20">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+              <div className="w-12 h-12 rounded bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                 <UserCheck className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -259,7 +259,7 @@ export function TeacherDashboard() {
                 
                 <CardHeader className="pb-3 relative z-10">
                   <div className="flex items-center justify-between">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`w-12 h-12 rounded-sm bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform duration-300`}>
                       <stat.icon className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex items-center gap-1 bg-white/50 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-100 shadow-sm">
@@ -296,7 +296,7 @@ export function TeacherDashboard() {
               onClick={() => navigate("/teacher/inventory")}
             >
               <CardHeader>
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-2">
+                <div className="w-12 h-12 rounded bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-2">
                   <Package className="w-6 h-6 text-white" />
                 </div>
                 <CardTitle className="text-xl">Browse Inventory</CardTitle>
@@ -314,7 +314,7 @@ export function TeacherDashboard() {
               onClick={() => navigate("/teacher/reservations")}
             >
               <CardHeader>
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-2">
+                <div className="w-12 h-12 rounded bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-2">
                   <ClipboardList className="w-6 h-6 text-white" />
                 </div>
                 <CardTitle className="text-xl">My Reservations</CardTitle>

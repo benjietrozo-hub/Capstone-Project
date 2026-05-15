@@ -21,7 +21,7 @@ export function Table({ columns, data, loading = false, onRowClick }: TableProps
   }, 0);
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-100 shadow-sm" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <div className="overflow-x-auto rounded-sm border border-gray-100 shadow-sm" style={{ WebkitOverflowScrolling: 'touch' }}>
       <div className="inline-block min-w-full align-middle">
         <table 
           className="border-collapse bg-white w-full" 

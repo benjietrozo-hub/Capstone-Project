@@ -112,7 +112,7 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
           </div>
           <button 
             onClick={onClose} 
-            className="relative z-10 p-3 hover:bg-white/10 rounded-2xl transition-all text-white active:scale-90"
+            className="relative z-10 p-3 hover:bg-white/10 rounded transition-all text-white active:scale-90"
           >
             <X className="w-6 h-6" />
           </button>
@@ -124,7 +124,7 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
             <div className="space-y-10">
               <div className="space-y-6">
                 <div className="flex items-center gap-3 px-1">
-                  <div className="p-2 bg-blue-50 rounded-lg">
+                  <div className="p-2 bg-blue-50 rounded">
                     <Settings className="w-5 h-5 text-blue-600" />
                   </div>
                   <Label className="text-lg font-black text-slate-800">Operational Parameters</Label>
@@ -137,7 +137,7 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
                       value={formData.group_name}
                       onChange={(e) => setFormData({ ...formData, group_name: e.target.value })}
                       placeholder="e.g., Senior Research Faculty Cluster"
-                      className="h-14 rounded-2xl border-slate-200 bg-white focus:ring-2 focus:ring-blue-600 text-lg font-bold shadow-sm"
+                      className="h-14 rounded border-slate-200 bg-white focus:ring-2 focus:ring-blue-600 text-lg font-bold shadow-sm"
                       required
                     />
                   </div>
@@ -149,10 +149,10 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
                         value={formData.group_type} 
                         onValueChange={(value) => setFormData({ ...formData, group_type: value })}
                       >
-                        <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-white font-bold">
+                        <SelectTrigger className="h-14 rounded border-slate-200 bg-white font-bold">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-slate-100 font-bold">
+                        <SelectContent className="rounded border-slate-100 font-bold">
                           <SelectItem value="department">Department Hub</SelectItem>
                           <SelectItem value="role">Professional Role</SelectItem>
                           <SelectItem value="custom">Custom Logic Group</SelectItem>
@@ -166,10 +166,10 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
                         value={formData.visibility} 
                         onValueChange={(value) => setFormData({ ...formData, visibility: value })}
                       >
-                        <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-white font-bold">
+                        <SelectTrigger className="h-14 rounded border-slate-200 bg-white font-bold">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-slate-100 font-bold">
+                        <SelectContent className="rounded border-slate-100 font-bold">
                           <SelectItem value="private">Restricted (Private)</SelectItem>
                           <SelectItem value="shared">Administrative (Shared)</SelectItem>
                         </SelectContent>
@@ -220,7 +220,7 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
             <div className="flex flex-col space-y-6 h-full">
               <div className="flex items-center justify-between px-2">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-50 rounded-lg">
+                  <div className="p-2 bg-purple-50 rounded">
                     <UserPlus className="w-5 h-5 text-purple-600" />
                   </div>
                   <Label className="text-lg font-black text-slate-800">Personnel Engine</Label>
@@ -240,7 +240,7 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
                   placeholder="Query personnel registry..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-14 h-14 rounded-2xl border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-blue-600 font-medium"
+                  className="pl-14 h-14 rounded border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-blue-600 font-medium"
                 />
               </div>
 
@@ -258,10 +258,10 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
                     filteredTeachers.map((teacher) => (
                       <div
                         key={teacher.id}
-                        className={`group flex items-center gap-4 p-4 transition-all cursor-pointer rounded-2xl ${selectedTeachers.includes(teacher.id) ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 ring-2 ring-slate-900' : 'hover:bg-slate-50'}`}
+                        className={`group flex items-center gap-4 p-4 transition-all cursor-pointer rounded ${selectedTeachers.includes(teacher.id) ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 ring-2 ring-slate-900' : 'hover:bg-slate-50'}`}
                         onClick={() => handleToggleTeacher(teacher.id)}
                       >
-                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedTeachers.includes(teacher.id) ? 'bg-blue-600 border-blue-600 shadow-sm' : 'bg-white border-slate-200'}`}>
+                        <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${selectedTeachers.includes(teacher.id) ? 'bg-blue-600 border-blue-600 shadow-sm' : 'bg-white border-slate-200'}`}>
                           {selectedTeachers.includes(teacher.id) && <Plus className="w-4 h-4 text-white rotate-45" />}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -288,7 +288,7 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
             type="button" 
             variant="ghost" 
             onClick={onClose} 
-            className="text-slate-400 hover:text-slate-600 font-black uppercase tracking-widest h-14 px-8 rounded-2xl hover:bg-slate-50"
+            className="text-slate-400 hover:text-slate-600 font-black uppercase tracking-widest h-14 px-8 rounded hover:bg-slate-50"
             disabled={loading}
           >
             Discard
@@ -301,7 +301,7 @@ export default function CreateGroupModal({ teachers, onClose, onSuccess }: Creat
             <Button 
               onClick={handleSubmit} 
               disabled={loading || !formData.group_name.trim() || selectedTeachers.length === 0} 
-              className="bg-slate-900 hover:bg-slate-800 text-white font-black h-14 px-14 rounded-2xl shadow-2xl shadow-slate-200 transition-all active:scale-95 flex items-center gap-3"
+              className="bg-slate-900 hover:bg-slate-800 text-white font-black h-14 px-14 rounded shadow-2xl shadow-slate-200 transition-all active:scale-95 flex items-center gap-3"
             >
               {loading ? (
                 <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />

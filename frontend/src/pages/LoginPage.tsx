@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Package, Clock, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { Footer } from '@/components/common/Footer';
 import AuthHeader from '@/components/common/AuthHeader';
+import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 import axios from 'axios';
 
 export function LoginPage() {
@@ -18,6 +19,8 @@ export function LoginPage() {
   const [isLocked, setIsLocked] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [lockMessage, setLockMessage] = useState('');
+  const [showLoginSuccess, setShowLoginSuccess] = useState(false);
+  const [loginRole, setLoginRole] = useState('');
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -108,9 +111,6 @@ export function LoginPage() {
 
     setLoading(true);
 
-    // Debug logging
-    console.log('Submitting login form with data:', formData);
-
     try {
       const response = await login(formData);
       const { role } = response;
@@ -120,20 +120,19 @@ export function LoginPage() {
       localStorage.removeItem('login_lock_until');
       localStorage.removeItem('login_lock_message');
       
-      toast.success('Login successful');
+      // Show success modal
+      setLoginRole(role);
+      setShowLoginSuccess(true);
       
-      // Redirect based on role
-      if (role === 'admin') {
-        navigate('/admin/dashboard');
-      } else if (role === 'teacher') {
-        navigate('/teacher/dashboard');
-      }
+      // Auto-redirect after 2 seconds or when user clicks OK
+      setTimeout(() => {
+        if (role === 'admin') {
+          navigate('/admin/dashboard');
+        } else if (role === 'teacher') {
+          navigate('/teacher/dashboard');
+        }
+      }, 2000);
     } catch (err: any) {
-      // Debug logging
-      console.log('Login error:', err);
-      console.log('Error response:', err.response);
-      console.log('Error data:', err.response?.data);
-      
       // Check if account is locked
       if (err.response?.status === 429) {
         const data = err.response.data;
@@ -191,7 +190,7 @@ export function LoginPage() {
             </CardHeader>
             <CardContent className="pb-6 pt-4">
               {isLocked && (
-                <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
@@ -282,11 +281,11 @@ export function LoginPage() {
               </form>
 
               {isLocked && (
-                <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-lg text-center">
+                <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded text-center">
                   <p className="text-xs text-gray-400 mb-2">Need to reset your password?</p>
                   <Link 
                     to="/forgot-password" 
-                    className="inline-block text-base font-semibold text-white bg-gradient-to-r from-[#5B8DEF] to-[#0063F7] hover:from-[#4A7FDE] hover:to-[#0052CC] px-6 py-2 rounded-md transition-all duration-200 hover:shadow-lg"
+                    className="inline-block text-base font-semibold text-white bg-gradient-to-r from-[#5B8DEF] to-[#0063F7] hover:from-[#4A7FDE] hover:to-[#0052CC] px-6 py-2 rounded-sm transition-all duration-200 hover:shadow-lg"
                   >
                     Forgot Password
                   </Link>
@@ -305,6 +304,24 @@ export function LoginPage() {
           </Card>
       </div>
       <Footer />
+
+      {/* Login Success Modal */}
+      <ConfirmationModal
+        isOpen={showLoginSuccess}
+        onClose={() => setShowLoginSuccess(false)}
+        onConfirm={() => {
+          if (loginRole === 'admin') {
+            navigate('/admin/dashboard');
+          } else if (loginRole === 'teacher') {
+            navigate('/teacher/dashboard');
+          }
+        }}
+        title="Login Successful!"
+        message={`Welcome back! You are now logged in as ${loginRole === 'admin' ? 'Administrator' : 'Teacher'}.`}
+        type="login"
+        autoClose={true}
+        autoCloseDelay={2000}
+      />
     </>
   );
 }

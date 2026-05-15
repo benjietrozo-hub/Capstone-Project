@@ -112,7 +112,7 @@ const TrashPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-sm flex items-center justify-center shadow-lg">
                   <Archive className="w-6 h-6 text-white" />
                 </div>
                 Archive
@@ -125,27 +125,27 @@ const TrashPage = () => {
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-sm p-4 shadow-sm border border-gray-200">
               <div className="text-sm text-gray-600">Total</div>
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-sm p-4 shadow-sm border border-gray-200">
               <div className="text-sm text-gray-600">Inventory</div>
               <div className="text-2xl font-bold text-blue-600">{stats.inventory}</div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-sm p-4 shadow-sm border border-gray-200">
               <div className="text-sm text-gray-600">Borrow Requests</div>
               <div className="text-2xl font-bold text-orange-600">{stats.borrow_requests}</div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-sm p-4 shadow-sm border border-gray-200">
               <div className="text-sm text-gray-600">Groups</div>
               <div className="text-2xl font-bold text-pink-600">{stats.distribution_groups}</div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-sm p-4 shadow-sm border border-gray-200">
               <div className="text-sm text-gray-600">Teachers</div>
               <div className="text-2xl font-bold text-teal-600">{stats.teachers}</div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="bg-white rounded-sm p-4 shadow-sm border border-gray-200">
               <div className="text-sm text-gray-600">Distributions</div>
               <div className="text-2xl font-bold text-emerald-600">
                 {(stats as any).item_distribution + (stats as any).bulk_distribution}
@@ -156,7 +156,7 @@ const TrashPage = () => {
         )}
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-sm shadow-sm border border-gray-200 p-4 mb-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -166,7 +166,7 @@ const TrashPage = () => {
                   placeholder="Search archived items..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -175,7 +175,7 @@ const TrashPage = () => {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               >
                 <option value="all">All Types</option>
                 <option value="inventory">Inventory</option>
@@ -191,7 +191,7 @@ const TrashPage = () => {
         </div>
 
         {/* Archived Items Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-sm shadow-sm border border-gray-200">
           {loading ? (
             <div className="p-12 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div>

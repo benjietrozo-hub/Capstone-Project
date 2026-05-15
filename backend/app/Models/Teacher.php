@@ -74,6 +74,34 @@ class Teacher extends Authenticatable
         return $this->hasMany(DistributionGroup::class, 'created_by');
     }
 
+    // New entity relationships
+    public function headedDepartments()
+    {
+        return $this->hasMany(Department::class, 'head_teacher_id');
+    }
+
+    public function assignedClassrooms()
+    {
+        return $this->hasMany(Classroom::class, 'assigned_teacher_id');
+    }
+
+    public function advisedClubs()
+    {
+        return $this->hasMany(Club::class, 'advisor_teacher_id');
+    }
+
+    // Polymorphic - items assigned to this teacher
+    public function distributions()
+    {
+        return $this->morphMany(ItemDistribution::class, 'assignable');
+    }
+
+    // Distribution requests made by this teacher
+    public function distributionRequests()
+    {
+        return $this->hasMany(DistributionRequest::class, 'requested_by');
+    }
+
     // Scopes
     public function scopeActive($query)
     {

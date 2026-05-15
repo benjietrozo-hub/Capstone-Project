@@ -37,7 +37,7 @@ export function NotFoundPage() {
           <p className="text-2xl text-gray-600 mb-8">Page not found</p>
           <Link
             to="/login"
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
           >
             Go to Login
           </Link>
@@ -84,7 +84,7 @@ export function UnauthorizedPage() {
           <p className="text-gray-600 mb-8">You don't have permission to access this page</p>
           <Link
             to="/"
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
           >
             Go Home
           </Link>

@@ -12,6 +12,7 @@ class ItemDistribution extends Model
 
     protected $fillable = [
         'item_id',
+        'category_id',
         'teacher_id',
         'distributed_by',
         'bulk_distribution_id',
@@ -25,6 +26,17 @@ class ItemDistribution extends Model
         'admin_notes',
         'condition_on_distribution',
         'condition_on_return',
+        // Polymorphic assignment fields
+        'assignable_type',
+        'assignable_id',
+        'assignment_type',
+        'transfer_date',
+        'transferred_from_type',
+        'transferred_from_id',
+        'recalled_date',
+        'recall_reason',
+        'disposal_date',
+        'disposal_reason',
     ];
 
     protected $casts = [
@@ -32,6 +44,9 @@ class ItemDistribution extends Model
         'expected_return_date' => 'date',
         'actual_return_date' => 'date',
         'quantity_distributed' => 'integer',
+        'transfer_date' => 'date',
+        'recalled_date' => 'date',
+        'disposal_date' => 'date',
     ];
 
     protected $appends = ['is_overdue'];
@@ -40,6 +55,12 @@ class ItemDistribution extends Model
     public function category()
     {
         return $this->belongsTo(ItemCategory::class, 'category_id');
+    }
+
+    // Legacy relationship - kept for backward compatibility
+    public function item()
+    {
+        return $this->belongsTo(InventoryItem::class, 'item_id');
     }
 
     public function inventoryItems()
@@ -64,10 +85,33 @@ class ItemDistribution extends Model
         return $this->belongsTo(BulkDistribution::class, 'bulk_distribution_id');
     }
 
+    // Polymorphic relationship - the entity that owns this distribution
+    public function assignable()
+    {
+        return $this->morphTo();
+    }
+
+    // Transfers
+    public function transfers()
+    {
+        return $this->hasMany(ItemTransfer::class);
+    }
+
+    // Condition logs
+    public function conditionLogs()
+    {
+        return $this->hasMany(ItemConditionLog::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    public function scopeAssigned($query)
+    {
+        return $query->where('status', 'assigned');
     }
 
     public function scopeReturned($query)
@@ -80,6 +124,22 @@ class ItemDistribution extends Model
         return $query->where('status', 'active')
                     ->whereNotNull('expected_return_date')
                     ->where('expected_return_date', '<', now());
+    }
+
+    public function scopeForEntity($query, $entityType, $entityId)
+    {
+        return $query->where('assignable_type', $entityType)
+                    ->where('assignable_id', $entityId);
+    }
+
+    public function scopePermanent($query)
+    {
+        return $query->where('assignment_type', 'permanent');
+    }
+
+    public function scopeTemporary($query)
+    {
+        return $query->where('assignment_type', 'temporary');
     }
 
     // Accessors

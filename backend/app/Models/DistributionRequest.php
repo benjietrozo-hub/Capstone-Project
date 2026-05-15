@@ -12,6 +12,7 @@ class DistributionRequest extends Model
 
     protected $fillable = [
         'teacher_id',
+        'item_id',
         'category_id',
         'quantity_requested',
         'reason',
@@ -21,6 +22,11 @@ class DistributionRequest extends Model
         'admin_notes',
         'reviewed_at',
         'distribution_id',
+        // New fields for entity requests
+        'requested_for_type',
+        'requested_for_id',
+        'requested_by',
+        'priority',
     ];
 
     protected $casts = [
@@ -39,6 +45,12 @@ class DistributionRequest extends Model
         return $this->belongsTo(ItemCategory::class, 'category_id');
     }
 
+    // Legacy relationship - kept for backward compatibility
+    public function item()
+    {
+        return $this->belongsTo(InventoryItem::class, 'item_id');
+    }
+
     public function reviewedBy()
     {
         return $this->belongsTo(Admin::class, 'reviewed_by');
@@ -47,6 +59,18 @@ class DistributionRequest extends Model
     public function distribution()
     {
         return $this->belongsTo(ItemDistribution::class, 'distribution_id');
+    }
+
+    // Polymorphic relationship - the entity this request is for
+    public function requestedFor()
+    {
+        return $this->morphTo('requested_for', 'requested_for_type', 'requested_for_id');
+    }
+
+    // Teacher who made the request
+    public function requestedByTeacher()
+    {
+        return $this->belongsTo(Teacher::class, 'requested_by');
     }
 
     // Scopes

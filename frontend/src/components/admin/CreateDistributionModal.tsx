@@ -265,7 +265,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
           </div>
           <button 
             onClick={onClose} 
-            className="relative z-10 p-3 hover:bg-white/10 rounded-2xl transition-all text-white active:scale-90"
+            className="relative z-10 p-3 hover:bg-white/10 rounded transition-all text-white active:scale-90"
           >
             <X className="w-6 h-6" />
           </button>
@@ -278,7 +278,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
             <div className="space-y-8">
               <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-blue-50 rounded-lg">
+                  <div className="p-2 bg-blue-50 rounded">
                     <Layers className="w-5 h-5 text-blue-600" />
                   </div>
                   <Label className="text-lg font-black text-slate-800">Asset Selection</Label>
@@ -289,10 +289,10 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                     value={formData.item_id} 
                     onValueChange={(value) => setFormData({ ...formData, item_id: value, quantity_distributed: '' })}
                   >
-                    <SelectTrigger className="h-14 bg-slate-50 border-slate-200 focus:ring-2 focus:ring-blue-600 rounded-2xl font-bold">
+                    <SelectTrigger className="h-14 bg-slate-50 border-slate-200 focus:ring-2 focus:ring-blue-600 rounded font-bold">
                       <SelectValue placeholder="Identify asset from registry..." />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl shadow-2xl border-slate-100">
+                    <SelectContent className="rounded shadow-2xl border-slate-100">
                       {items.length === 0 ? (
                         <div className="p-10 text-center text-slate-400">
                           <Package className="w-12 h-12 mx-auto mb-4 opacity-20" />
@@ -300,7 +300,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                         </div>
                       ) : (
                         items.map((item) => (
-                          <SelectItem key={item.id} value={item.id.toString()} className="py-4 focus:bg-blue-50 rounded-xl">
+                          <SelectItem key={item.id} value={item.id.toString()} className="py-4 focus:bg-blue-50 rounded-sm">
                             <div className="flex flex-col gap-1">
                               <span className="font-black text-slate-900 leading-none">{item.item_name}</span>
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -314,7 +314,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                   </Select>
 
                   {selectedItem && (
-                    <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100 shadow-inner animate-in slide-in-from-top-4 duration-500">
+                    <div className="bg-blue-50/50 p-5 rounded border border-blue-100 shadow-inner animate-in slide-in-from-top-4 duration-500">
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="text-xs font-black text-blue-600 uppercase tracking-widest mb-1">Synchronized Identity</p>
@@ -334,7 +334,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
               {/* Volume Optimization */}
               <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-emerald-50 rounded-lg">
+                  <div className="p-2 bg-emerald-50 rounded">
                     <TrendingUp className="w-5 h-5 text-emerald-600" />
                   </div>
                   <Label className="text-lg font-black text-slate-800">Volume Optimization</Label>
@@ -348,7 +348,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                       size="icon"
                       onClick={decrementQuantity}
                       disabled={!formData.quantity_distributed || parseInt(formData.quantity_distributed) <= 1}
-                      className="h-16 w-16 rounded-2xl border-slate-100 hover:border-blue-200 hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-all active:scale-90"
+                      className="h-16 w-16 rounded border-slate-100 hover:border-blue-200 hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-all active:scale-90"
                     >
                       <Minus className="w-6 h-6" />
                     </Button>
@@ -360,7 +360,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                         max={maxQuantity}
                         value={formData.quantity_distributed}
                         onChange={(e) => handleQuantityChange(e.target.value)}
-                        className="h-16 text-center text-3xl font-black rounded-2xl border-slate-200 bg-slate-50 shadow-inner focus:bg-white transition-all"
+                        className="h-16 text-center text-3xl font-black rounded border-slate-200 bg-slate-50 shadow-inner focus:bg-white transition-all"
                         placeholder="0"
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase">Units</span>
@@ -372,7 +372,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                       size="icon"
                       onClick={incrementQuantity}
                       disabled={!selectedItem || parseInt(formData.quantity_distributed || '0') >= maxQuantity}
-                      className="h-16 w-16 rounded-2xl border-slate-100 hover:border-blue-200 hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-all active:scale-90"
+                      className="h-16 w-16 rounded border-slate-100 hover:border-blue-200 hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-all active:scale-90"
                     >
                       <Plus className="w-6 h-6" />
                     </Button>
@@ -382,7 +382,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                   {(totalNeeded > 0) && (
                     <div className={`p-6 rounded-[24px] border transition-all duration-500 ${totalNeeded > maxQuantity ? 'bg-rose-50 border-rose-100' : 'bg-slate-900 border-slate-800 shadow-xl shadow-slate-200'}`}>
                       <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-xl ${totalNeeded > maxQuantity ? 'bg-rose-100 text-rose-600' : 'bg-blue-600 text-white'}`}>
+                        <div className={`p-3 rounded-sm ${totalNeeded > maxQuantity ? 'bg-rose-100 text-rose-600' : 'bg-blue-600 text-white'}`}>
                           {totalNeeded > maxQuantity ? (
                             <AlertTriangle className="w-6 h-6" />
                           ) : (
@@ -416,7 +416,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                           if (val === 'All') handleQuantityChange(maxQuantity.toString());
                           else handleQuantityChange(val.toString());
                         }}
-                        className="rounded-xl h-11 border-slate-100 bg-slate-50/50 hover:bg-white hover:border-blue-200 text-xs font-black text-slate-500 hover:text-blue-600 transition-all"
+                        className="rounded-sm h-11 border-slate-100 bg-slate-50/50 hover:bg-white hover:border-blue-200 text-xs font-black text-slate-500 hover:text-blue-600 transition-all"
                         disabled={!selectedItem || (typeof val === 'number' && val > maxQuantity)}
                       >
                         {val === 'All' ? `MAX (${maxQuantity})` : `+${val}`}
@@ -432,23 +432,23 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
               <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6 h-full flex flex-col">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-50 rounded-lg">
+                    <div className="p-2 bg-purple-50 rounded">
                       <Users className="w-5 h-5 text-purple-600" />
                     </div>
                     <Label className="text-lg font-black text-slate-800">Target Recipients</Label>
                   </div>
-                  <div className="flex p-1 bg-slate-100 rounded-xl">
+                  <div className="flex p-1 bg-slate-100 rounded-sm">
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, distribution_type: 'teacher' })}
-                      className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${formData.distribution_type === 'teacher' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded transition-all ${formData.distribution_type === 'teacher' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                     >
                       Individual
                     </button>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, distribution_type: 'group' })}
-                      className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${formData.distribution_type === 'group' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded transition-all ${formData.distribution_type === 'group' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                     >
                       Collective
                     </button>
@@ -462,7 +462,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                       placeholder={`Filter ${formData.distribution_type === 'teacher' ? 'personnel' : 'distribution channels'}...`}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-12 h-14 rounded-2xl border-slate-200 bg-slate-50/50 shadow-inner focus:bg-white"
+                      className="pl-12 h-14 rounded border-slate-200 bg-slate-50/50 shadow-inner focus:bg-white"
                     />
                   </div>
 
@@ -488,10 +488,10 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                           filteredTeachers.map((teacher) => (
                             <div
                               key={teacher.id}
-                              className={`group flex items-center gap-4 p-4 transition-all cursor-pointer rounded-2xl ${selectedTeachers.includes(teacher.id) ? 'bg-white shadow-lg shadow-slate-200/50 ring-2 ring-blue-600/10' : 'hover:bg-white hover:shadow-sm'}`}
+                              className={`group flex items-center gap-4 p-4 transition-all cursor-pointer rounded ${selectedTeachers.includes(teacher.id) ? 'bg-white shadow-lg shadow-slate-200/50 ring-2 ring-blue-600/10' : 'hover:bg-white hover:shadow-sm'}`}
                               onClick={() => handleToggleTeacher(teacher.id)}
                             >
-                              <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedTeachers.includes(teacher.id) ? 'bg-blue-600 border-blue-600 shadow-sm' : 'border-slate-200 bg-white'}`}>
+                              <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${selectedTeachers.includes(teacher.id) ? 'bg-blue-600 border-blue-600 shadow-sm' : 'border-slate-200 bg-white'}`}>
                                 {selectedTeachers.includes(teacher.id) && <CheckSquare className="w-4 h-4 text-white" />}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -522,10 +522,10 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                         }).map((group) => (
                           <div
                             key={group.id}
-                            className={`group flex items-center gap-4 p-5 transition-all cursor-pointer rounded-2xl ${selectedGroup === group.id ? 'bg-white shadow-xl shadow-slate-200 ring-2 ring-blue-600' : 'hover:bg-white hover:shadow-sm'}`}
+                            className={`group flex items-center gap-4 p-5 transition-all cursor-pointer rounded ${selectedGroup === group.id ? 'bg-white shadow-xl shadow-slate-200 ring-2 ring-blue-600' : 'hover:bg-white hover:shadow-sm'}`}
                             onClick={() => setSelectedGroup(group.id)}
                           >
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${selectedGroup === group.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400 group-hover:text-slate-600'}`}>
+                            <div className={`w-12 h-12 rounded-sm flex items-center justify-center transition-all ${selectedGroup === group.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400 group-hover:text-slate-600'}`}>
                               <Users className="w-6 h-6" />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -550,7 +550,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-amber-50 rounded-lg">
+                <div className="p-2 bg-amber-50 rounded">
                   <Calendar className="w-5 h-5 text-amber-600" />
                 </div>
                 <Label className="text-lg font-black text-slate-800">Timeline & Condition</Label>
@@ -563,7 +563,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                     type="date"
                     value={formData.distribution_date}
                     onChange={(e) => setFormData({ ...formData, distribution_date: e.target.value })}
-                    className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-bold"
+                    className="h-12 rounded-sm border-slate-200 bg-slate-50 focus:bg-white font-bold"
                   />
                 </div>
                 <div className="space-y-2">
@@ -572,10 +572,10 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                     value={formData.condition_on_distribution} 
                     onValueChange={(value) => setFormData({ ...formData, condition_on_distribution: value })}
                   >
-                    <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-bold">
+                    <SelectTrigger className="h-12 rounded-sm border-slate-200 bg-slate-50 focus:bg-white font-bold">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-100 font-bold">
+                    <SelectContent className="rounded-sm border-slate-100 font-bold">
                       <SelectItem value="excellent">Excellent Condition</SelectItem>
                       <SelectItem value="good">Standard (Good)</SelectItem>
                       <SelectItem value="fair">Acceptable (Fair)</SelectItem>
@@ -588,7 +588,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
 
             <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-slate-100 rounded-lg">
+                <div className="p-2 bg-slate-100 rounded">
                   <FileText className="w-5 h-5 text-slate-600" />
                 </div>
                 <Label className="text-lg font-black text-slate-800">Operational Logic</Label>
@@ -601,7 +601,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                     value={formData.purpose}
                     onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
                     placeholder="e.g., Departmental deployment, Research project..."
-                    className="h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-bold"
+                    className="h-12 rounded-sm border-slate-200 bg-slate-50 focus:bg-white font-bold"
                   />
                 </div>
               </div>
@@ -614,7 +614,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Provide context for the audit trail. These notes are visible only to property administrators..."
-              className="min-h-[120px] rounded-2xl border-slate-200 bg-slate-50 focus:bg-white p-6 font-medium italic"
+              className="min-h-[120px] rounded border-slate-200 bg-slate-50 focus:bg-white p-6 font-medium italic"
             />
           </div>
         </form>
@@ -625,7 +625,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
             type="button" 
             variant="ghost" 
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 font-black uppercase tracking-widest h-14 px-8 rounded-2xl hover:bg-slate-50"
+            className="text-slate-400 hover:text-slate-600 font-black uppercase tracking-widest h-14 px-8 rounded hover:bg-slate-50"
           >
             Abort Operation
           </Button>
@@ -645,7 +645,7 @@ export default function CreateDistributionModal({ onClose, onSuccess }: CreateDi
                 (formData.distribution_type === 'group' && !selectedGroup) || 
                 !formData.quantity_distributed || 
                 (totalNeeded > maxQuantity)}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-black h-14 px-14 rounded-2xl shadow-2xl shadow-slate-200 transition-all active:scale-95 flex items-center gap-3"
+              className="bg-slate-900 hover:bg-slate-800 text-white font-black h-14 px-14 rounded shadow-2xl shadow-slate-200 transition-all active:scale-95 flex items-center gap-3"
             >
               {loading ? (
                 <div className="flex items-center gap-3">

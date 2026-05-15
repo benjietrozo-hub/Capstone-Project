@@ -26,7 +26,9 @@ import {
   ShieldCheck,
   Calendar,
   MapPin,
-  MoreVertical
+  MoreVertical,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { 
   DropdownMenu, 
@@ -96,6 +98,7 @@ export function TeachersPage() {
     status: 'active',
     role: 'teacher',
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
@@ -159,6 +162,7 @@ export function TeachersPage() {
         role: 'teacher',
       });
     }
+    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -370,7 +374,7 @@ export function TeachersPage() {
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center space-x-3">
-            <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200">
+            <div className="p-3 bg-blue-600 rounded shadow-lg shadow-blue-200">
               <UserCheck className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -385,14 +389,14 @@ export function TeachersPage() {
               <input
                 type="text"
                 placeholder="Search teachers..."
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <Button 
               onClick={() => handleOpenModal()}
-              className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-md shadow-blue-100 flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all hover:-translate-y-0.5"
+              className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-md shadow-blue-100 flex items-center gap-2 px-5 py-2.5 rounded-sm transition-all hover:-translate-y-0.5"
             >
               <Plus className="w-5 h-5" />
               <span className="hidden sm:inline">Add Teacher</span>
@@ -400,7 +404,7 @@ export function TeachersPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-xl shadow-gray-100/50 border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-sm shadow-xl shadow-gray-100/50 border border-gray-100 overflow-hidden">
           {loading ? (
             <TableSkeleton rows={10} cols={5} />
           ) : (
@@ -411,9 +415,9 @@ export function TeachersPage() {
       {/* Modern Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+            <div className="bg-white border-b border-gray-200 px-5 py-3 flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">
                 {editingId ? 'Edit Teacher' : 'Add New Teacher'}
               </h2>
@@ -430,11 +434,11 @@ export function TeachersPage() {
             {/* Form wraps entire modal body and footer */}
             <form onSubmit={handleSaveTeacher}>
               {/* Modal Body */}
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-                <div className="space-y-6">
+              <div className="p-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+                <div className="space-y-3">
                   {/* Error Alert Section */}
                   {(generalError || Object.keys(formErrors).length > 0) && (
-                    <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                    <div className="bg-red-50 border border-red-200 p-4 rounded">
                       <div className="flex items-start">
                         <div className="flex-shrink-0">
                           <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
@@ -460,15 +464,15 @@ export function TeachersPage() {
                   )}
                   
                   {/* Form Fields - Clean Single Column Layout */}
-                  <div className="space-y-5">
+                  <div className="space-y-3">
                     {/* Teacher ID */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
                         Teacher ID <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         value={formData.teacher_id}
                         onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
                         placeholder="Enter teacher ID"
@@ -484,14 +488,14 @@ export function TeachersPage() {
                     </div>
 
                     {/* Name Fields */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
                           First Name <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                           value={formData.first_name}
                           onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                           placeholder="First name"
@@ -502,24 +506,24 @@ export function TeachersPage() {
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Middle Name
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Middle Initial
                         </label>
                         <input
                           type="text"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                           value={formData.middle_initial || ''}
                           onChange={(e) => setFormData({ ...formData, middle_initial: e.target.value })}
                           placeholder="Middle name"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
                           Last Name <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                           value={formData.last_name}
                           onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                           placeholder="Last name"
@@ -532,13 +536,13 @@ export function TeachersPage() {
                     </div>
 
                     {/* Gender and Birthdate */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
                           Gender
                         </label>
                         <select
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
                           value={formData.gender || ''}
                           onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                         >
@@ -549,12 +553,12 @@ export function TeachersPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
                           Birthdate
                         </label>
                         <input
                           type="date"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                           value={formData.birthdate || ''}
                           onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
                         />
@@ -563,12 +567,12 @@ export function TeachersPage() {
 
                     {/* Address */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
                         Address
                       </label>
                       <textarea
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-                        rows={3}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                        rows={2}
                         value={formData.address || ''}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                         placeholder="Enter complete address"
@@ -577,14 +581,14 @@ export function TeachersPage() {
 
                     
                     {/* Contact Number and Email Address */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
                           Contact Number
                         </label>
                         <input
                           type="tel"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           placeholder="Enter contact number"
@@ -594,12 +598,12 @@ export function TeachersPage() {
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
                           Email Address <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="email"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           placeholder="Enter email address"
@@ -613,12 +617,12 @@ export function TeachersPage() {
 
                     {/* Username */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
                         Username <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                         placeholder="Enter username"
@@ -634,19 +638,28 @@ export function TeachersPage() {
                     </div>
 
                     {/* Password and Confirm Password */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
                           Password {!editingId && <span className="text-red-500">*</span>}
                         </label>
-                        <input
-                          type="password"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          placeholder={editingId ? "Leave blank to keep current password" : "Enter password"}
-                          required={!editingId}
-                        />
+                        <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors pr-10"
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            placeholder={editingId ? "Leave blank to keep current password" : "Enter password"}
+                            required={!editingId}
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
                         {editingId && (
                           <p className="text-xs text-gray-500 mt-1">Leave blank to keep current password</p>
                         )}
@@ -655,17 +668,26 @@ export function TeachersPage() {
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
                           Confirm Password {!editingId && <span className="text-red-500">*</span>}
                         </label>
-                        <input
-                          type="password"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          value={formData.confirm_password || ''}
-                          onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
-                          placeholder="Confirm password"
-                          required={!editingId}
-                        />
+                        <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors pr-10"
+                            value={formData.confirm_password || ''}
+                            onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
+                            placeholder="Confirm password"
+                            required={!editingId}
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
                         {formErrors.confirm_password && (
                           <p className="text-xs text-red-500 mt-1">{formErrors.confirm_password[0]}</p>
                         )}
@@ -674,11 +696,11 @@ export function TeachersPage() {
 
                     {/* Status */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
                         Status
                       </label>
                       <select
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'suspended' })}
                       >
@@ -690,18 +712,18 @@ export function TeachersPage() {
 
                     {/* Role */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
                         User Role
                       </label>
                       <select
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white font-bold text-gray-900"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white font-bold text-gray-900"
                         value={formData.role}
                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                       >
                         <option value="teacher">TEACHER</option>
                         <option value="admin">ADMINISTRATOR</option>
                       </select>
-                      <p className="text-xs text-gray-500 mt-1.5 px-1 flex items-center gap-1.5 font-medium">
+                      <p className="text-xs text-gray-500 mt-1 px-1 flex items-center gap-1 font-medium">
                         <ShieldCheck className="w-3 h-3 text-blue-500" />
                         Determines the user's access level in the system
                       </p>
@@ -711,17 +733,17 @@ export function TeachersPage() {
               </div>
 
               {/* Modal Footer */}
-              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+              <div className="bg-gray-50 px-5 py-3 flex justify-end gap-2 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+                  className="px-5 py-2 text-sm border border-gray-300 text-gray-700 rounded hover:bg-gray-100 transition-colors font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="px-5 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
                 >
                   {editingId ? 'Update Teacher' : 'Save Teacher'}
                 </button>

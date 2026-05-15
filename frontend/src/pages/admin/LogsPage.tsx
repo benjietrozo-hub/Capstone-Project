@@ -278,7 +278,7 @@ export function LogsPage() {
               <select
                 value={filters.log_type}
                 onChange={(e) => setFilters({ ...filters, log_type: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Types</option>
                 <option value="auth">Authentication</option>
@@ -294,7 +294,7 @@ export function LogsPage() {
               <select
                 value={filters.action}
                 onChange={(e) => setFilters({ ...filters, action: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Actions</option>
                 <optgroup label="Authentication">
@@ -312,7 +312,7 @@ export function LogsPage() {
                   <option value="borrow_request_rejected">Request Rejected</option>
                   <option value="item_returned">Item Returned</option>
                 </optgroup>
-                <optgroup label="User Management">
+                <optgroup label="Teacher Management">
                   <option value="teacher_created">Teacher Created</option>
                   <option value="teacher_updated">Teacher Updated</option>
                   <option value="teacher_deleted">Teacher Deleted</option>
@@ -327,7 +327,7 @@ export function LogsPage() {
               <select
                 value={filters.user_type}
                 onChange={(e) => setFilters({ ...filters, user_type: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Users</option>
                 <option value="admin">Admin</option>
@@ -342,7 +342,7 @@ export function LogsPage() {
               <select
                 value={filters.severity}
                 onChange={(e) => setFilters({ ...filters, severity: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Severities</option>
                 <option value="info">Info</option>
@@ -362,7 +362,7 @@ export function LogsPage() {
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 placeholder="Search logs..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -412,7 +412,7 @@ export function LogsPage() {
                     </div>
 
                     {/* Log Details */}
-                    <div className="bg-gray-50 rounded-lg p-3 mb-2">
+                    <div className="bg-gray-50 rounded p-3 mb-2">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                         {log.user_name && (
                           <div>
@@ -450,7 +450,7 @@ export function LogsPage() {
 
                     {/* User Agent / Device Info */}
                     {log.user_agent && (
-                      <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+                      <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded">
                         <span>{getDeviceDisplay(log.user_agent)}</span>
                       </div>
                     )}

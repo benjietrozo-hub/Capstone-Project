@@ -9,6 +9,7 @@ import NotificationProfile from '@/components/NotificationProfile';
 import { Package, Layers, Search, Filter, Calendar, Clock, AlertCircle, ArrowRight, ArrowLeft, X, Check, FileText, Image as ImageIcon, Plus, Trash2, Folder, LayoutGrid, List, Info, ClipboardCheck, Eye } from 'lucide-react';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { STORAGE_BASE_URL } from '../../utils/constants';
+import RequestDistributionModal from '@/components/teacher/RequestDistributionModal';
 
 interface ItemCategory {
   id: number;
@@ -58,6 +59,7 @@ export function BrowseInventoryPage() {
     expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Tomorrow
   });
   const [requestType, setRequestType] = useState<'borrow' | 'distribution'>('borrow');
+  const [showPolymorphicRequestModal, setShowPolymorphicRequestModal] = useState(false);
 
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -123,14 +125,7 @@ export function BrowseInventoryPage() {
   const handleOpenDistributionModal = (cat: ItemCategory, item?: any) => {
     setSelectedCategory(cat);
     setSelectedItem(item || null);
-    setRequestType('distribution');
-    setRequestForm({
-      inventory_item_id: item?.id,
-      quantity: 1,
-      purpose: '',
-      expected_return_date: '', // Not needed for distribution
-    });
-    setShowRequestModal(true);
+    setShowPolymorphicRequestModal(true);
   };
 
   const handleOpenBorrowModal = (cat: ItemCategory, item?: any) => {
@@ -246,14 +241,14 @@ export function BrowseInventoryPage() {
         
         {/* --- MAIN CATEGORIES VIEW --- */}
         {viewMode === 'main' && (
-          <Card className="p-4 sm:p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+          <Card className="p-4 sm:p-6 bg-white rounded shadow-sm border border-gray-100">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 text-gray-500">
                 <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
                 <p className="font-medium">Loading categories...</p>
               </div>
             ) : parentCategories.length === 0 ? (
-              <div className="text-center py-20 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="text-center py-20 bg-gray-50 rounded-sm border border-gray-100">
                 <Folder className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900">No Categories Found</h3>
                 <p className="text-gray-500 mt-1">Check back later for available inventory.</p>
@@ -263,7 +258,7 @@ export function BrowseInventoryPage() {
                 {parentCategories.map((parent) => (
                   <div 
                     key={parent.parent_category} 
-                    className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer group hover:border-blue-300"
+                    className="bg-white rounded overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer group hover:border-blue-300"
                     onClick={() => {
                       setSelectedParentCategory(parent.parent_category);
                       setViewMode('categories');
@@ -304,7 +299,7 @@ export function BrowseInventoryPage() {
 
         {/* --- CATEGORIES VIEW --- */}
         {viewMode === 'categories' && (
-          <Card className="p-4 sm:p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+          <Card className="p-4 sm:p-6 bg-white rounded shadow-sm border border-gray-100">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <FormField
                 label="Search Categories"
@@ -340,7 +335,7 @@ export function BrowseInventoryPage() {
                 <p className="font-medium">Loading categories...</p>
               </div>
             ) : categories.length === 0 ? (
-              <div className="text-center py-20 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="text-center py-20 bg-gray-50 rounded-sm border border-gray-100">
                 <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900">No Categories Found</h3>
                 <p className="text-gray-500 mt-1">Check back later for available inventory.</p>
@@ -350,7 +345,7 @@ export function BrowseInventoryPage() {
                 {categories.map((cat) => (
                   <div 
                     key={cat.id} 
-                    className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer group hover:border-blue-300"
+                    className="bg-white rounded overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer group hover:border-blue-300"
                     onClick={() => handleViewCategoryItems(cat.id)}
                   >
                     <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
@@ -400,7 +395,7 @@ export function BrowseInventoryPage() {
         {viewMode === 'items' && (
           <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
             {/* Category Header Card */}
-            <div className="bg-white rounded-3xl overflow-hidden shadow-md border border-gray-100 flex flex-col md:flex-row">
+            <div className="bg-white rounded-sm overflow-hidden shadow-md border border-gray-100 flex flex-col md:flex-row">
               <div className="w-full md:w-56 h-56 md:h-auto bg-gray-100 flex items-center justify-center shrink-0">
                 {selectedCategory?.category_image ? (
                   <img 
@@ -422,8 +417,8 @@ export function BrowseInventoryPage() {
                 </p>
                 
                 <div className="flex flex-wrap items-center gap-4 sm:gap-8">
-                  <div className="bg-green-50 px-5 py-3 rounded-2xl border border-green-100 flex items-center gap-4">
-                    <div className="p-2 bg-green-100 rounded-xl">
+                  <div className="bg-green-50 px-5 py-3 rounded border border-green-100 flex items-center gap-4">
+                    <div className="p-2 bg-green-100 rounded-sm">
                       <Package className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
@@ -432,8 +427,8 @@ export function BrowseInventoryPage() {
                     </div>
                   </div>
                   
-                  <div className="bg-gray-50 px-5 py-3 rounded-2xl border border-gray-200 flex items-center gap-4">
-                    <div className="p-2 bg-gray-200 rounded-xl">
+                  <div className="bg-gray-50 px-5 py-3 rounded border border-gray-200 flex items-center gap-4">
+                    <div className="p-2 bg-gray-200 rounded-sm">
                       <Layers className="w-5 h-5 text-gray-500" />
                     </div>
                     <div>
@@ -446,9 +441,9 @@ export function BrowseInventoryPage() {
             </div>
 
             {/* Units Display Control */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-center bg-white p-4 rounded border border-gray-100 shadow-sm">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-blue-50 rounded-lg">
+                <div className="p-2 bg-blue-50 rounded">
                   <Package className="w-4 h-4 text-blue-600" />
                 </div>
                 <h3 className="font-bold text-gray-800">
@@ -456,10 +451,10 @@ export function BrowseInventoryPage() {
                 </h3>
               </div>
 
-              <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+              <div className="flex items-center bg-gray-100 p-1 rounded-sm">
                 <button
                   onClick={() => setDisplayMode('card')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
                     displayMode === 'card' 
                       ? 'bg-white text-blue-600 shadow-sm' 
                       : 'text-gray-500 hover:text-gray-700'
@@ -470,7 +465,7 @@ export function BrowseInventoryPage() {
                 </button>
                 <button
                   onClick={() => setDisplayMode('list')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
                     displayMode === 'list' 
                       ? 'bg-white text-blue-600 shadow-sm' 
                       : 'text-gray-500 hover:text-gray-700'
@@ -488,7 +483,7 @@ export function BrowseInventoryPage() {
                 <p>Loading available units...</p>
               </div>
             ) : (!selectedCategory?.inventory_items || selectedCategory.inventory_items.length === 0) ? (
-              <div className="p-20 bg-white rounded-3xl border border-gray-100 text-center flex flex-col items-center shadow-sm">
+              <div className="p-20 bg-white rounded-sm border border-gray-100 text-center flex flex-col items-center shadow-sm">
                 <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                   <Package className="w-10 h-10 text-gray-300" />
                 </div>
@@ -500,9 +495,9 @@ export function BrowseInventoryPage() {
             ) : displayMode === 'card' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {selectedCategory.inventory_items.map((item) => (
-                  <div key={item.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:border-blue-300 transition-all group">
+                  <div key={item.id} className="bg-white p-5 rounded border border-gray-100 shadow-sm hover:border-blue-300 transition-all group">
                     <div className="flex justify-between items-start mb-4">
-                        <div className="w-full h-40 bg-gray-100 rounded-xl overflow-hidden border border-gray-100 flex items-center justify-center relative">
+                        <div className="w-full h-40 bg-gray-100 rounded-sm overflow-hidden border border-gray-100 flex items-center justify-center relative">
                           {item.item_image ? (
                             <img 
                               src={`${STORAGE_BASE_URL}/${item.item_image}`} 
@@ -530,7 +525,7 @@ export function BrowseInventoryPage() {
 
                       {/* Request Indicator */}
                       {item.pending_requests_count !== undefined && item.pending_requests_count > 0 && (
-                        <div className="bg-amber-50 border border-amber-100 rounded-lg p-2 flex items-center gap-2">
+                        <div className="bg-amber-50 border border-amber-100 rounded p-2 flex items-center gap-2">
                           <Info className="w-3 h-3 text-amber-600" />
                           <span className="text-[10px] font-bold text-amber-700 uppercase tracking-tight">Currently Requested by someone</span>
                         </div>
@@ -576,7 +571,7 @@ export function BrowseInventoryPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-sm border border-gray-100 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead className="bg-gray-50/50 border-b border-gray-100">
@@ -594,7 +589,7 @@ export function BrowseInventoryPage() {
                         <tr key={item.id} className="hover:bg-blue-50/30 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-100 shrink-0">
+                              <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-100 shrink-0">
                                 {item.item_image ? (
                                   <img src={`${STORAGE_BASE_URL}/${item.item_image}`} alt="" className="w-full h-full object-cover" />
                                 ) : (
@@ -664,28 +659,28 @@ export function BrowseInventoryPage() {
           </div>
         )}
 
-        {/* Request Modal */}
+        {/* Borrow Request Modal */}
         <Modal
           isOpen={showRequestModal}
           onClose={() => setShowRequestModal(false)}
-          title={`${requestType === 'borrow' ? 'Borrow' : 'Distribution'} Request - ${selectedItem?.item_name || selectedCategory?.category_name}`}
+          title={`Borrow Request - ${selectedItem?.item_name || selectedCategory?.category_name}`}
         >
 
           <form onSubmit={handleSubmitRequest} className="space-y-6 py-2">
-            <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 flex gap-4 items-start">
-              <div className="p-2 bg-blue-100 rounded-xl shrink-0">
+            <div className="bg-blue-50 p-5 rounded border border-blue-100 flex gap-4 items-start">
+              <div className="p-2 bg-blue-100 rounded-sm shrink-0">
                 <Info className="w-5 h-5 text-blue-600" />
               </div>
               <p className="text-sm text-blue-800 leading-relaxed">
                 {selectedItem ? (
-                  <>You are requesting to {requestType === 'borrow' ? 'borrow' : 'be assigned'} <strong>{selectedItem.item_name}</strong> (SN: {selectedItem.serial_number}).</>
+                  <>You are requesting to borrow <strong>{selectedItem.item_name}</strong> (SN: {selectedItem.serial_number}).</>
                 ) : (
-                  <>You are requesting units for {requestType === 'borrow' ? 'temporary use' : 'permanent distribution'} from the <strong>{selectedCategory?.category_name}</strong> category.</>
+                  <>You are requesting units for temporary use from the <strong>{selectedCategory?.category_name}</strong> category.</>
                 )}
               </p>
             </div>
             
-            <div className={`grid grid-cols-1 ${requestType === 'borrow' ? 'sm:grid-cols-2' : ''} gap-4`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4`}>
 
               {!selectedItem && (
                 <FormField
@@ -698,22 +693,19 @@ export function BrowseInventoryPage() {
                   max={selectedCategory?.available_items?.toString()}
                 />
               )}
-              {requestType === 'borrow' && (
-
-                <FormField
-                  label="Expected Return Date"
-                  type="date"
-                  value={requestForm.expected_return_date}
-                  onChange={(e) => setRequestForm({ ...requestForm, expected_return_date: e.target.value })}
-                  required
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              )}
+              <FormField
+                label="Expected Return Date"
+                type="date"
+                value={requestForm.expected_return_date}
+                onChange={(e) => setRequestForm({ ...requestForm, expected_return_date: e.target.value })}
+                required
+                min={new Date().toISOString().split('T')[0]}
+              />
             </div>
 
 
             <FormField
-              label={`Purpose of ${requestType === 'borrow' ? 'Borrow' : 'Distribution'}`}
+              label={`Purpose of Borrow`}
 
               type="textarea"
               value={requestForm.purpose}
@@ -723,98 +715,139 @@ export function BrowseInventoryPage() {
             />
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button type="button" variant="secondary" onClick={() => setShowRequestModal(false)} className="flex-1 py-4 rounded-xl font-bold">
+              <Button type="button" variant="secondary" onClick={() => setShowRequestModal(false)} className="flex-1 py-4 rounded-sm font-bold">
                 Discard
               </Button>
-              <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-100">
+              <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-sm font-bold shadow-lg shadow-blue-100">
                 Submit Request
               </Button>
             </div>
           </form>
         </Modal>
 
+        {/* Distribution Request Modal (Polymorphic) */}
+        {showPolymorphicRequestModal && selectedCategory && (
+          <RequestDistributionModal
+            onClose={() => setShowPolymorphicRequestModal(false)}
+            onSuccess={() => {
+              setShowPolymorphicRequestModal(false);
+              if (viewMode === 'categories') fetchCategories();
+            }}
+            initialCategoryId={selectedCategory.id}
+            initialItemCode={selectedItem?.item_code || selectedItem?.serial_number}
+          />
+        )}
+
         {/* Details Modal */}
         <Modal
           isOpen={showDetailsModal}
           onClose={() => setShowDetailsModal(false)}
           title="Item Details"
+          wide={true}
         >
           {selectedItem && (
-            <div className="space-y-6 py-2">
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="w-full md:w-48 h-48 bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 shrink-0">
+            <div className="space-y-8 py-2">
+              <div className="flex flex-col lg:flex-row gap-10">
+                {/* Item Image Section */}
+                <div className="w-full lg:w-72 h-72 bg-gray-50 rounded overflow-hidden border border-gray-100 shrink-0 shadow-sm">
                   {selectedItem.item_image ? (
-                    <img src={`${STORAGE_BASE_URL}/${selectedItem.item_image}`} alt={selectedItem.item_name} className="w-full h-full object-cover" />
+                    <img 
+                      src={`${STORAGE_BASE_URL}/${selectedItem.item_image}`} 
+                      alt={selectedItem.item_name} 
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" 
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Package className="w-12 h-12 text-gray-300" />
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50">
+                      <Package className="w-16 h-16 text-gray-200 mb-2" />
+                      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">No Image Available</span>
                     </div>
                   )}
                 </div>
-                <div className="flex-1 space-y-4">
+
+                {/* Primary Information Section */}
+                <div className="flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">{selectedItem.item_name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-3 mb-3">
                       <StatusBadge label={selectedItem.status} status={selectedItem.status} />
-                      <span className="text-xs text-gray-500 font-mono">SN: {selectedItem.serial_number}</span>
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-mono font-bold rounded uppercase tracking-tighter">
+                        SN: {selectedItem.serial_number}
+                      </span>
                     </div>
+                    <h3 className="text-3xl font-black text-gray-900 tracking-tight leading-tight mb-2">
+                      {selectedItem.item_name}
+                    </h3>
+                    <p className="text-sm text-gray-500 font-medium mb-8">
+                      Detailed unit overview and specifications for institutional property tracking.
+                    </p>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Property Number</p>
-                      <p className="text-sm font-bold text-gray-700">{selectedItem.property_number || 'N/A'}</p>
+                  <div className="grid grid-cols-2 gap-5">
+                    <div className="bg-white p-4 rounded-sm border border-gray-100 shadow-sm group hover:border-blue-200 transition-colors">
+                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                        <FileText className="w-3 h-3" /> Property Number
+                      </p>
+                      <p className="text-base font-bold text-gray-800">{selectedItem.property_number || 'Not Assigned'}</p>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Condition</p>
-                      <p className="text-sm font-bold text-gray-700 capitalize">{selectedItem.condition}</p>
+                    <div className="bg-white p-4 rounded-sm border border-gray-100 shadow-sm group hover:border-blue-200 transition-colors">
+                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                        <Check className="w-3 h-3" /> Unit Condition
+                      </p>
+                      <p className="text-base font-bold text-gray-800 capitalize">{selectedItem.condition}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
+              {/* Specifications Grid */}
               {selectedItem.custom_attributes && Object.keys(selectedItem.custom_attributes).length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <div className="space-y-4 pt-6 border-t border-gray-50">
+                  <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
                     <Info className="w-4 h-4 text-blue-600" /> Additional Specifications
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {Object.entries(selectedItem.custom_attributes).map(([key, value]) => (
-                      <div key={key} className="flex justify-between p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
-                        <span className="text-xs font-medium text-gray-600">{key}</span>
-                        <span className="text-xs font-bold text-gray-900">{String(value)}</span>
+                      <div key={key} className="flex flex-col p-4 bg-gray-50/50 rounded-sm border border-gray-100 hover:bg-white hover:border-blue-100 transition-all">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">{key}</span>
+                        <span className="text-sm font-bold text-gray-900">{String(value)}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="pt-4 border-t border-gray-100 flex gap-3">
-                <div className="flex flex-col gap-2 flex-1">
+              {/* Action Footer */}
+              <div className="pt-8 border-t border-gray-100 flex flex-col sm:flex-row gap-4">
+                <div className="flex gap-3 flex-1">
                   <Button 
-                    className="w-full py-4 rounded-xl font-bold bg-blue-600 hover:bg-blue-700"
+                    className="flex-1 py-6 rounded-sm font-black uppercase tracking-widest text-[11px] bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95 disabled:opacity-50"
                     disabled={selectedItem.status !== 'available'}
                     onClick={() => {
                       setShowDetailsModal(false);
                       handleOpenBorrowModal(selectedCategory!, selectedItem);
                     }}
                   >
+                    <ClipboardCheck className="w-4 h-4 mr-2" />
                     Request to Borrow
                   </Button>
                   <Button 
-                    className="w-full py-4 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700"
+                    className="flex-1 py-6 rounded-sm font-black uppercase tracking-widest text-[11px] bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50"
                     disabled={selectedItem.status !== 'available'}
                     onClick={() => {
                       setShowDetailsModal(false);
                       handleOpenDistributionModal(selectedCategory!, selectedItem);
                     }}
                   >
+                    <Plus className="w-4 h-4 mr-2" />
                     Request Distribution
                   </Button>
                 </div>
 
-                <Button variant="secondary" onClick={() => setShowDetailsModal(false)} className="px-6 rounded-xl font-bold">
-                  Close
+                <Button 
+                  variant="secondary" 
+                  onClick={() => setShowDetailsModal(false)} 
+                  className="px-8 py-6 rounded-sm font-black uppercase tracking-widest text-[11px] border-gray-200 hover:bg-gray-50"
+                >
+                  Close Panel
                 </Button>
               </div>
             </div>

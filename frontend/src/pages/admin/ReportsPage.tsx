@@ -215,16 +215,16 @@ export function ReportsPage() {
         
         {/* Tabs and Controls */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex bg-white p-1 rounded-sm shadow-sm border border-gray-200">
             <button
               onClick={() => { setActiveTab('borrow'); setStatus(''); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'borrow' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-bold transition-all ${activeTab === 'borrow' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
             >
               <History className="w-4 h-4" /> Borrow History
             </button>
             <button
               onClick={() => { setActiveTab('issue'); setStatus(''); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'issue' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-bold transition-all ${activeTab === 'issue' ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
             >
               <AlertCircle className="w-4 h-4" /> Issue Reports
             </button>
@@ -238,13 +238,13 @@ export function ReportsPage() {
                 placeholder="Search history..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-sm text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
               />
             </div>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-primary/20"
+              className="px-4 py-2 bg-white border border-gray-200 rounded-sm text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">All Statuses</option>
               {activeTab === 'borrow' ? (
@@ -268,24 +268,24 @@ export function ReportsPage() {
         {activeTab === 'borrow' ? (
           <div className="space-y-4">
             {loadingYears ? (
-              <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-gray-200">
+              <div className="text-center py-12 bg-white rounded shadow-sm border border-gray-200">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 <p className="mt-4 text-gray-500 font-medium">Loading history timeline...</p>
               </div>
             ) : availableYears.length === 0 ? (
-              <div className="bg-white p-12 text-center rounded-2xl shadow-sm border border-gray-200">
+              <div className="bg-white p-12 text-center rounded shadow-sm border border-gray-200">
                 <History className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                 <p className="text-gray-500 font-medium text-lg">No borrow history recorded yet</p>
               </div>
             ) : (
               availableYears.map(year => (
-                <div key={year} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300">
+                <div key={year} className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden transition-all duration-300">
                   <button 
                     onClick={() => toggleYear(year)}
                     className="w-full px-6 py-4 flex items-center justify-between bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-b border-gray-100"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-sm bg-blue-100 flex items-center justify-center">
                         <Calendar className="w-5 h-5 text-blue-600" />
                       </div>
                       <h2 className="text-xl font-bold text-gray-800">{year} Transactions</h2>
@@ -346,7 +346,7 @@ export function ReportsPage() {
                                 </td>
                                 <td className="px-6 py-4">
                                   <div className="text-sm font-bold text-gray-900">{item.category?.category_name}</div>
-                                  <div className="text-xs font-medium text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded-md mt-1">
+                                  <div className="text-xs font-medium text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded-sm mt-1">
                                     {item.inventory_items?.length || 0} unit(s)
                                   </div>
                                 </td>
@@ -360,7 +360,7 @@ export function ReportsPage() {
                                 <td className="px-6 py-4 text-right">
                                   <button 
                                     onClick={() => { setSelectedHistory(item); setShowHistoryModal(true); }}
-                                    className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-blue-100"
+                                    className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-sm transition-all shadow-sm border border-transparent hover:border-blue-100"
                                   >
                                     <Eye className="w-4 h-4" />
                                   </button>
@@ -377,7 +377,7 @@ export function ReportsPage() {
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden p-6">
+          <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden p-6">
             <Table columns={columns} data={reports} loading={loading} />
           </div>
         )}
@@ -391,11 +391,11 @@ export function ReportsPage() {
           {selectedHistory && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                <div className="bg-gray-50 p-3 rounded-sm border border-gray-100">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Request Code</p>
                   <p className="text-sm font-bold text-gray-700">{selectedHistory.request_code}</p>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                <div className="bg-gray-50 p-3 rounded-sm border border-gray-100">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
                   <StatusBadge label={selectedHistory.status} status={selectedHistory.status} />
                 </div>
@@ -405,7 +405,7 @@ export function ReportsPage() {
                 <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
                   <User className="w-3.5 h-3.5 text-primary" /> Teacher Information
                 </h4>
-                <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                <div className="p-4 bg-blue-50/50 rounded-sm border border-blue-100">
                   <p className="font-bold text-gray-900">{selectedHistory.teacher?.full_name}</p>
                   <p className="text-xs text-gray-600">{selectedHistory.teacher?.email}</p>
                   <p className="text-xs text-gray-600 mt-1">{selectedHistory.teacher?.department} Department</p>
@@ -418,9 +418,9 @@ export function ReportsPage() {
                 </h4>
                 <div className="space-y-2">
                   {selectedHistory.inventory_items?.map((unit: any) => (
-                    <div key={unit.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                    <div key={unit.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-sm shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center">
                           <Package className="w-4 h-4 text-gray-400" />
                         </div>
                         <div>
@@ -437,7 +437,7 @@ export function ReportsPage() {
                 </div>
               </div>
 
-              <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+              <div className="bg-amber-50 p-4 rounded-sm border border-amber-100">
                 <h4 className="text-xs font-black text-amber-800 uppercase tracking-widest mb-2 flex items-center gap-2">
                   <FileText className="w-3.5 h-3.5" /> Purpose
                 </h4>
@@ -455,7 +455,7 @@ export function ReportsPage() {
         >
           {selectedReport && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <div className="flex justify-between items-center bg-gray-50 p-4 rounded-sm border border-gray-100">
                 <div>
                   <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Report ID</p>
                   <p className="text-lg font-black text-gray-900">#{selectedReport.id}</p>
@@ -474,7 +474,7 @@ export function ReportsPage() {
                 </div>
               </div>
 
-              <div className="p-4 bg-red-50/50 rounded-xl border border-red-100">
+              <div className="p-4 bg-red-50/50 rounded-sm border border-red-100">
                 <label className="text-[10px] font-black text-red-800 uppercase tracking-widest block mb-1">Description of Issue</label>
                 <p className="text-sm text-gray-800">{selectedReport.description}</p>
               </div>

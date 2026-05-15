@@ -47,7 +47,7 @@ return [
     |
     */
 
-    'expiration' => 60, // 1 hour expiration for security
+    'expiration' => 180, // 3 hours expiration - tokens refresh on user activity
 
     /*
     |--------------------------------------------------------------------------

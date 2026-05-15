@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { 
   X, Package, User, Calendar, FileText, CheckCircle, XCircle, 
   Info, Hash, Clock, ShieldCheck, TrendingUp, ChevronRight, 
-  Settings, AlertTriangle, Boxes, Briefcase
+  Settings, AlertTriangle, Boxes, Briefcase, Layout
 } from 'lucide-react';
-import axios from 'axios';
+import { adminAPI } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -37,13 +37,15 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
       const fetchItems = async () => {
         setLoadingItems(true);
         try {
-          const token = localStorage.getItem('token');
           const catId = request.category_id || request.item?.category_id;
-          const res = await axios.get(
-            `${import.meta.env.VITE_API_URL}/admin/inventory-items?category_id=${catId}&status=available&per_page=500`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          setAvailableItems(res.data.data.data || []);
+          const res = await adminAPI.getInventoryItems({
+            category_id: catId,
+            status: 'available',
+            per_page: 500
+          });
+          
+          const items = res.data?.data || [];
+          setAvailableItems(Array.isArray(items) ? items : []);
         } catch (err) {
           toast.error("Failed to load available units for this category");
         } finally {
@@ -77,12 +79,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/distribution-requests/${request.id}/approve`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await adminAPI.approveDistributionRequest(request.id, formData);
       toast.success('Distribution cycle initialized successfully');
       onSuccess();
     } catch (error: any) {
@@ -100,12 +97,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/distribution-requests/${request.id}/reject`,
-        { admin_notes: formData.admin_notes },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await adminAPI.rejectDistributionRequest(request.id, { admin_notes: formData.admin_notes });
       toast.success('Request terminated and archived');
       onSuccess();
     } catch (error: any) {
@@ -123,6 +115,16 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
       distributed: <Badge className="bg-blue-50 text-blue-600 border-blue-100 font-black px-4 h-8 uppercase tracking-widest text-[10px]">Distributed</Badge>,
     };
     return variants[status] || <Badge className="font-black px-4 h-8 uppercase text-[10px] tracking-widest">{status}</Badge>;
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    const variants: Record<string, any> = {
+      low: <Badge className="bg-slate-100 text-slate-600 border-slate-200">Low</Badge>,
+      normal: <Badge className="bg-emerald-100 text-emerald-600 border-emerald-200">Normal</Badge>,
+      high: <Badge className="bg-amber-100 text-amber-600 border-amber-200">High</Badge>,
+      urgent: <Badge className="bg-rose-100 text-rose-600 border-rose-200 animate-pulse">Urgent</Badge>,
+    };
+    return variants[priority] || null;
   };
 
   return (
@@ -145,7 +147,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
           </div>
           <button 
             onClick={onClose} 
-            className="relative z-10 p-3 hover:bg-white/10 rounded-2xl transition-all text-white active:scale-90"
+            className="relative z-10 p-3 hover:bg-white/10 rounded transition-all text-white active:scale-90"
           >
             <X className="w-6 h-6" />
           </button>
@@ -167,8 +169,13 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
                   {new Date(request.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                 </div>
               </div>
+              <div className="h-12 w-px bg-slate-100 hidden sm:block" />
+              <div className="space-y-1">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Priority Level</span>
+                <div>{getPriorityBadge(request.priority || 'normal')}</div>
+              </div>
             </div>
-            <div className="bg-slate-50 px-6 py-3 rounded-2xl border border-slate-100">
+            <div className="bg-slate-50 px-6 py-3 rounded border border-slate-100">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Reference Identifier</span>
               <span className="text-sm font-black text-slate-900">#REQ-{request.id.toString().padStart(6, '0')}</span>
             </div>
@@ -178,7 +185,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
             {/* Asset Intelligence */}
             <div className="bg-white rounded-[32px] border border-slate-100 p-8 space-y-6 shadow-sm">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-50 rounded-lg">
+                <div className="p-2 bg-blue-50 rounded">
                   <Boxes className="w-5 h-5 text-blue-600" />
                 </div>
                 <h3 className="text-lg font-black text-slate-800">Asset Parameters</h3>
@@ -197,7 +204,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                <div className="flex items-center justify-between bg-slate-50 p-5 rounded border border-slate-100">
                   <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Required Volume</span>
                   <div className="flex items-center gap-3">
                     <span className="text-2xl font-black text-slate-900">{request.quantity_requested}</span>
@@ -210,27 +217,33 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
             {/* Requester Intelligence */}
             <div className="bg-white rounded-[32px] border border-slate-100 p-8 space-y-6 shadow-sm">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-emerald-50 rounded-lg">
+                <div className="p-2 bg-emerald-50 rounded">
                   <Briefcase className="w-5 h-5 text-emerald-600" />
                 </div>
-                <h3 className="text-lg font-black text-slate-800">Personnel Intelligence</h3>
+                <h3 className="text-lg font-black text-slate-800">Target Entity Context</h3>
               </div>
               
               <div className="space-y-4">
                 <div className="bg-emerald-50/50 p-6 rounded-[24px] border border-emerald-100 shadow-inner flex items-center gap-5">
                   <div className="w-16 h-16 bg-white rounded-[20px] shadow-sm flex items-center justify-center text-emerald-600 border border-emerald-100">
-                    <User className="w-8 h-8" />
+                    {request.requested_for_type === 'Teacher' || !request.requested_for_type ? <User className="w-8 h-8" /> : <Layout className="w-8 h-8" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-1">Authorized Requester</p>
-                    <p className="text-xl font-black text-slate-900 truncate leading-tight">{request.teacher?.full_name}</p>
-                    <p className="text-xs font-bold text-slate-500 truncate mt-1">{request.teacher?.email}</p>
+                    <p className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-1">
+                      {request.requested_for_type || 'Teacher'} Deployment
+                    </p>
+                    <p className="text-xl font-black text-slate-900 truncate leading-tight">
+                      {request.requested_for?.name || request.requested_for?.full_name || request.teacher?.full_name}
+                    </p>
+                    <p className="text-xs font-bold text-slate-500 truncate mt-1">
+                      {request.teacher?.full_name} ({request.teacher?.department})
+                    </p>
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Departmental Hub</span>
-                  <Badge className="bg-emerald-600 font-black h-7 px-4 rounded-lg shadow-lg shadow-emerald-100">
+                <div className="flex items-center justify-between bg-slate-50 p-5 rounded border border-slate-100">
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Origin Department</span>
+                  <Badge className="bg-emerald-600 font-black h-7 px-4 rounded shadow-lg shadow-emerald-100">
                     {request.teacher?.department || 'General'}
                   </Badge>
                 </div>
@@ -241,7 +254,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
           {/* Operational Purpose */}
           <div className="bg-white rounded-[32px] border border-slate-100 p-8 space-y-4 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-slate-100 rounded-lg">
+              <div className="p-2 bg-slate-100 rounded">
                 <Info className="w-5 h-5 text-slate-600" />
               </div>
               <h3 className="text-lg font-black text-slate-800">Operational Mission Statement</h3>
@@ -281,7 +294,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
                   
                   <div className="flex items-center justify-between relative z-10">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-emerald-600 rounded-2xl shadow-lg shadow-emerald-900/40">
+                      <div className="p-3 bg-emerald-600 rounded shadow-lg shadow-emerald-900/40">
                         <CheckCircle className="w-6 h-6 text-white" />
                       </div>
                       <h3 className="text-2xl font-black text-white tracking-tight">Final Authorization</h3>
@@ -327,7 +340,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
                                 key={item.id} 
                                 className={`flex items-center gap-5 px-8 py-5 cursor-pointer transition-all ${formData.inventory_item_ids.includes(item.id) ? 'bg-blue-600/10' : 'hover:bg-white/5'}`}
                               >
-                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.inventory_item_ids.includes(item.id) ? 'bg-blue-600 border-blue-600 shadow-lg' : 'border-white/20 bg-transparent'}`}>
+                                <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${formData.inventory_item_ids.includes(item.id) ? 'bg-blue-600 border-blue-600 shadow-lg' : 'border-white/20 bg-transparent'}`}>
                                   {formData.inventory_item_ids.includes(item.id) && <CheckCircle className="w-4 h-4 text-white" />}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -360,7 +373,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
                           value={formData.condition_on_distribution} 
                           onValueChange={(value) => setFormData({ ...formData, condition_on_distribution: value })}
                         >
-                          <SelectTrigger className="bg-white/5 h-14 rounded-2xl border-white/10 text-white font-black focus:ring-blue-600">
+                          <SelectTrigger className="bg-white/5 h-14 rounded border-white/10 text-white font-black focus:ring-blue-600">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-900 border-white/10 text-white font-black">
@@ -377,7 +390,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
                           placeholder="Provide context for audit..."
                           value={formData.admin_notes}
                           onChange={(e) => setFormData({ ...formData, admin_notes: e.target.value })}
-                          className="bg-white/5 h-14 rounded-2xl border-white/10 text-white font-black focus:ring-blue-600 placeholder:text-slate-600"
+                          className="bg-white/5 h-14 rounded border-white/10 text-white font-black focus:ring-blue-600 placeholder:text-slate-600"
                         />
                       </div>
                     </div>
@@ -405,7 +418,7 @@ export default function ViewDistributionRequestModal({ request, onClose, onSucce
                 <div className="bg-white rounded-[40px] p-10 space-y-8 shadow-2xl border border-rose-100 animate-in zoom-in-95 duration-500">
                    <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-rose-50 rounded-2xl border border-rose-100">
+                      <div className="p-3 bg-rose-50 rounded border border-rose-100">
                         <XCircle className="w-6 h-6 text-rose-600" />
                       </div>
                       <h3 className="text-2xl font-black text-slate-900 tracking-tight">Archive Request</h3>

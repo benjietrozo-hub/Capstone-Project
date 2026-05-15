@@ -112,7 +112,7 @@ export function AdminDashboard() {
       trend: "down"
     },
     {
-      title: "User Management",
+      title: "Teacher Management",
       description: "Total teachers",
       icon: Users,
       url: "/admin/teachers",
@@ -237,7 +237,7 @@ export function AdminDashboard() {
                 
                 <CardHeader className="pb-2 sm:pb-3 relative z-10">
                   <div className="flex items-center justify-between">
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-sm bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform duration-300`}>
                       <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div className="flex items-center gap-1 bg-white/50 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-100 shadow-sm">

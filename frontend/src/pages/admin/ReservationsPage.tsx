@@ -321,8 +321,8 @@ export function ReservationsPage() {
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Statistics Dashboard */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-indigo-50 flex items-center gap-4 transition-all hover:shadow-md">
-            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+          <div className="bg-white p-5 rounded shadow-sm border border-indigo-50 flex items-center gap-4 transition-all hover:shadow-md">
+            <div className="w-12 h-12 bg-indigo-50 rounded-sm flex items-center justify-center text-indigo-600">
               <ClipboardList className="w-6 h-6" />
             </div>
             <div>
@@ -331,8 +331,8 @@ export function ReservationsPage() {
             </div>
           </div>
           
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-blue-50 flex items-center gap-4 transition-all hover:shadow-md">
-            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+          <div className="bg-white p-5 rounded shadow-sm border border-blue-50 flex items-center gap-4 transition-all hover:shadow-md">
+            <div className="w-12 h-12 bg-blue-50 rounded-sm flex items-center justify-center text-blue-600">
               <Package className="w-6 h-6" />
             </div>
             <div>
@@ -341,8 +341,8 @@ export function ReservationsPage() {
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-50 flex items-center gap-4 transition-all hover:shadow-md">
-            <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+          <div className="bg-white p-5 rounded shadow-sm border border-emerald-50 flex items-center gap-4 transition-all hover:shadow-md">
+            <div className="w-12 h-12 bg-emerald-50 rounded-sm flex items-center justify-center text-emerald-600">
               <CheckCircle className="w-6 h-6" />
             </div>
             <div>
@@ -353,8 +353,8 @@ export function ReservationsPage() {
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-red-50 flex items-center gap-4 transition-all hover:shadow-md">
-            <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-red-600">
+          <div className="bg-white p-5 rounded shadow-sm border border-red-50 flex items-center gap-4 transition-all hover:shadow-md">
+            <div className="w-12 h-12 bg-red-50 rounded-sm flex items-center justify-center text-red-600">
               <AlertCircle className="w-6 h-6" />
             </div>
             <div>
@@ -372,18 +372,18 @@ export function ReservationsPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-          <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div className="bg-white p-1.5 rounded shadow-sm border border-gray-100 flex items-center justify-between">
             <TabsList className="grid grid-cols-2 w-full max-w-md bg-transparent border-0 p-0">
               <TabsTrigger 
                 value="borrowed" 
-                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white rounded-xl transition-all duration-300 py-3 font-black text-sm uppercase tracking-wider"
+                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white rounded-sm transition-all duration-300 py-3 font-black text-sm uppercase tracking-wider"
               >
                 <Package className="w-4 h-4 mr-2" />
                 Borrowed List
               </TabsTrigger>
               <TabsTrigger 
                 value="requests" 
-                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white rounded-xl transition-all duration-300 py-3 font-black text-sm uppercase tracking-wider"
+                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white rounded-sm transition-all duration-300 py-3 font-black text-sm uppercase tracking-wider"
               >
                 <ClipboardList className="w-4 h-4 mr-2" />
                 Review Requests
@@ -399,7 +399,7 @@ export function ReservationsPage() {
           </div>
 
           <TabsContent value="borrowed" className="mt-0 outline-none">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 bg-white p-4 rounded shadow-sm border border-gray-100">
               <div>
                 <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
                   <Package className="w-5 h-5 text-indigo-600" />
@@ -412,14 +412,14 @@ export function ReservationsPage() {
               <Button
                 variant="outline"
                 onClick={() => handleExportCSV(borrowedItems, 'Borrowed_Items')}
-                className="rounded-xl border-gray-200 font-bold flex items-center gap-2 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all"
+                className="rounded-sm border-gray-200 font-bold flex items-center gap-2 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all"
               >
                 <Download className="w-4 h-4" />
                 Export Data
               </Button>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded shadow-sm border border-gray-100 overflow-hidden">
               {loading ? (
                 <div className="p-8"><TableSkeleton rows={8} cols={7} /></div>
               ) : (
@@ -452,7 +452,7 @@ export function ReservationsPage() {
                             <span className="text-sm font-bold text-gray-700">{item.category?.category_name || 'N/A'}</span>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 rounded-lg text-sm font-black text-gray-700">
+                            <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 rounded text-sm font-black text-gray-700">
                               {item.quantity_requested}
                             </span>
                           </td>
@@ -471,7 +471,7 @@ export function ReservationsPage() {
                               const isDueToday = returnDate.getTime() === today.getTime();
                               
                               return (
-                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-black text-[10px] uppercase tracking-tight ${
+                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border font-black text-[10px] uppercase tracking-tight ${
                                   isOverdue ? 'bg-red-50 text-red-700 border-red-100 shadow-sm shadow-red-100' : 
                                   isDueToday ? 'bg-amber-50 text-amber-700 border-amber-100' : 
                                   'bg-emerald-50 text-emerald-700 border-emerald-100'
@@ -490,14 +490,14 @@ export function ReservationsPage() {
                                   setSelectedViewRequest(item);
                                   setShowViewModal(true);
                                 }}
-                                className="p-2 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                                className="p-2 text-indigo-600 bg-indigo-50 rounded-sm hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
                                 title="View Details"
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleReturn(item.id)}
-                                className="px-4 py-2 bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 active:scale-95"
+                                className="px-4 py-2 bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest rounded-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 active:scale-95"
                               >
                                 Return
                               </button>
@@ -524,7 +524,7 @@ export function ReservationsPage() {
           </TabsContent>
 
           <TabsContent value="requests" className="mt-0 outline-none">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 bg-white p-4 rounded shadow-sm border border-gray-100">
               <div>
                 <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-indigo-600" />
@@ -537,14 +537,14 @@ export function ReservationsPage() {
               <Button
                 variant="outline"
                 onClick={() => handleExportCSV(requests, 'Borrow_Requests')}
-                className="rounded-xl border-gray-200 font-bold flex items-center gap-2 hover:bg-indigo-50 hover:text-indigo-700"
+                className="rounded-sm border-gray-200 font-bold flex items-center gap-2 hover:bg-indigo-50 hover:text-indigo-700"
               >
                 <Download className="w-4 h-4" />
                 Export Queue
               </Button>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded shadow-sm border border-gray-100 overflow-hidden">
               {loading ? (
                 <div className="p-8"><TableSkeleton rows={8} cols={6} /></div>
               ) : (
@@ -576,7 +576,7 @@ export function ReservationsPage() {
                             <span className="text-sm font-bold text-gray-700">{req.category?.category_name || 'N/A'}</span>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className="inline-flex items-center justify-center px-3 py-1 bg-gray-100 rounded-lg text-sm font-black text-gray-700">
+                            <span className="inline-flex items-center justify-center px-3 py-1 bg-gray-100 rounded text-sm font-black text-gray-700">
                               {req.quantity_requested}
                             </span>
                           </td>
@@ -592,7 +592,7 @@ export function ReservationsPage() {
                                   setSelectedViewRequest(req);
                                   setShowViewModal(true);
                                 }}
-                                className="p-2 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-600 hover:text-white transition-all"
+                                className="p-2 text-indigo-600 bg-indigo-50 rounded-sm hover:bg-indigo-600 hover:text-white transition-all"
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
@@ -610,7 +610,7 @@ export function ReservationsPage() {
                                       });
                                       setShowApprovalModal(true);
                                     }}
-                                    className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
+                                    className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
                                   >
                                     Approve
                                   </button>
@@ -619,7 +619,7 @@ export function ReservationsPage() {
                                       setSelectedRequest(req);
                                       setShowRejectionModal(true);
                                     }}
-                                    className="px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-600 hover:text-white transition-all"
+                                    className="px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-red-600 hover:text-white transition-all"
                                   >
                                     Reject
                                   </button>
@@ -629,7 +629,7 @@ export function ReservationsPage() {
                               {req.status === 'approved' && (
                                 <button
                                   onClick={() => handleIssue(req.id)}
-                                  className="px-4 py-2 bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100 animate-pulse"
+                                  className="px-4 py-2 bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest rounded-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-100 animate-pulse"
                                 >
                                   Issue Now
                                 </button>
@@ -659,7 +659,7 @@ export function ReservationsPage() {
 
         {/* Upgrade Modals for Premium Feel */}
         <Dialog open={showApprovalModal} onOpenChange={setShowApprovalModal}>
-          <DialogContent className="sm:max-w-[500px] rounded-3xl p-0 overflow-hidden border-0 shadow-2xl">
+          <DialogContent className="sm:max-w-[500px] rounded-sm p-0 overflow-hidden border-0 shadow-2xl">
             <div className="bg-indigo-600 px-6 py-6 text-white relative overflow-hidden">
               <div className="absolute -right-4 -bottom-4 opacity-10">
                 <CheckCircle className="w-32 h-32" />
@@ -676,11 +676,11 @@ export function ReservationsPage() {
               {selectedRequest && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                    <div className="bg-gray-50 p-3 rounded border border-gray-100">
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Equipment</p>
                       <p className="text-sm font-black text-gray-900">{selectedRequest.category?.category_name}</p>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                    <div className="bg-gray-50 p-3 rounded border border-gray-100">
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Quantity</p>
                       <p className="text-sm font-black text-gray-900">{selectedRequest.quantity_requested} Unit(s)</p>
                     </div>
@@ -691,7 +691,7 @@ export function ReservationsPage() {
                     <Input
                       id="expected-return-date"
                       type="date"
-                      className="rounded-xl border-gray-200 h-12 font-bold focus:ring-indigo-500/20"
+                      className="rounded-sm border-gray-200 h-12 font-bold focus:ring-indigo-500/20"
                       value={approvalForm.expected_return_date}
                       onChange={(e) => setApprovalForm({ ...approvalForm, expected_return_date: e.target.value })}
                       required
@@ -702,7 +702,7 @@ export function ReservationsPage() {
                     <Label htmlFor="admin-notes" className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Instructions for Teacher</Label>
                     <Textarea
                       id="admin-notes"
-                      className="rounded-xl border-gray-200 font-medium focus:ring-indigo-500/20"
+                      className="rounded-sm border-gray-200 font-medium focus:ring-indigo-500/20"
                       value={approvalForm.admin_notes}
                       onChange={(e) => setApprovalForm({ ...approvalForm, admin_notes: e.target.value })}
                       placeholder="e.g. Handle with care, return to lab 101..."
@@ -717,13 +717,13 @@ export function ReservationsPage() {
                   type="button"
                   variant="ghost"
                   onClick={() => setShowApprovalModal(false)}
-                  className="flex-1 rounded-xl font-bold text-gray-500"
+                  className="flex-1 rounded-sm font-bold text-gray-500"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
-                  className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest rounded-xl h-12 shadow-lg shadow-indigo-100 transition-all active:scale-95"
+                  className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest rounded-sm h-12 shadow-lg shadow-indigo-100 transition-all active:scale-95"
                 >
                   Approve & Assign
                 </Button>
@@ -734,7 +734,7 @@ export function ReservationsPage() {
 
         {/* Rejection Modal Upgrade */}
         <Dialog open={showRejectionModal} onOpenChange={setShowRejectionModal}>
-          <DialogContent className="sm:max-w-[450px] rounded-3xl p-0 overflow-hidden border-0 shadow-2xl">
+          <DialogContent className="sm:max-w-[450px] rounded-sm p-0 overflow-hidden border-0 shadow-2xl">
              <div className="bg-red-600 px-6 py-6 text-white relative overflow-hidden">
               <div className="absolute -right-4 -bottom-4 opacity-10">
                 <XCircle className="w-32 h-32" />
@@ -752,7 +752,7 @@ export function ReservationsPage() {
                 <Label htmlFor="rejection-reason" className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Reason for Rejection *</Label>
                 <Textarea
                   id="rejection-reason"
-                  className="rounded-xl border-gray-200 font-medium focus:ring-red-500/20 min-h-[120px]"
+                  className="rounded-sm border-gray-200 font-medium focus:ring-red-500/20 min-h-[120px]"
                   value={rejectionForm.admin_notes}
                   onChange={(e) => setRejectionForm({ admin_notes: e.target.value })}
                   placeholder="Items currently undergoing maintenance..."
@@ -765,14 +765,14 @@ export function ReservationsPage() {
                   type="button"
                   variant="ghost"
                   onClick={() => setShowRejectionModal(false)}
-                  className="flex-1 rounded-xl font-bold text-gray-500"
+                  className="flex-1 rounded-sm font-bold text-gray-500"
                 >
                   Back
                 </Button>
                 <Button 
                   type="submit" 
                   variant="destructive"
-                  className="flex-[2] bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest rounded-xl h-12 shadow-lg shadow-red-100 transition-all active:scale-95"
+                  className="flex-[2] bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest rounded-sm h-12 shadow-lg shadow-red-100 transition-all active:scale-95"
                 >
                   Confirm Denial
                 </Button>
@@ -783,7 +783,7 @@ export function ReservationsPage() {
 
         {/* View Modal Upgrade */}
         <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
-          <DialogContent className="sm:max-w-[550px] rounded-3xl p-0 overflow-hidden border-0 shadow-2xl">
+          <DialogContent className="sm:max-w-[550px] rounded-sm p-0 overflow-hidden border-0 shadow-2xl">
             {selectedViewRequest && (
               <>
                 <div className="bg-gray-900 px-6 py-8 text-white relative overflow-hidden">
@@ -840,7 +840,7 @@ export function ReservationsPage() {
                   {selectedViewRequest.purpose && (
                     <div className="space-y-2 pt-4 border-t border-gray-50">
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Statement of Purpose</p>
-                      <p className="text-sm font-medium text-gray-700 leading-relaxed italic bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                      <p className="text-sm font-medium text-gray-700 leading-relaxed italic bg-gray-50 p-4 rounded border border-gray-100">
                         "{selectedViewRequest.purpose}"
                       </p>
                     </div>
@@ -849,7 +849,7 @@ export function ReservationsPage() {
                   <div className="flex gap-4 pt-4">
                     <Button
                       variant="outline"
-                      className="flex-1 rounded-2xl h-12 font-black uppercase text-[10px] tracking-widest border-2 border-gray-100 hover:bg-gray-50"
+                      className="flex-1 rounded h-12 font-black uppercase text-[10px] tracking-widest border-2 border-gray-100 hover:bg-gray-50"
                       onClick={handleDownloadPDF}
                     >
                       <FileText className="w-4 h-4 mr-2 text-indigo-600" />
@@ -857,7 +857,7 @@ export function ReservationsPage() {
                     </Button>
                     <Button 
                       onClick={() => setShowViewModal(false)}
-                      className="flex-1 bg-gray-900 text-white hover:bg-black rounded-2xl h-12 font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-xl shadow-gray-100"
+                      className="flex-1 bg-gray-900 text-white hover:bg-black rounded h-12 font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-xl shadow-gray-100"
                     >
                       Close Details
                     </Button>

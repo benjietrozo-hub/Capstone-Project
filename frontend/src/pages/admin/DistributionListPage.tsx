@@ -5,7 +5,7 @@ import { TableSkeleton, DashboardSkeleton } from "../../components/common/Skelet
 import { Search, Download, Users, Users2, Filter, Plus, Mail, Phone, Building2, UserCheck, UserX, Package, Calendar, AlertCircle, CheckCircle, XCircle, Eye, Clock, ClipboardList, Printer, Archive, ShieldCheck, TrendingUp, ArrowUpRight, Layers } from "lucide-react";
 
 
-import axios from "axios";
+import { adminAPI } from "../../api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,20 @@ import CreateDistributionModal from "@/components/admin/CreateDistributionModal"
 import ReturnDistributionModal from "@/components/admin/ReturnDistributionModal";
 import ViewDistributionRequestModal from "@/components/admin/ViewDistributionRequestModal";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+
+// Normalize any API response shape into a plain array
+const normalizeApiArray = (response: any): any[] => {
+  if (!response) return [];
+  // Plain array
+  if (Array.isArray(response)) return response;
+  // { success, data: { data: [...] } }  — paginated wrapped
+  if (response?.data?.data && Array.isArray(response.data.data)) return response.data.data;
+  // { success, data: [...] }  — plain wrapped
+  if (response?.data && Array.isArray(response.data)) return response.data;
+  // { data: [...] }  — paginator root
+  if (Array.isArray(response?.data)) return response.data;
+  return [];
+};
 
 interface Teacher {
   id: number;
@@ -237,18 +251,10 @@ export default function DistributionListPage() {
   const { data: statsData } = useQuery({
     queryKey: ['distribution-stats'],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
       const [statsRes, deptRes, allGroupsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution/statistics`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution/departments`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution/groups`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { all: true }
-        })
+        adminAPI.getDistributionStatistics(),
+        adminAPI.getDistributionDepartments(),
+        adminAPI.getDistributionGroups({ all: true })
       ]);
       return {
         statistics: statsRes.data.data,
@@ -273,17 +279,13 @@ export default function DistributionListPage() {
       group: selectedGroup 
     }],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: {
-          page: teacherPagination.currentPage,
-          per_page: teacherPagination.perPage,
-          search: debouncedSearch,
-          department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
-          status: selectedStatus !== 'all' ? selectedStatus : undefined,
-          group_id: selectedGroup || undefined
-        }
+      const response = await adminAPI.getDistributionTeachers({
+        page: teacherPagination.currentPage,
+        per_page: teacherPagination.perPage,
+        search: debouncedSearch,
+        department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
+        status: selectedStatus !== 'all' ? selectedStatus : undefined,
+        group_id: selectedGroup || undefined
       });
       return response.data.data;
     },
@@ -306,13 +308,9 @@ export default function DistributionListPage() {
   const { data: groupsData, isLoading: loadingGroups } = useQuery({
     queryKey: ['distribution-groups', { page: groupPagination.currentPage }],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution/groups`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: {
-          page: groupPagination.currentPage,
-          per_page: groupPagination.perPage
-        }
+      const response = await adminAPI.getDistributionGroups({
+        page: groupPagination.currentPage,
+        per_page: groupPagination.perPage
       });
       return response.data.data;
     },
@@ -334,19 +332,10 @@ export default function DistributionListPage() {
   const { data: distributionsData, isLoading: loadingDistributions } = useQuery({
     queryKey: ['item-distributions', { status: distributionStatus }],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
       const [distRes, bulkDistRes, statsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distributions`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { status: distributionStatus !== 'all' ? distributionStatus : undefined }
-        }),
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/bulk-distributions`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { status: distributionStatus !== 'all' ? distributionStatus : undefined }
-        }),
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distributions/statistics`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        adminAPI.getDistributions({ status: distributionStatus !== 'all' ? distributionStatus : undefined }),
+        adminAPI.getBulkDistributions({ status: distributionStatus !== 'all' ? distributionStatus : undefined }),
+        adminAPI.getDistributionCoreStats()
       ]);
 
       return {
@@ -374,7 +363,7 @@ export default function DistributionListPage() {
   const filteredAllDistributions = useMemo(() => {
     return allDistributions.filter(dist => {
       const search = distributionSearch.toLowerCase();
-      const itemName = dist.item?.item_name?.toLowerCase() || '';
+      const itemName = dist.category?.category_name?.toLowerCase() || dist.item?.item_name?.toLowerCase() || '';
       const teacherName = dist.teacher?.full_name?.toLowerCase() || '';
       const controlNo = dist.control_no?.toLowerCase() || '';
       const groupName = dist.group?.group_name?.toLowerCase() || '';
@@ -390,15 +379,9 @@ export default function DistributionListPage() {
   const { data: requestsData, isLoading: loadingRequests } = useQuery({
     queryKey: ['distribution-requests', { status: requestStatus }],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
       const [reqRes, statsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution-requests`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { status: requestStatus !== 'all' ? requestStatus : undefined }
-        }),
-        axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution-requests/statistics`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        adminAPI.getDistributionRequests({ status: requestStatus !== 'all' ? requestStatus : undefined }),
+        adminAPI.getDistributionRequestStats()
       ]);
       return {
         requests: reqRes.data.data,
@@ -414,7 +397,7 @@ export default function DistributionListPage() {
   const filteredRequests = useMemo(() => {
     return distributionRequests.filter((req: any) => {
       const search = requestSearch.toLowerCase();
-      const itemName = req.item?.item_name?.toLowerCase() || '';
+      const itemName = req.category?.category_name?.toLowerCase() || req.item?.item_name?.toLowerCase() || '';
       const teacherName = req.teacher?.full_name?.toLowerCase() || '';
       const controlNo = req.control_no?.toLowerCase() || '';
       
@@ -441,8 +424,8 @@ export default function DistributionListPage() {
         <td>${dist.type === 'bulk' ? `BD-${dist.id}` : `ID-${dist.id}`}</td>
         <td>${new Date(dist.distribution_date).toLocaleDateString()}</td>
         <td>
-          <strong>${dist.item?.item_name || 'N/A'}</strong><br/>
-          <small>${dist.item?.item_code || ''}</small>
+          <strong>${dist.category?.category_name || dist.item?.item_name || 'N/A'}</strong><br/>
+          <small>${dist.category?.category_code || dist.item?.item_code || ''}</small>
         </td>
         <td>
           ${dist.type === 'individual' ? dist.teacher?.full_name : dist.group?.group_name}<br/>
@@ -525,17 +508,12 @@ export default function DistributionListPage() {
   const handleExport = async () => {
 
     try {
-      const token = localStorage.getItem("token");
-      
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/distribution`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: {
-          all: true,
-          search: debouncedSearch,
-          department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
-          status: selectedStatus !== 'all' ? selectedStatus : undefined,
-          group_id: selectedGroup || undefined
-        }
+      const response = await adminAPI.getDistributionTeachers({
+        all: true,
+        search: debouncedSearch,
+        department: selectedDepartment !== 'all' ? selectedDepartment : undefined,
+        status: selectedStatus !== 'all' ? selectedStatus : undefined,
+        group_id: selectedGroup || undefined
       });
 
       const dataToExport = response.data.data;
@@ -591,10 +569,7 @@ export default function DistributionListPage() {
   const handleCancelDistribution = async (id: number) => {
     if (!confirm("Are you sure you want to cancel this distribution?")) return;
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(`${import.meta.env.VITE_API_URL}/admin/distributions/${id}/cancel`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminAPI.cancelDistribution(id);
       toast.success("Distribution cancelled successfully");
       queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
     } catch (error: any) {
@@ -647,27 +622,19 @@ export default function DistributionListPage() {
 
     try {
       setVerifying(true);
-      const token = localStorage.getItem("token");
-      
-      await axios.post(`${import.meta.env.VITE_API_URL}/admin/verify-password`, 
-        { password: verifyPassword },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await adminAPI.verifyPassword(verifyPassword);
       
       if (!pendingAction) return;
 
       if (pendingAction.type === 'group') {
         const group = pendingAction.data;
-        await axios.delete(`${import.meta.env.VITE_API_URL}/admin/distribution/groups/${group.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await adminAPI.deleteDistributionGroup(group.id);
         toast.success("Distribution group archived");
         queryClient.invalidateQueries({ queryKey: ['distribution-groups'] });
       } else if (pendingAction.type === 'distribution') {
         const dist = pendingAction.data;
-        await axios.delete(`${import.meta.env.VITE_API_URL}/admin/distributions/${dist.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        // Assuming archive means delete here based on original code
+        await adminAPI.cancelDistribution(dist.id); 
         toast.success("Distribution record moved to archive");
         queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
       }
@@ -695,10 +662,7 @@ export default function DistributionListPage() {
   const handleReportDamaged = async (dist: ItemDistribution) => {
     toast.info("Updating asset condition...");
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(`${import.meta.env.VITE_API_URL}/admin/distributions/${dist.id}/damaged`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminAPI.reportDamagedDistribution(dist.id);
       toast.success("Asset reported as damaged");
       queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
     } catch (error) {
@@ -709,10 +673,7 @@ export default function DistributionListPage() {
   const handleReportLost = async (dist: ItemDistribution) => {
     toast.info("Updating asset status...");
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(`${import.meta.env.VITE_API_URL}/admin/distributions/${dist.id}/lost`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminAPI.reportLostDistribution(dist.id);
       toast.success("Asset reported as lost");
       queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
     } catch (error) {
@@ -730,7 +691,7 @@ export default function DistributionListPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-200">
+            <div className="p-2 bg-blue-600 rounded shadow-lg shadow-blue-200">
               <Users2 className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Distribution Hub</h1>
@@ -744,14 +705,14 @@ export default function DistributionListPage() {
           <Button 
             onClick={handleExport} 
             variant="outline" 
-            className="h-12 px-6 rounded-2xl border-slate-200 bg-white hover:bg-slate-50 font-bold transition-all gap-2"
+            className="h-12 px-6 rounded border-slate-200 bg-white hover:bg-slate-50 font-bold transition-all gap-2"
           >
             <Download className="w-4 h-4 text-slate-400" />
             Export Data
           </Button>
           <Button 
             onClick={() => setShowCreateGroupModal(true)} 
-            className="h-12 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black shadow-xl shadow-slate-200 transition-all active:scale-95 gap-2"
+            className="h-12 px-8 rounded bg-slate-900 hover:bg-slate-800 text-white font-black shadow-xl shadow-slate-200 transition-all active:scale-95 gap-2"
           >
             <Plus className="w-5 h-5" />
             Create Group
@@ -774,7 +735,7 @@ export default function DistributionListPage() {
                 <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block">{stat.label}</span>
                 <div className="flex items-center gap-3">
                   <h3 className="text-4xl font-black text-slate-900 leading-none">{stat.value}</h3>
-                  <div className={`p-1.5 bg-${stat.color}-50 rounded-lg`}>
+                  <div className={`p-1.5 bg-${stat.color}-50 rounded`}>
                     <TrendingUp className={`w-4 h-4 text-${stat.color}-600`} />
                   </div>
                 </div>
@@ -822,12 +783,12 @@ export default function DistributionListPage() {
                     placeholder="Search personnel..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-12 h-14 rounded-2xl border-slate-200 bg-slate-50/50 shadow-inner focus:bg-white"
+                    className="pl-12 h-14 rounded border-slate-200 bg-slate-50/50 shadow-inner focus:bg-white"
                   />
                 </div>
 
                 <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                  <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50/50">
+                  <SelectTrigger className="h-14 rounded border-slate-200 bg-slate-50/50">
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
                   <SelectContent>
@@ -839,7 +800,7 @@ export default function DistributionListPage() {
                 </Select>
 
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50/50">
+                  <SelectTrigger className="h-14 rounded border-slate-200 bg-slate-50/50">
                     <SelectValue placeholder="Roster Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -850,7 +811,7 @@ export default function DistributionListPage() {
                 </Select>
 
                 <Select value={selectedGroup?.toString() || "all"} onValueChange={(v) => setSelectedGroup(v === "all" ? null : parseInt(v))}>
-                  <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50/50">
+                  <SelectTrigger className="h-14 rounded border-slate-200 bg-slate-50/50">
                     <SelectValue placeholder="Filter by Group" />
                   </SelectTrigger>
                   <SelectContent>
@@ -882,7 +843,7 @@ export default function DistributionListPage() {
                     <div key={teacher.id} className="group p-6 bg-white border border-slate-100 rounded-[32px] hover:shadow-2xl hover:shadow-slate-200 transition-all duration-300 relative">
                       <div className="flex items-start justify-between mb-6">
                         <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                          <div className="w-14 h-14 bg-slate-50 rounded flex items-center justify-center group-hover:bg-blue-50 transition-colors">
                             <span className="text-lg font-black text-slate-400 group-hover:text-blue-600">{teacher.full_name.charAt(0)}</span>
                           </div>
                           <div>
@@ -890,17 +851,17 @@ export default function DistributionListPage() {
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {teacher.employee_id}</p>
                           </div>
                         </div>
-                        <Badge className={`${teacher.status === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'} font-black px-3 py-1 rounded-xl`}>
+                        <Badge className={`${teacher.status === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'} font-black px-3 py-1 rounded-sm`}>
                           {teacher.status.toUpperCase()}
                         </Badge>
                       </div>
                       
                       <div className="space-y-3">
-                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-3 rounded-2xl group-hover:bg-white group-hover:border-slate-100 border border-transparent transition-all">
+                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-3 rounded group-hover:bg-white group-hover:border-slate-100 border border-transparent transition-all">
                           <Mail className="w-4 h-4 text-slate-400" />
                           <span className="truncate">{teacher.email}</span>
                         </div>
-                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-3 rounded-2xl group-hover:bg-white group-hover:border-slate-100 border border-transparent transition-all">
+                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-3 rounded group-hover:bg-white group-hover:border-slate-100 border border-transparent transition-all">
                           <Building2 className="w-4 h-4 text-slate-400" />
                           <span>{teacher.department}</span>
                         </div>
@@ -926,7 +887,7 @@ export default function DistributionListPage() {
                   Record {((teacherPagination.currentPage - 1) * 12) + 1} - {Math.min(teacherPagination.currentPage * 12, teacherPagination.total)} of {teacherPagination.total}
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" className="rounded-xl border-slate-200" disabled={teacherPagination.currentPage === 1} onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}>
+                  <Button variant="outline" size="icon" className="rounded-sm border-slate-200" disabled={teacherPagination.currentPage === 1} onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}>
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
                   <div className="flex items-center gap-1 px-4">
@@ -934,7 +895,7 @@ export default function DistributionListPage() {
                     <span className="text-sm font-bold text-slate-400">/</span>
                     <span className="text-sm font-bold text-slate-400">{teacherPagination.lastPage}</span>
                   </div>
-                  <Button variant="outline" size="icon" className="rounded-xl border-slate-200" disabled={teacherPagination.currentPage === teacherPagination.lastPage} onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}>
+                  <Button variant="outline" size="icon" className="rounded-sm border-slate-200" disabled={teacherPagination.currentPage === teacherPagination.lastPage} onClick={() => setTeacherPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}>
                     <ChevronRight className="w-5 h-5" />
                   </Button>
                 </div>
@@ -953,14 +914,14 @@ export default function DistributionListPage() {
                 <Layers className="w-16 h-16 text-slate-100 mx-auto mb-6" />
                 <h3 className="text-xl font-black text-slate-900">No Distribution Groups</h3>
                 <p className="text-slate-400 mt-2">Initialize a new group to start collective distributions</p>
-                <Button onClick={() => setShowCreateGroupModal(true)} className="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-black px-8 h-12 rounded-2xl">Create First Group</Button>
+                <Button onClick={() => setShowCreateGroupModal(true)} className="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-black px-8 h-12 rounded">Create First Group</Button>
               </div>
             ) : (
               groups.map((group) => (
                 <div key={group.id} className="group bg-white border border-slate-100 rounded-[40px] shadow-sm hover:shadow-2xl hover:shadow-slate-200 transition-all duration-500 overflow-hidden flex flex-col">
                   <div className="p-8 pb-4">
                     <div className="flex items-center justify-between mb-6">
-                      <div className="p-4 bg-slate-50 rounded-3xl group-hover:bg-blue-50 transition-colors">
+                      <div className="p-4 bg-slate-50 rounded-sm group-hover:bg-blue-50 transition-colors">
                         <Users className="w-6 h-6 text-slate-400 group-hover:text-blue-600" />
                       </div>
                       <Badge className={`${group.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'} font-black px-3 h-7`}>
@@ -983,8 +944,8 @@ export default function DistributionListPage() {
                   </div>
 
                   <div className="p-6 grid grid-cols-2 gap-3 bg-white">
-                    <Button onClick={() => handleViewGroup(group)} variant="outline" className="h-12 rounded-2xl border-slate-100 font-bold hover:bg-slate-50 text-slate-600">View Roster</Button>
-                    <Button onClick={() => handleManageMembers(group)} className="h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black shadow-lg">Manage</Button>
+                    <Button onClick={() => handleViewGroup(group)} variant="outline" className="h-12 rounded border-slate-100 font-bold hover:bg-slate-50 text-slate-600">View Roster</Button>
+                    <Button onClick={() => handleManageMembers(group)} className="h-12 rounded bg-slate-900 hover:bg-slate-800 text-white font-black shadow-lg">Manage</Button>
                   </div>
                 </div>
               ))
@@ -1007,11 +968,11 @@ export default function DistributionListPage() {
                     placeholder="Filter records..." 
                     value={distributionSearch}
                     onChange={(e) => setDistributionSearch(e.target.value)}
-                    className="pl-10 h-11 rounded-xl border-slate-100 bg-slate-50" 
+                    className="pl-10 h-11 rounded-sm border-slate-100 bg-slate-50" 
                   />
                 </div>
                 <Select value={distributionStatus} onValueChange={setDistributionStatus}>
-                  <SelectTrigger className="w-[160px] h-11 rounded-xl border-slate-100 bg-slate-50">
+                  <SelectTrigger className="w-[160px] h-11 rounded-sm border-slate-100 bg-slate-50">
                     <SelectValue placeholder="All States" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1024,7 +985,7 @@ export default function DistributionListPage() {
               </div>
             </CardHeader>
             <CardContent className="p-8">
-              <div className="rounded-3xl border border-slate-100 overflow-hidden bg-white shadow-inner">
+              <div className="rounded-sm border border-slate-100 overflow-hidden bg-white shadow-inner">
                 <table className="w-full">
                   <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -1046,14 +1007,18 @@ export default function DistributionListPage() {
                         <tr key={dist.id} className="group hover:bg-slate-50/80 transition-colors">
                           <td className="px-8 py-5">
                             <div className="flex flex-col">
-                              <span className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{dist.item.item_name}</span>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">{dist.item.item_code}</span>
+                              <span className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+                                {dist.category?.category_name || dist.item?.item_name || '—'}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">
+                                {dist.category?.category_code || dist.item?.item_code || `ID #${dist.id}`}
+                              </span>
                             </div>
                           </td>
                           <td className="px-8 py-5">
                             <div className="flex flex-col">
-                              <span className="font-bold text-slate-700">{dist.teacher.full_name}</span>
-                              <span className="text-xs font-medium text-slate-400">{dist.teacher.department}</span>
+                              <span className="font-bold text-slate-700">{dist.teacher?.full_name || '—'}</span>
+                              <span className="text-xs font-medium text-slate-400">{dist.teacher?.department || ''}</span>
                             </div>
                           </td>
                           <td className="px-8 py-5 text-center">
@@ -1074,12 +1039,12 @@ export default function DistributionListPage() {
                             <div className="flex items-center justify-end gap-2">
                               {dist.status === 'active' && (
                                 <>
-                                  <Button size="sm" variant="outline" onClick={() => { setSelectedDistribution(dist); setShowReturnModal(true); }} className="h-9 rounded-xl border-slate-200 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition-all font-bold">Process Return</Button>
-                                  <Button size="sm" variant="ghost" onClick={() => handleReportDamaged(dist)} className="h-9 w-9 rounded-xl p-0 text-slate-300 hover:text-orange-600 hover:bg-orange-50" title="Report Damaged"><XCircle className="w-4 h-4" /></Button>
+                                  <Button size="sm" variant="outline" onClick={() => { setSelectedDistribution(dist); setShowReturnModal(true); }} className="h-9 rounded-sm border-slate-200 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition-all font-bold">Process Return</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => handleReportDamaged(dist)} className="h-9 w-9 rounded-sm p-0 text-slate-300 hover:text-orange-600 hover:bg-orange-50" title="Report Damaged"><XCircle className="w-4 h-4" /></Button>
                                 </>
                               )}
                               {['returned', 'cancelled', 'lost'].includes(dist.status) && (
-                                <Button size="sm" variant="ghost" onClick={() => handleArchiveDistribution(dist)} className="h-9 w-9 rounded-xl p-0 text-slate-300 hover:text-red-600 hover:bg-red-50" title="Archive Record"><Archive className="w-4 h-4" /></Button>
+                                <Button size="sm" variant="ghost" onClick={() => handleArchiveDistribution(dist)} className="h-9 w-9 rounded-sm p-0 text-slate-300 hover:text-red-600 hover:bg-red-50" title="Archive Record"><Archive className="w-4 h-4" /></Button>
                               )}
                             </div>
                           </td>
@@ -1109,11 +1074,11 @@ export default function DistributionListPage() {
                       placeholder="Search requests..." 
                       value={requestSearch}
                       onChange={(e) => setRequestSearch(e.target.value)}
-                      className="pl-10 h-11 rounded-xl border-slate-100 bg-slate-50" 
+                      className="pl-10 h-11 rounded-sm border-slate-100 bg-slate-50" 
                     />
                   </div>
                   <Select value={requestStatus} onValueChange={setRequestStatus}>
-                    <SelectTrigger className="w-[160px] h-11 rounded-xl border-slate-100 bg-slate-50">
+                    <SelectTrigger className="w-[160px] h-11 rounded-sm border-slate-100 bg-slate-50">
                       <SelectValue placeholder="All States" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1127,19 +1092,19 @@ export default function DistributionListPage() {
               </div>
 
               <div className="grid grid-cols-4 gap-4 mb-8">
-                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex flex-col">
+                <div className="p-4 bg-amber-50 rounded border border-amber-100 flex flex-col">
                   <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">Awaiting Review</span>
                   <span className="text-xl font-black text-amber-900">{distributionRequestStats?.pending_requests || 0}</span>
                 </div>
-                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col">
+                <div className="p-4 bg-emerald-50 rounded border border-emerald-100 flex flex-col">
                   <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Approved Cases</span>
                   <span className="text-xl font-black text-emerald-900">{distributionRequestStats?.approved_requests || 0}</span>
                 </div>
-                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex flex-col">
+                <div className="p-4 bg-blue-50 rounded border border-blue-100 flex flex-col">
                   <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Active Distributions</span>
                   <span className="text-xl font-black text-blue-900">{distributionRequestStats?.distributed_requests || 0}</span>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col">
+                <div className="p-4 bg-slate-50 rounded border border-slate-100 flex flex-col">
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Queue</span>
                   <span className="text-xl font-black text-slate-900">{distributionRequestStats?.total_requests || 0}</span>
                 </div>
@@ -1147,7 +1112,7 @@ export default function DistributionListPage() {
             </CardHeader>
             
             <CardContent className="p-8 pt-0">
-               <div className="rounded-3xl border border-slate-100 overflow-hidden bg-white shadow-inner">
+               <div className="rounded-sm border border-slate-100 overflow-hidden bg-white shadow-inner">
                 <table className="w-full">
                   <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -1189,7 +1154,7 @@ export default function DistributionListPage() {
                             {getRequestStatusBadge(req.status)}
                           </td>
                           <td className="px-8 py-5 text-right">
-                            <Button size="sm" onClick={() => handleViewRequest(req)} className="h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 shadow-md transition-all active:scale-95">Review Request</Button>
+                            <Button size="sm" onClick={() => handleViewRequest(req)} className="h-10 rounded-sm bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 shadow-md transition-all active:scale-95">Review Request</Button>
                           </td>
                         </tr>
                       ))
@@ -1248,22 +1213,22 @@ export default function DistributionListPage() {
                     value={verifyPassword} 
                     onChange={(e) => setVerifyPassword(e.target.value)}
                     placeholder="Enter security token..."
-                    className="h-14 rounded-2xl border-slate-200 bg-slate-50 focus:bg-white text-lg shadow-inner"
+                    className="h-14 rounded border-slate-200 bg-slate-50 focus:bg-white text-lg shadow-inner"
                     onKeyDown={(e) => e.key === 'Enter' && handleVerifyAndExecute()}
                     autoFocus
                   />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-slate-100 rounded-lg">
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-slate-100 rounded">
                     <Settings className="w-4 h-4 text-slate-400" />
                   </div>
                 </div>
               </div>
               
               <div className="flex gap-4">
-                <Button variant="ghost" onClick={() => { setShowVerifyModal(false); setVerifyPassword(''); setPendingAction(null); }} className="flex-1 h-14 rounded-2xl font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50">Cancel</Button>
+                <Button variant="ghost" onClick={() => { setShowVerifyModal(false); setVerifyPassword(''); setPendingAction(null); }} className="flex-1 h-14 rounded font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50">Cancel</Button>
                 <Button 
                   onClick={handleVerifyAndExecute} 
                   disabled={verifying}
-                  className="flex-[2] h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black shadow-lg shadow-red-100 active:scale-95 transition-all"
+                  className="flex-[2] h-14 rounded bg-red-600 hover:bg-red-700 text-white font-black shadow-lg shadow-red-100 active:scale-95 transition-all"
                 >
                   {verifying ? (
                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />

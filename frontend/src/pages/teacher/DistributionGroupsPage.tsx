@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Plus, Users, Lock, Globe, Trash2, UserPlus } from 'lucide-react';
-import { teacherAPI } from '@/api';
+import { Plus, Users, Lock, Globe, Trash2, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { teacherAPI, authAPI } from '@/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { useToast } from '../../hooks/use-toast';
 import CreateDistributionGroupModal from '../../components/teacher/CreateDistributionGroupModal';
-import ManageGroupMembersModal from '../../components/teacher/ManageGroupMembersModal';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
-import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface DistributionGroup {
   id: number;
@@ -39,8 +35,8 @@ const DistributionGroupsPage: React.FC = () => {
     total: 0
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<DistributionGroup | null>(null);
-  const [showMembersModal, setShowMembersModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<DistributionGroup | null>(null);
+
   const [currentUser, setCurrentUser] = useState<any>(null);
   const { toast } = useToast();
 
@@ -51,9 +47,7 @@ const DistributionGroupsPage: React.FC = () => {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/teacher/profile`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const response = await authAPI.getMe();
       setCurrentUser(response.data.data);
     } catch (error) {
       console.error('Error fetching current user:', error);
@@ -141,11 +135,7 @@ const DistributionGroupsPage: React.FC = () => {
         showMenuButton={true}
       >
         <NotificationProfile 
-          notifications={[]}
-          unreadCount={0}
           currentUser={currentUser}
-          onMarkAsRead={() => {}}
-          onMarkAllAsRead={() => {}}
         />
       </NavHeader>
       
@@ -229,59 +219,62 @@ const DistributionGroupsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {groups.map((group) => (
-            <Card key={group.id} className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Users className="w-5 h-5 text-blue-600" />
+            <Card key={group.id} className="p-6 hover:shadow-lg transition-shadow flex flex-col justify-between">
+              <div>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded">
+                      <Users className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{group.group_name}</h3>
+                      <p className="text-sm text-gray-600">{group.teachers_count} members</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{group.group_name}</h3>
-                    <p className="text-sm text-gray-600">{group.teachers_count} members</p>
-                  </div>
+                  {group.visibility === 'private' ? (
+                    <Lock className="w-4 h-4 text-gray-400" />
+                  ) : (
+                    <Globe className="w-4 h-4 text-gray-400" />
+                  )}
                 </div>
-                {group.visibility === 'private' ? (
-                  <Lock className="w-4 h-4 text-gray-400" />
-                ) : (
-                  <Globe className="w-4 h-4 text-gray-400" />
-                )}
+
+                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{group.description}</p>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge className={getGroupTypeBadge(group.group_type)}>
+                    {getGroupTypeLabel(group.group_type)}
+                  </Badge>
+                  <Badge variant={group.list_type === 'system' ? 'default' : 'secondary'}>
+                    {group.list_type === 'system' ? 'System' : 'Custom'}
+                  </Badge>
+                  {group.department && (
+                    <Badge variant="outline">{group.department}</Badge>
+                  )}
+                </div>
               </div>
 
-              <p className="text-sm text-gray-600 mb-4 line-clamp-2">{group.description}</p>
-
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge className={getGroupTypeBadge(group.group_type)}>
-                  {getGroupTypeLabel(group.group_type)}
-                </Badge>
-                <Badge variant={group.list_type === 'system' ? 'default' : 'secondary'}>
-                  {group.list_type === 'system' ? 'System' : 'Custom'}
-                </Badge>
-                {group.department && (
-                  <Badge variant="outline">{group.department}</Badge>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => {
-                    setSelectedGroup(group);
-                    setShowMembersModal(true);
-                  }}
-                >
-                  <UserPlus className="w-4 h-4 mr-1" />
-                  Manage
-                </Button>
+              <div className="flex justify-end gap-2 mt-4 border-t pt-4">
                 {group.list_type === 'user' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(group.id)}
-                  >
-                    <Trash2 className="w-4 h-4 text-red-600" />
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingGroup(group)}
+                      className="hover:bg-blue-50 text-blue-600 border-blue-100"
+                    >
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(group.id)}
+                      className="hover:bg-red-50 text-red-600 border-red-100"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </Button>
+                  </>
                 )}
               </div>
             </Card>
@@ -341,26 +334,18 @@ const DistributionGroupsPage: React.FC = () => {
       </Card>
 
       {/* Modals */}
-      {showCreateModal && (
+      {(showCreateModal || editingGroup) && (
         <CreateDistributionGroupModal
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => {
+            setShowCreateModal(false);
+            setEditingGroup(null);
+          }}
           onSuccess={() => {
             setShowCreateModal(false);
+            setEditingGroup(null);
             fetchGroups();
           }}
-        />
-      )}
-
-      {showMembersModal && selectedGroup && (
-        <ManageGroupMembersModal
-          group={selectedGroup}
-          onClose={() => {
-            setShowMembersModal(false);
-            setSelectedGroup(null);
-          }}
-          onSuccess={() => {
-            fetchGroups();
-          }}
+          initialData={editingGroup}
         />
       )}
       </div>

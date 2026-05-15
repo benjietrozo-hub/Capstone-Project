@@ -130,51 +130,10 @@ export const initializeErrorHandling = () => {
   
   // Add global error boundary for React errors
   window.addEventListener('error', (event) => {
-    console.error('Global error:', event.error);
+    if (event.error) {
+      console.error('Global error:', event.error);
+    }
   });
-  
-  // Completely disable WebSocket to prevent any connection attempts
-  if (typeof window !== 'undefined') {
-    // Override WebSocket constructor to prevent instantiation
-    const OriginalWebSocket = window.WebSocket;
-    window.WebSocket = function(url, protocols) {
-      // Create a dummy WebSocket that never connects
-      const dummyWS = {
-        readyState: 3, // CLOSED
-        CONNECTING: 0,
-        OPEN: 1,
-        CLOSING: 2,
-        CLOSED: 3,
-        url: url,
-        protocol: protocols,
-        extensions: '',
-        binaryType: 'blob',
-        bufferedAmount: 0,
-        send: () => {},
-        close: () => {},
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        dispatchEvent: () => {},
-        onopen: null,
-        onclose: null,
-        onmessage: null,
-        onerror: null
-      };
-      
-      // Simulate immediate closure
-      setTimeout(() => {
-        if (dummyWS.onclose) {
-          dummyWS.onclose({ code: 1006, reason: 'WebSocket disabled' });
-        }
-      }, 0);
-      
-      return dummyWS;
-    };
-    
-    // Copy static properties
-    Object.setPrototypeOf(window.WebSocket, OriginalWebSocket);
-    Object.setPrototypeOf(window.WebSocket.prototype, OriginalWebSocket.prototype);
-  }
 };
 
 // Export utility functions

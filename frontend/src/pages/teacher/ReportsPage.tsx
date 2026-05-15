@@ -89,7 +89,7 @@ function YearSection({ year, count, children }: { year: string; count: number; c
         className="w-full flex items-center justify-between px-8 py-5 hover:bg-slate-50 transition-colors group"
       >
         <div className="flex items-center gap-4">
-          <div className="p-2 bg-slate-900 rounded-xl">
+          <div className="p-2 bg-slate-900 rounded-sm">
             <Calendar className="w-4 h-4 text-white" />
           </div>
           <span className="font-black text-slate-900 text-lg">FY {year}</span>
@@ -327,7 +327,7 @@ export default function TeacherReportsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-200">
+            <div className="p-2 bg-blue-600 rounded shadow-lg shadow-blue-200">
               <BarChart3 className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">My Reports</h1>
@@ -338,11 +338,11 @@ export default function TeacherReportsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={handlePrint} variant="outline" className="h-12 px-6 rounded-2xl border-slate-200 bg-white font-bold gap-2 hover:bg-slate-50">
+          <Button onClick={handlePrint} variant="outline" className="h-12 px-6 rounded border-slate-200 bg-white font-bold gap-2 hover:bg-slate-50">
             <Printer className="w-4 h-4 text-slate-400" />
             Print
           </Button>
-          <Button onClick={handleExport} className="h-12 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black gap-2 shadow-xl shadow-slate-200 active:scale-95 transition-all">
+          <Button onClick={handleExport} className="h-12 px-8 rounded bg-slate-900 hover:bg-slate-800 text-white font-black gap-2 shadow-xl shadow-slate-200 active:scale-95 transition-all">
             <Download className="w-4 h-4" />
             Export CSV
           </Button>
@@ -359,7 +359,7 @@ export default function TeacherReportsPage() {
                 <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block">{s.label}</span>
                 <div className="flex items-center gap-3">
                   <h3 className="text-4xl font-black text-slate-900 leading-none">{s.value}</h3>
-                  <div className={`p-1.5 bg-${s.color}-50 rounded-lg`}>
+                  <div className={`p-1.5 bg-${s.color}-50 rounded`}>
                     <TrendingUp className={`w-4 h-4 text-${s.color}-600`} />
                   </div>
                 </div>
@@ -397,10 +397,10 @@ export default function TeacherReportsPage() {
           <div className="flex items-center gap-3">
             <Filter className="w-4 h-4 text-slate-400" />
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px] h-11 rounded-2xl border-slate-200 bg-slate-50 font-bold">
+              <SelectTrigger className="w-[180px] h-11 rounded border-slate-200 bg-slate-50 font-bold">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl border-slate-100 font-bold">
+              <SelectContent className="rounded border-slate-100 font-bold">
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>

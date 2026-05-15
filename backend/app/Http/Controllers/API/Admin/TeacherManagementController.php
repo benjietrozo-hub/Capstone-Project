@@ -14,6 +14,15 @@ class TeacherManagementController extends Controller
     public function index(Request $request)
     {
         $q = Teacher::query();
+        
+        // Exclude users who are admins (exist in admins table)
+        // This prevents confusion - admins should not appear in teacher management
+        $q->whereNotIn('email', function($query) {
+            $query->select('email')
+                  ->from('admins')
+                  ->whereNull('deleted_at');
+        });
+        
         if ($request->search) {
             $s = $request->search;
             $q->where(fn($q) => $q->where('first_name', 'like', "%{$s}%")
