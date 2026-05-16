@@ -75,6 +75,14 @@ axiosInstance.interceptors.response.use(
 
     const originalRequest = error.config;
 
+    // Handle 503 Maintenance Mode
+    if (error.response?.status === 503 && error.response?.data?.maintenance_mode) {
+      if (window.location.pathname !== '/maintenance' && !window.location.pathname.startsWith('/admin')) {
+        window.location.href = '/maintenance';
+      }
+      return Promise.reject(error);
+    }
+
     // Handle token expiration (401)
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {

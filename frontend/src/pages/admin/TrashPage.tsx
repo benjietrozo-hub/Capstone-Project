@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Archive, RefreshCw, AlertTriangle, Search, Filter, Trash2 } from 'lucide-react';
 import { adminAPI } from '@/api';
+import NavHeader from '@/components/NavHeader';
+import NotificationProfile from '@/components/NotificationProfile';
 
 interface ArchivedItem {
   id: number;
@@ -24,6 +26,10 @@ interface ArchiveStats {
 const TrashPage = () => {
   const [archivedItems, setArchivedItems] = useState<ArchivedItem[]>([]);
   const [stats, setStats] = useState<ArchiveStats | null>(null);
+  
+  const currentUser = (() => {
+    try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
+  })();
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,8 +111,18 @@ const TrashPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen pb-10">
+      <NavHeader 
+        title="Archive" 
+        subtitle="Manage archived items"
+        showBackButton={false}
+        showHomeButton={true}
+        showMenuButton={true}
+      >
+        <NotificationProfile currentUser={currentUser} />
+      </NavHeader>
+
+      <div className="p-4 md:p-6 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">

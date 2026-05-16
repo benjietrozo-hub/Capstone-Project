@@ -135,7 +135,7 @@
             @endphp
             
             <div class="message-box {{ $boxClass }}">
-                {{ $message }}
+                {{ $notificationMessage }}
             </div>
 
             @if($showButton)

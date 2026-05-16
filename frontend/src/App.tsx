@@ -1,8 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { WebSocketProvider } from './context/WebSocketContext';
-import { NotificationProvider } from './context/NotificationContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { WebSocketProvider } from '@/context/WebSocketContext';
+import { NotificationProvider } from '@/context/NotificationContext';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -40,6 +40,8 @@ import DistributionRequestsPage from './pages/teacher/DistributionRequestsPage';
 import TeacherReportsPage from './pages/teacher/ReportsPage';
 import NotificationsPage from './pages/shared/NotificationsPage';
 import HelpPage from './pages/common/HelpPage';
+import ProfilePage from './pages/common/ProfilePage';
+import MaintenancePage from './pages/common/MaintenancePage';
 
 // Common Components
 import { ProtectedRoute } from './components/common/ProtectedRoute';
@@ -80,6 +82,7 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/unauthorized" element={<UnauthorizedPage />} />
+              <Route path="/maintenance" element={<MaintenancePage />} />
 
               {/* Admin Routes */}
               <Route
@@ -207,6 +210,16 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
+                    <Route
+                      path="profile"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <ProfilePage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route path="*" element={<Navigate to="/admin/dashboard" />} />
                   </Routes>
                 }
@@ -298,6 +311,16 @@ function App() {
                       }
                     />
                     {/* my-requests removed as redundant with reservations?tab=requests */}
+                    <Route
+                      path="profile"
+                      element={
+                        <ProtectedRoute requiredRole="teacher">
+                          <ProtectedLayout>
+                            <ProfilePage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route path="*" element={<Navigate to="/teacher/dashboard" />} />
                   </Routes>
                 }

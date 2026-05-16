@@ -142,10 +142,10 @@ export function ActivityLogsPage() {
         <p className="text-sm text-gray-600">Monitor your system activities and history</p>
       </div>
       
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {/* Filters Section */}
         <Card className="mb-6 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Filter className="w-4 h-4 inline mr-1" />
@@ -186,7 +186,7 @@ export function ActivityLogsPage() {
               </select>
             </div>
 
-            <div className="md:col-span-2">
+            <div className="sm:col-span-2 lg:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Search className="w-4 h-4 inline mr-1" />
                 Search

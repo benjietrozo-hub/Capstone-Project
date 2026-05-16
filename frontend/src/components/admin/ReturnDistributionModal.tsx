@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Calendar, FileText, CheckCircle, Package, User, Info, ArrowLeft } from 'lucide-react';
-import axios from 'axios';
+import axiosInstance from '@/api/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,13 +28,8 @@ export default function ReturnDistributionModal({ distribution, onClose, onSucce
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
 
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/distributions/${distribution.id}/return`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axiosInstance.post(`/admin/distributions/${distribution.id}/return`, formData);
 
       toast.success('Distribution marked as returned successfully');
       onSuccess();

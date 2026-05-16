@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, Mail, Users, Edit, Archive, Download, Info, CheckCircle2, UserCheck, ShieldCheck } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "@/api/axios";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -45,14 +45,8 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
   const handleArchive = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
 
-      await axios.delete(
-        `${import.meta.env.VITE_API_URL}/admin/distribution/groups/${group.id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      await axiosInstance.delete(`/admin/distribution/groups/${group.id}`);
 
       toast.success("Distribution group moved to archive");
       onUpdate();

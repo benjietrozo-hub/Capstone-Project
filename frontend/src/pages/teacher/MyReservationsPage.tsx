@@ -297,8 +297,8 @@ export function MyReservationsPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-          <div className="bg-white p-1.5 rounded shadow-sm border border-gray-100 flex items-center justify-between mb-2">
-            <TabsList className="grid grid-cols-2 w-full max-w-md bg-transparent border-0 p-0">
+          <div className="bg-white p-1.5 rounded shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
+            <TabsList className="flex flex-col sm:grid sm:grid-cols-2 w-full max-w-md bg-transparent border-0 p-0 h-auto gap-1 sm:gap-0">
               <TabsTrigger 
                 value="borrowed" 
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-sm transition-all duration-300 py-2.5 font-bold text-sm"
@@ -367,8 +367,8 @@ export function MyReservationsPage() {
 
           <TabsContent value="requests" className="mt-0 focus-visible:outline-none">
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="flex-1">
-                <div className="relative group">
+              <div className="flex-1 w-full sm:w-auto">
+                <div className="relative group w-full">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
                     <Filter className="w-4 h-4" />
                   </div>

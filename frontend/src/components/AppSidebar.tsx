@@ -66,11 +66,7 @@ const teacherItems: MenuItem[] = [
   { title: "Activity Logs", url: "/teacher/activity-logs", icon: Activity },
 ];
 
-const configItems: MenuItem[] = [
-  { title: "Settings", url: "/settings", icon: Settings },
-  { title: "News", url: "/news", icon: Bell, badge: 1 },
-  { title: "Help", url: "/help", icon: HelpCircle },
-];
+// Removed static configItems, moved inside component
 
 export function AppSidebar() {
   const { open: sidebarOpen } = useSidebar();
@@ -90,9 +86,14 @@ export function AppSidebar() {
     }
   }, []);
 
-  const menuItems = userRole === "admin" 
+  const menuItems = userRole === "admin" || userRole === "super_admin"
     ? adminItems
     : teacherItems;
+
+  const dynamicConfigItems: MenuItem[] = [
+    { title: "Settings", url: `/${userRole === "admin" || userRole === "super_admin" ? "admin" : "teacher"}/profile`, icon: Settings },
+    { title: "Help", url: "/help", icon: HelpCircle },
+  ];
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
@@ -175,7 +176,7 @@ export function AppSidebar() {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
-                {configItems.map((item) => {
+                {dynamicConfigItems.map((item) => {
                   const isActive = currentPath === item.url;
                   return (
                     <SidebarMenuItem key={item.title}>

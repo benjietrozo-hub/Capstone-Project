@@ -98,11 +98,20 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const markAsRead = useCallback(async (id: string | number) => {
     if (!token) return;
 
+    // If it's a fallback ID (large timestamp from Date.now()), it doesn't exist in DB yet
+    const isTempId = typeof id === 'number' && id > 1000000000000;
+
     // Optimistically update UI immediately
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, is_read: true } : n)
     );
     setUnreadCount(prev => Math.max(0, prev - 1));
+
+    if (isTempId) {
+      // Don't send fake ID to server, just sync real data
+      fetchNotifications();
+      return;
+    }
 
     try {
       await axiosInstance.post(`/${role}/notifications/${id}/read`, {});
@@ -117,7 +126,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       
       toast.error('Failed to mark notification as read');
     }
-  }, [token, role]);
+  }, [token, role, fetchNotifications]);
 
   const markAllAsRead = useCallback(async () => {
     if (!token) return;
@@ -139,15 +148,22 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const deleteNotification = useCallback(async (id: string | number) => {
     if (!token) return;
 
+    const isTempId = typeof id === 'number' && id > 1000000000000;
+
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    
+    if (isTempId) {
+      fetchNotifications();
+      return;
+    }
+
     try {
       await axiosInstance.delete(`/${role}/notifications/${id}`);
-
-      setNotifications(prev => prev.filter(n => n.id !== id));
       fetchUnreadCount();
     } catch (error) {
       console.error('Failed to delete notification:', error);
     }
-  }, [token, role, fetchUnreadCount]);
+  }, [token, role, fetchUnreadCount, fetchNotifications]);
 
   // Send email notification
   const sendEmailNotification = useCallback(async (notification: any) => {
@@ -192,6 +208,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       
       // Increment unread count
       setUnreadCount(prev => prev + 1);
+
+      // Trigger a silent background fetch to sync real database IDs
+      fetchNotifications();
 
       // Show toast notification with better styling
       toast(notification.title, {

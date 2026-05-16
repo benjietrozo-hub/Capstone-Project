@@ -43,7 +43,7 @@ class SystemNotificationMail extends Mailable implements ShouldQueue
             view: 'emails.system-notification',
             with: [
                 'title' => $this->emailData['title'],
-                'message' => $this->emailData['message'],
+                'notificationMessage' => $this->emailData['message'],
                 'type' => $this->emailData['type'],
                 'userType' => $this->emailData['user_type'],
                 'relatedId' => $this->emailData['related_id'] ?? null,

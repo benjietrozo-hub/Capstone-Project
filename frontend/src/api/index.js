@@ -458,3 +458,16 @@ export const teacherAPI = {
   getTeachers: (params) =>
     axiosInstance.get('/teacher/teachers', { params }),
 };
+
+export const settingsAPI = {
+  getSetting: (key) => axiosInstance.get(`/settings/${key}`),
+  updateSetting: (key, data) => axiosInstance.post(`/admin/settings/${key}`, data),
+  getMaintenanceStatus: () => axiosInstance.get('/system/maintenance/status'),
+};
+
+export const profileAPI = {
+  updateProfile: (data) =>
+    axiosInstance.post('/profile/update', data),
+  updateAccount: (data) => axiosInstance.post('/profile/account', data),
+  changePassword: (data) => axiosInstance.post('/profile/password', data),
+};

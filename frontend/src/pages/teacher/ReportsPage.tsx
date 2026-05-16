@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import axios from "axios";
+import NavHeader from "@/components/NavHeader";
+import NotificationProfile from "@/components/NotificationProfile";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -322,7 +324,18 @@ export default function TeacherReportsPage() {
   // ── JSX ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-10 space-y-10 bg-[#F8FAFC] min-h-screen">
+    <div className="bg-[#F8FAFC] min-h-screen pb-10">
+      <NavHeader 
+        title="My Reports" 
+        subtitle="Personal activity log"
+        showBackButton={false}
+        showHomeButton={true}
+        showMenuButton={true}
+      >
+        <NotificationProfile currentUser={currentUser} />
+      </NavHeader>
+
+      <div className="p-4 md:p-10 space-y-6 md:space-y-10 max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
@@ -443,6 +456,7 @@ export default function TeacherReportsPage() {
             </table>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

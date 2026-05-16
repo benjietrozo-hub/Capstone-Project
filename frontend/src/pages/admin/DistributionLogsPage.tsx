@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import NavHeader from "@/components/NavHeader";
+import NotificationProfile from "@/components/NotificationProfile";
 
 interface DistributionLog {
   id: number;
@@ -76,6 +78,10 @@ interface LogStatistics {
 export default function DistributionLogsPage() {
   const [logs, setLogs] = useState<DistributionLog[]>([]);
   const [stats, setStats] = useState<LogStatistics | null>(null);
+
+  const currentUser = (() => {
+    try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
+  })();
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
@@ -218,13 +224,24 @@ export default function DistributionLogsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Distribution Logs</h1>
-          <p className="text-gray-600 mt-1">Audit trail for all distribution activities</p>
-        </div>
+    <div className="bg-gray-50 min-h-screen pb-10">
+      <NavHeader 
+        title="Distribution Logs" 
+        subtitle="Audit trail for all distribution activities"
+        showBackButton={false}
+        showHomeButton={true}
+        showMenuButton={true}
+      >
+        <NotificationProfile currentUser={currentUser} />
+      </NavHeader>
+
+      <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 hidden md:block">Distribution Logs</h1>
+            <p className="text-gray-600 mt-1 hidden md:block">Audit trail for all distribution activities</p>
+          </div>
         <Button onClick={handleExport} className="gap-2">
           <Download className="w-4 h-4" />
           Export CSV
@@ -599,6 +616,7 @@ export default function DistributionLogsPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -287,7 +287,7 @@ export function BrowseInventoryPage() {
                 <p className="text-gray-500 mt-1">Check back later for available inventory.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 {parentCategories.map((parent) => (
                   <div 
                     key={parent.parent_category} 
@@ -375,7 +375,7 @@ export function BrowseInventoryPage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                   {categories.map((cat) => (
                     <div 
                       key={cat.id} 

@@ -22,6 +22,8 @@ import CreateDistributionModal from "@/components/admin/CreateDistributionModal"
 import ReturnDistributionModal from "@/components/admin/ReturnDistributionModal";
 import ViewDistributionRequestModal from "@/components/admin/ViewDistributionRequestModal";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import NavHeader from "@/components/NavHeader";
+import NotificationProfile from "@/components/NotificationProfile";
 
 // Normalize any API response shape into a plain array
 const normalizeApiArray = (response: any): any[] => {
@@ -247,6 +249,9 @@ export default function DistributionListPage() {
   const [verifying, setVerifying] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'group' | 'distribution', data: any } | null>(null);
 
+  const currentUser = (() => {
+    try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
+  })();
 
   // React Query - Statistics and Departments
   const { data: statsData } = useQuery({
@@ -687,9 +692,20 @@ export default function DistributionListPage() {
   }
 
   return (
-    <div className="p-10 space-y-10 bg-[#F8FAFC] min-h-screen">
-      {/* Premium Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="bg-[#F8FAFC] min-h-screen pb-10">
+      <NavHeader 
+        title="Distribution Hub" 
+        subtitle="Centralized management for personnel allocations"
+        showBackButton={false}
+        showHomeButton={true}
+        showMenuButton={true}
+      >
+        <NotificationProfile currentUser={currentUser} />
+      </NavHeader>
+
+      <div className="p-4 md:p-10 space-y-6 md:space-y-10 max-w-[1600px] mx-auto">
+        {/* Premium Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-600 rounded shadow-lg shadow-blue-200">
@@ -702,18 +718,18 @@ export default function DistributionListPage() {
             Centralized management for personnel allocations and group distributions
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
           <Button 
             onClick={handleExport} 
             variant="outline" 
-            className="h-12 px-6 rounded border-slate-200 bg-white hover:bg-slate-50 font-bold transition-all gap-2"
+            className="w-full sm:w-auto h-12 px-6 rounded border-slate-200 bg-white hover:bg-slate-50 font-bold transition-all gap-2"
           >
             <Download className="w-4 h-4 text-slate-400" />
             Export Data
           </Button>
           <Button 
             onClick={() => setShowCreateGroupModal(true)} 
-            className="h-12 px-8 rounded bg-slate-900 hover:bg-slate-800 text-white font-black shadow-xl shadow-slate-200 transition-all active:scale-95 gap-2"
+            className="w-full sm:w-auto h-12 px-8 rounded bg-slate-900 hover:bg-slate-800 text-white font-black shadow-xl shadow-slate-200 transition-all active:scale-95 gap-2"
           >
             <Plus className="w-5 h-5" />
             Create Group
@@ -722,7 +738,7 @@ export default function DistributionListPage() {
       </div>
 
       {/* Premium Statistics Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {[
           { label: 'Total Personnel', value: statistics?.total_teachers || 0, icon: Users, color: 'blue', sub: 'Verified across all depts' },
           { label: 'Active Roster', value: statistics?.active_teachers || 0, icon: UserCheck, color: 'emerald', sub: 'Eligible for distribution' },
@@ -754,24 +770,26 @@ export default function DistributionListPage() {
       </div>
 
       {/* Main Interactive Interface */}
-      <Tabs defaultValue="all" className="space-y-8">
-        <TabsList className="h-16 p-2 bg-slate-100 rounded-[24px] border border-slate-200">
-          {[
-            { value: 'all', label: 'Personnel Directory', icon: Users },
-            { value: 'groups', label: 'Distribution Groups', icon: Layers },
-            { value: 'distributions', label: 'Active Distributions', icon: Package },
-            { value: 'requests', label: 'Incoming Requests', icon: ClipboardList }
-          ].map(tab => (
-            <TabsTrigger 
-              key={tab.value}
-              value={tab.value} 
-              className="px-8 h-full rounded-[18px] data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg font-black text-slate-500 gap-3 transition-all"
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <Tabs defaultValue="all" className="space-y-6 md:space-y-8">
+        <div className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+          <TabsList className="h-auto md:h-16 p-2 bg-slate-100 rounded-[24px] border border-slate-200 flex sm:inline-flex w-full sm:w-auto min-w-max">
+            {[
+              { value: 'all', label: 'Personnel', icon: Users },
+              { value: 'groups', label: 'Groups', icon: Layers },
+              { value: 'distributions', label: 'Distributions', icon: Package },
+              { value: 'requests', label: 'Requests', icon: ClipboardList }
+            ].map(tab => (
+              <TabsTrigger 
+                key={tab.value}
+                value={tab.value} 
+                className="flex-1 sm:flex-none px-4 md:px-8 py-3 md:h-full rounded-[18px] data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg font-black text-slate-500 gap-2 md:gap-3 transition-all"
+              >
+                <tab.icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         {/* Personnel Directory Tab */}
         <TabsContent value="all" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1240,6 +1258,7 @@ export default function DistributionListPage() {
           </Card>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\Auth\AdminAuthController;
 use App\Http\Controllers\API\Auth\TeacherAuthController;
 use App\Http\Controllers\API\Auth\UnifiedAuthController;
+use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\Admin\InventoryController as AdminInventoryController;
 use App\Http\Controllers\API\Admin\BorrowRequestController as AdminBorrowRequestController;
 use App\Http\Controllers\API\Admin\TeacherManagementController;
@@ -62,6 +63,19 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+// System routes (Public)
+Route::get('/system/maintenance/status', [\App\Http\Controllers\API\SystemSettingController::class, 'getSetting'])->defaults('key', 'maintenance_mode');
+
+// Shared Authenticated Routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/settings/{key}', [\App\Http\Controllers\API\SystemSettingController::class, 'getSetting']);
+    
+    // Profile Management
+    Route::post('/profile/update', [ProfileController::class, 'updateProfile']);
+    Route::post('/profile/account', [ProfileController::class, 'updateAccount']);
+    Route::post('/profile/password', [ProfileController::class, 'changePassword']);
+});
+
 // Protected Admin Routes
 Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuthAttempt::class])->group(function () {
     Route::post('/logout', [AdminAuthController::class, 'logout']);
@@ -74,6 +88,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     
     Route::get('/dashboard', [AdminDashboardController::class, 'index']);
     Route::get('/dashboard/statistics', [AdminDashboardController::class, 'statistics']);
+    
+    // System Settings Updates (including Maintenance)
+    Route::post('/settings/{key}', [\App\Http\Controllers\API\SystemSettingController::class, 'updateSetting']);
     
     Route::apiResource('inventory', AdminInventoryController::class);
     Route::get('/inventory-categories', [AdminInventoryController::class, 'categories']);
@@ -177,6 +194,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
     Route::delete('/notifications/read/all', [NotificationController::class, 'deleteAllRead']);
+
+    // System Settings
+    Route::put('/settings/{key}', [\App\Http\Controllers\API\SystemSettingController::class, 'updateSetting']);
 
     // Entity Management - Departments
     Route::get('/departments/statistics', [DepartmentController::class, 'statistics']);

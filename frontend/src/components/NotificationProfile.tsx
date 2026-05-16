@@ -30,7 +30,19 @@ const NotificationProfile: React.FC<NotificationProfileProps> = ({
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const userRole = localStorage.getItem("role") || currentUser?.role || "teacher";
+  const storedUser = (() => {
+    try {
+      const user = localStorage.getItem("user");
+      return user ? JSON.parse(user) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const displayUser = currentUser || storedUser;
+  const userRole = localStorage.getItem("role") || displayUser?.role || "teacher";
+  const profileImageUrl = displayUser?.profile_image
+    ? `${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://127.0.0.1:8000'}/storage/${displayUser.profile_image}`
+    : null;
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -247,12 +259,20 @@ const NotificationProfile: React.FC<NotificationProfileProps> = ({
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-              <UserIcon className="w-4 h-4 text-muted-foreground" />
+              {profileImageUrl ? (
+                <img
+                  src={profileImageUrl}
+                  alt={displayUser?.full_name || displayUser?.email || "Profile"}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <UserIcon className="w-4 h-4 text-muted-foreground" />
+              )}
             </div>
-            <span className="text-xs text-black text-left max-w-[160px] truncate">
-              {currentUser?.email || "Unknown user"}
+            <span className="text-xs text-black text-left max-w-[160px] truncate hidden md:block">
+              {displayUser?.email || "Unknown user"}
             </span>
-            <span className={`text-[10px] uppercase px-2 py-1 rounded-full ${getRoleBadgeColor(userRole)}`}>
+            <span className={`text-[10px] uppercase px-2 py-1 rounded-full hidden md:inline-flex ${getRoleBadgeColor(userRole)}`}>
               {getRoleDisplay(userRole)}
             </span>
           </Button>
@@ -260,12 +280,14 @@ const NotificationProfile: React.FC<NotificationProfileProps> = ({
         <DropdownMenuContent side="bottom" align="end" className="w-56">
           <DropdownMenuLabel>Profile</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="flex flex-col items-start text-xs">
-            <span className="font-medium">{currentUser?.email || "Unknown"}</span>
+          <DropdownMenuItem className="flex flex-col items-start text-xs cursor-pointer" onClick={() => navigate(`/${userRole === 'teacher' ? 'teacher' : 'admin'}/profile`)}>
+            <span className="font-medium">{displayUser?.email || "Unknown"}</span>
             <span className="text-muted-foreground capitalize">
               Role: {getRoleDisplay(userRole)}
             </span>
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => navigate(`/${userRole === 'teacher' ? 'teacher' : 'admin'}/profile`)}>Account Settings</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogoutClick}>Logout</DropdownMenuItem>
         </DropdownMenuContent>

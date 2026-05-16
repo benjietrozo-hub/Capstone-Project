@@ -4,7 +4,7 @@ import {
   Clock, AlertCircle, Eye, Play, X, Filter, ChevronRight, 
   ArrowUpRight, Info, Settings, ShieldCheck, TrendingUp, Layers, Archive
 } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "@/api/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import CreateDistributionModal from "@/components/admin/CreateDistributionModal";
 import { Label } from "@/components/ui/label";
+import NavHeader from "@/components/NavHeader";
+import NotificationProfile from "@/components/NotificationProfile";
 
 interface BulkDistribution {
   id: number;
@@ -69,6 +71,10 @@ interface BulkDistributionStats {
 export default function BulkDistributionsPage() {
   const [distributions, setDistributions] = useState<BulkDistribution[]>([]);
   const [stats, setStats] = useState<BulkDistributionStats | null>(null);
+
+  const currentUser = (() => {
+    try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
+  })();
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -95,17 +101,13 @@ export default function BulkDistributionsPage() {
   const fetchDistributions = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
       
       const params: any = {};
       if (statusFilter !== "all") params.status = statusFilter;
       if (groupFilter !== "all") params.group_id = groupFilter;
       if (searchQuery) params.search = searchQuery;
 
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/bulk-distributions`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params
-      });
+      const response = await axiosInstance.get('/admin/bulk-distributions', { params });
 
       setDistributions(response.data.data.data || response.data.data);
     } catch (error: any) {
@@ -118,10 +120,7 @@ export default function BulkDistributionsPage() {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/bulk-distributions/statistics`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axiosInstance.get('/admin/bulk-distributions/statistics');
 
       setStats(response.data.data);
     } catch (error: any) {
@@ -132,12 +131,7 @@ export default function BulkDistributionsPage() {
   const handleProcessDistribution = async (id: number) => {
     toast.info("Initializing allocation pipeline...");
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/bulk-distributions/${id}/process`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axiosInstance.post(`/admin/bulk-distributions/${id}/process`);
 
       toast.success("Bulk allocation completed successfully");
       fetchDistributions();
@@ -160,19 +154,11 @@ export default function BulkDistributionsPage() {
 
     try {
       setVerifying(true);
-      const token = localStorage.getItem("token");
       
-      await axios.post(`${import.meta.env.VITE_API_URL}/admin/verify-password`, 
-        { password: verifyPassword },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axiosInstance.post('/admin/verify-password', { password: verifyPassword });
       
       if (pendingActionId) {
-        await axios.post(
-          `${import.meta.env.VITE_API_URL}/admin/bulk-distributions/${pendingActionId}/cancel`,
-          {},
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await axiosInstance.post(`/admin/bulk-distributions/${pendingActionId}/cancel`);
 
         toast.success("Bulk distribution archived");
         fetchDistributions();
@@ -228,8 +214,19 @@ export default function BulkDistributionsPage() {
   }
 
   return (
-    <div className="p-10 space-y-10 bg-[#F8FAFC] min-h-screen">
-      {/* Premium Header */}
+    <div className="bg-[#F8FAFC] min-h-screen pb-10">
+      <NavHeader 
+        title="Bulk Distributions" 
+        subtitle="Coordinated asset allocation"
+        showBackButton={false}
+        showHomeButton={true}
+        showMenuButton={true}
+      >
+        <NotificationProfile currentUser={currentUser} />
+      </NavHeader>
+
+      <div className="p-4 md:p-10 space-y-6 md:space-y-10 max-w-[1600px] mx-auto">
+        {/* Premium Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
@@ -648,6 +645,7 @@ export default function BulkDistributionsPage() {
           </Card>
         </div>
       )}
+      </div>
     </div>
   );
 }

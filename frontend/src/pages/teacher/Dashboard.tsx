@@ -219,9 +219,9 @@ export function TeacherDashboard() {
         </div>
       </div>
       
-      <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Welcome Card */}
-        <Card className="mb-6 border-2 border-primary/20">
+        <Card className="mb-4 border-2 border-primary/20">
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
@@ -246,7 +246,7 @@ export function TeacherDashboard() {
             <p className="mt-4 text-gray-600">Loading dashboard statistics...</p>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6">
             {dashboardStats.map((stat) => (
               <Card
                 key={stat.title}
@@ -290,7 +290,7 @@ export function TeacherDashboard() {
         {/* Quick Actions Section */}
         <div>
           <h3 className="text-lg font-semibold mb-4 text-gray-900">Quick Actions</h3>
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
             <Card
               className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1"
               onClick={() => navigate("/teacher/inventory")}

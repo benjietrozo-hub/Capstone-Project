@@ -72,6 +72,7 @@ export function LogsPage() {
     action: '',
     user_type: '',
     search: '',
+    severity: '',
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -237,8 +238,8 @@ export function LogsPage() {
       
       <div className="p-6">
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-600 mb-1">Total Logs</p>
@@ -248,7 +249,7 @@ export function LogsPage() {
             </div>
           </Card>
           
-          <Card className="p-4">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-600 mb-1">Today</p>
@@ -258,7 +259,7 @@ export function LogsPage() {
             </div>
           </Card>
           
-          <Card className="p-4">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-600 mb-1">Login Attempts</p>
@@ -268,7 +269,7 @@ export function LogsPage() {
             </div>
           </Card>
           
-          <Card className="p-4">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-600 mb-1">Failed Logins</p>
@@ -281,7 +282,7 @@ export function LogsPage() {
 
         {/* Filters Section */}
         <Card className="mb-6 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Filter className="w-4 h-4 inline mr-1" />
@@ -364,7 +365,7 @@ export function LogsPage() {
               </select>
             </div>
 
-            <div>
+            <div className="sm:col-span-2 lg:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Search className="w-4 h-4 inline mr-1" />
                 Search

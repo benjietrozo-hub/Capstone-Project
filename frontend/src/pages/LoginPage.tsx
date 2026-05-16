@@ -168,7 +168,7 @@ export function LoginPage() {
   return (
     <>
       <AuthHeader 
-        title="Online Inventory Management System" 
+        title="Property Inventory Management System" 
         subtitle="Welcome back! Please login to continue"
       />
 
@@ -190,7 +190,7 @@ export function LoginPage() {
               </div>
               <div className="text-center">
                 <CardTitle className="text-2xl font-bold text-white">
-                  {isLocked ? 'Account Locked' : 'Online IMS'}
+                  {isLocked ? 'Account Locked' : 'Property IMS'}
                 </CardTitle>
                 <CardDescription className="text-sm mt-1 text-white/90">
                   {isLocked ? 'Too many failed attempts' : 'Online Inventory Management System'}
