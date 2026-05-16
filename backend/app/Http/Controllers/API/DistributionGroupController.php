@@ -32,6 +32,8 @@ class DistributionGroupController extends Controller
                     $query->system();
                 } elseif ($request->list_type === 'user') {
                     $query->userCreated();
+                } elseif ($request->list_type === 'mine') {
+                    $query->where('created_by', $teacherId);
                 }
             }
 
@@ -48,9 +50,19 @@ class DistributionGroupController extends Controller
                            }])
                            ->paginate($request->get('per_page', 10));
 
+            // Get counts for summary/tabs (ignoring pagination and current filters)
+            $baseQuery = DistributionGroup::active()->visible($teacherId);
+            $summary = [
+                'total' => (clone $baseQuery)->count(),
+                'system' => (clone $baseQuery)->system()->count(),
+                'user' => (clone $baseQuery)->userCreated()->count(),
+                'mine' => $teacherId ? DistributionGroup::active()->where('created_by', $teacherId)->count() : 0,
+            ];
+
             return response()->json([
                 'success' => true,
-                'data' => $groups
+                'data' => $groups,
+                'summary' => $summary
             ]);
 
             return response()->json([
@@ -115,7 +127,25 @@ class DistributionGroupController extends Controller
             }
 
             $user = $request->user();
-            $teacherId = $user instanceof Teacher ? $user->id : null;
+            $userClass = $user ? get_class($user) : null;
+            $teacherId = null;
+
+            if ($user instanceof Teacher || $userClass === 'App\\Models\\Teacher') {
+                $teacherId = $user->id;
+            } elseif ($user instanceof \App\Models\Admin || $userClass === 'App\\Models\\Admin') {
+                $linkedTeacher = Teacher::where('email', $user->email)->first();
+                $teacherId = $linkedTeacher ? $linkedTeacher->id : null;
+            }
+
+            // Guard: cannot create a group without a resolvable teacher identity
+            if (!$teacherId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to identify the creator. Your account must be linked to a teacher profile.',
+                    'debug_class' => $userClass,
+                    'debug_user_id' => $user->id ?? null,
+                ], 403);
+            }
 
             $group = DistributionGroup::create([
                 'group_name' => $request->group_name,
@@ -169,15 +199,27 @@ class DistributionGroupController extends Controller
                 ], 403);
             }
 
-            // Check ownership for user-created groups
+            // Check permission: Admin can edit anything, Teachers can only edit their own
             $user = $request->user();
-            $teacherId = $user instanceof Teacher ? $user->id : null;
+            $isAdmin = $user instanceof \App\Models\Admin;
+            $teacherId = null;
+
+            if ($user instanceof Teacher) {
+                $teacherId = $user->id;
+            } elseif ($isAdmin) {
+                // Try to find the corresponding teacher record for this admin
+                $teacher = Teacher::where('email', $user->email)->first();
+                $teacherId = $teacher ? $teacher->id : null;
+            }
             
-            if ($group->created_by !== $teacherId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to update this group'
-                ], 403);
+            // Ownership check
+            if (!$isAdmin) {
+                if ($group->created_by !== $teacherId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You do not have permission to update this group'
+                    ], 403);
+                }
             }
 
             $validator = Validator::make($request->all(), [
@@ -241,15 +283,25 @@ class DistributionGroupController extends Controller
                 ], 403);
             }
 
-            // Check ownership
+            // Check permission
             $user = $request->user();
-            $teacherId = $user instanceof Teacher ? $user->id : null;
+            $isAdmin = $user instanceof \App\Models\Admin;
+            $teacherId = null;
+
+            if ($user instanceof Teacher) {
+                $teacherId = $user->id;
+            } elseif ($isAdmin) {
+                $teacher = Teacher::where('email', $user->email)->first();
+                $teacherId = $teacher ? $teacher->id : null;
+            }
             
-            if ($group->created_by !== $teacherId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have permission to delete this group'
-                ], 403);
+            if (!$isAdmin) {
+                if ($group->created_by !== $teacherId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You do not have permission to delete this group'
+                    ], 403);
+                }
             }
 
             // Set deleted_by before soft deleting
@@ -291,11 +343,12 @@ class DistributionGroupController extends Controller
                 ], 422);
             }
 
-            // Check permission for user-created groups (Allow Admins to bypass)
-            if ($group->list_type === 'user' && !($request->user() instanceof \App\Models\Admin)) {
-                $user = $request->user();
+            // Check permission: Admin can edit anything, Teachers can only edit their own
+            $user = $request->user();
+            $isAdmin = $user instanceof \App\Models\Admin;
+            
+            if (!$isAdmin) {
                 $teacherId = $user instanceof Teacher ? $user->id : null;
-                
                 if ($group->created_by !== $teacherId) {
                     return response()->json([
                         'success' => false,
@@ -343,11 +396,12 @@ class DistributionGroupController extends Controller
                 ], 422);
             }
 
-            // Check permission for user-created groups (Allow Admins to bypass)
-            if ($group->list_type === 'user' && !($request->user() instanceof \App\Models\Admin)) {
-                $user = $request->user();
+            // Check permission: Admin can edit anything, Teachers can only edit their own
+            $user = $request->user();
+            $isAdmin = $user instanceof \App\Models\Admin;
+            
+            if (!$isAdmin) {
                 $teacherId = $user instanceof Teacher ? $user->id : null;
-                
                 if ($group->created_by !== $teacherId) {
                     return response()->json([
                         'success' => false,

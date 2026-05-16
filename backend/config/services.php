@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'phpmailer' => [
+        'password' => env('PHPMAILER_PASSWORD'),
+    ],
+
 ];

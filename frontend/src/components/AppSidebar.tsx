@@ -20,7 +20,8 @@ import {
   Trash2,
   Archive,
   Send,
-  ShieldCheck
+  ShieldCheck,
+  HelpCircle
 } from "lucide-react";
 
 import {
@@ -68,6 +69,7 @@ const teacherItems: MenuItem[] = [
 const configItems: MenuItem[] = [
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "News", url: "/news", icon: Bell, badge: 1 },
+  { title: "Help", url: "/help", icon: HelpCircle },
 ];
 
 export function AppSidebar() {

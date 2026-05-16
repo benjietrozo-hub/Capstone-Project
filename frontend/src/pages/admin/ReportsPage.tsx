@@ -41,6 +41,7 @@ export function ReportsPage() {
   const [historyByYear, setHistoryByYear] = useState<Record<number, any[]>>({});
   const [loadingYears, setLoadingYears] = useState(true);
   const [loadingHistoryMap, setLoadingHistoryMap] = useState<Record<number, boolean>>({});
+  const [paginationMap, setPaginationMap] = useState<Record<number, { current_page: number, last_page: number, total: number }>>({});
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,16 +122,29 @@ export function ReportsPage() {
     }
   };
 
-  const fetchBorrowHistoryForYear = async (year: number) => {
+  const fetchBorrowHistoryForYear = async (year: number, page: number = 1) => {
     try {
       setLoadingHistoryMap(prev => ({ ...prev, [year]: true }));
       const response = await adminAPI.getBorrowHistory({
         status: status || undefined,
         search: searchQuery,
         year: year,
-        per_page: 200 // Retrieve enough records for the dropdown report
+        page: page,
+        per_page: 50
       });
-      setHistoryByYear(prev => ({ ...prev, [year]: response.data.data.data || [] }));
+      
+      const newData = response.data.data.data || [];
+      const pagination = {
+        current_page: response.data.data.current_page,
+        last_page: response.data.data.last_page,
+        total: response.data.data.total
+      };
+
+      setHistoryByYear(prev => ({ 
+        ...prev, 
+        [year]: page === 1 ? newData : [...(prev[year] || []), ...newData] 
+      }));
+      setPaginationMap(prev => ({ ...prev, [year]: pagination }));
     } catch (error) {
       console.error(`Error fetching history for ${year}:`, error);
     } finally {
@@ -370,6 +384,18 @@ export function ReportsPage() {
                           )}
                         </tbody>
                       </table>
+
+                      {paginationMap[year] && paginationMap[year].current_page < paginationMap[year].last_page && (
+                        <div className="p-6 text-center border-t border-gray-50 bg-gray-50/20">
+                          <button
+                            onClick={() => fetchBorrowHistoryForYear(year, paginationMap[year].current_page + 1)}
+                            disabled={loadingHistoryMap[year]}
+                            className="px-6 py-2 bg-white border border-gray-200 rounded shadow-sm text-sm font-bold text-primary hover:bg-primary hover:text-white transition-all disabled:opacity-50"
+                          >
+                            {loadingHistoryMap[year] ? 'Loading more...' : `Load More Records (${paginationMap[year].total - historyByYear[year].length} remaining)`}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TableSkeleton } from '../../components/common/Skeleton';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -17,7 +18,8 @@ import {
   Plus,
   ShieldCheck,
   Eye,
-  EyeOff
+  EyeOff,
+  ArrowDownCircle
 } from 'lucide-react';
 
 interface Admin {
@@ -30,6 +32,7 @@ interface Admin {
   phone?: string;
   status: 'active' | 'inactive' | 'suspended';
   full_name?: string;
+  admin_type?: string;
 }
 
 interface AdminFormData {
@@ -49,6 +52,7 @@ interface FormErrors {
 }
 
 export function AdminsPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -183,6 +187,26 @@ export function AdminsPage() {
     }
   };
 
+  const handleDemoteAdmin = async (id: number) => {
+    if (!confirm('Are you sure you want to demote this administrator back to a teacher? This will remove all administrative access.')) return;
+    try {
+      await adminAPI.demoteAdmin(id);
+      
+      // Invalidate queries immediately to update the local list
+      queryClient.invalidateQueries({ queryKey: ['admins'] });
+      queryClient.invalidateQueries({ queryKey: ['teachers'] });
+      
+      toast.success('Administrator demoted to Teacher. Redirecting to Teacher Management...', { duration: 4000 });
+      
+      setTimeout(() => {
+        navigate('/admin/teachers');
+      }, 800); // Reduced delay for better UX
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Failed to demote administrator';
+      toast.error(message);
+    }
+  };
+
   const columns = [
     { 
       key: 'user', 
@@ -268,9 +292,22 @@ export function AdminsPage() {
               handleDeleteAdmin(row.id);
             }}
             className="h-8 w-8 p-0 text-amber-500 hover:text-amber-600 hover:bg-amber-50 rounded-full inline-flex items-center justify-center transition-colors"
+            title="Archive Admin"
           >
             <Archive className="w-4 h-4" />
           </button>
+          {row.id !== currentUser?.id && row.admin_type !== 'root_admin' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDemoteAdmin(row.id);
+              }}
+              className="h-8 w-8 p-0 text-orange-500 hover:text-orange-600 hover:bg-orange-50 rounded-full inline-flex items-center justify-center transition-colors"
+              title="Demote to Teacher"
+            >
+              <ArrowDownCircle className="w-4 h-4" />
+            </button>
+          )}
         </div>
       ),
     },

@@ -23,8 +23,13 @@ import {
   Search,
   TrendingUp,
   Shield,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
+import { Button } from '../../components/common/FormElements';
 
 interface SystemLog {
   id: number;
@@ -66,9 +71,13 @@ export function LogsPage() {
     log_type: '',
     action: '',
     user_type: '',
-    severity: '',
     search: '',
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [perPage, setPerPage] = useState(50);
+  const [totalLogsCount, setTotalLogsCount] = useState(0);
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
@@ -80,7 +89,7 @@ export function LogsPage() {
   useEffect(() => {
     fetchLogs();
     fetchStatistics();
-  }, [filters]);
+  }, [filters, currentPage, perPage]);
 
   // Listen for real-time log updates
   useEffect(() => {
@@ -125,9 +134,12 @@ export function LogsPage() {
       setLoading(true);
       const response = await adminAPI.getLogs({
         ...filters,
-        per_page: 100,
+        page: currentPage,
+        per_page: perPage,
       });
       setLogs(response.data.data);
+      setTotalLogsCount(response.data.total);
+      setLastPage(response.data.last_page);
     } catch (error) {
       toast({
         title: 'Error',
@@ -277,7 +289,7 @@ export function LogsPage() {
               </label>
               <select
                 value={filters.log_type}
-                onChange={(e) => setFilters({ ...filters, log_type: e.target.value })}
+                onChange={(e) => { setFilters({ ...filters, log_type: e.target.value }); setCurrentPage(1); }}
                 className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Types</option>
@@ -293,7 +305,7 @@ export function LogsPage() {
               </label>
               <select
                 value={filters.action}
-                onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+                onChange={(e) => { setFilters({ ...filters, action: e.target.value }); setCurrentPage(1); }}
                 className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Actions</option>
@@ -326,7 +338,7 @@ export function LogsPage() {
               </label>
               <select
                 value={filters.user_type}
-                onChange={(e) => setFilters({ ...filters, user_type: e.target.value })}
+                onChange={(e) => { setFilters({ ...filters, user_type: e.target.value }); setCurrentPage(1); }}
                 className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Users</option>
@@ -341,7 +353,7 @@ export function LogsPage() {
               </label>
               <select
                 value={filters.severity}
-                onChange={(e) => setFilters({ ...filters, severity: e.target.value })}
+                onChange={(e) => { setFilters({ ...filters, severity: e.target.value }); setCurrentPage(1); }}
                 className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Severities</option>
@@ -360,7 +372,7 @@ export function LogsPage() {
               <input
                 type="text"
                 value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onChange={(e) => { setFilters({ ...filters, search: e.target.value }); setCurrentPage(1); }}
                 placeholder="Search logs..."
                 className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -456,6 +468,101 @@ export function LogsPage() {
                     )}
                   </div>
                 ))}
+                
+                {/* Pagination Controls */}
+                {!loading && totalLogsCount > 0 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm text-gray-500 font-medium">
+                        Showing <span className="font-bold text-gray-900">{logs.length}</span> of <span className="font-bold text-gray-900">{totalLogsCount}</span> logs
+                      </div>
+                      <div className="w-40">
+                        <select
+                          value={perPage}
+                          onChange={(e) => {
+                            setPerPage(parseInt(e.target.value));
+                            setCurrentPage(1);
+                          }}
+                          className="w-full px-3 py-2 text-xs font-bold border border-gray-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        >
+                          <option value={5}>5 per page</option>
+                          <option value={10}>10 per page</option>
+                          <option value={20}>20 per page</option>
+                          <option value={50}>50 per page</option>
+                          <option value={100}>100 per page</option>
+                          <option value={totalLogsCount}>All ({totalLogsCount})</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(1)}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronsLeft className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, lastPage) }, (_, i) => {
+                          let pageNum;
+                          if (lastPage <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= lastPage - 2) {
+                            pageNum = lastPage - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? 'primary' : 'ghost'}
+                              size="sm"
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={`h-9 w-9 p-0 text-xs font-bold ${currentPage === pageNum ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === lastPage}
+                        onClick={() => setCurrentPage(prev => Math.min(lastPage, prev + 1))}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === lastPage}
+                        onClick={() => setCurrentPage(lastPage)}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronsRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -6,7 +6,7 @@ import { Button, FormField } from '../../components/common/FormElements';
 import { PageLoader } from '../../components/common/Loader';
 import { Modal } from '../../components/common/Modal';
 import { teacherAPI } from '../../api';
-import { Package, LayoutGrid, List, Eye, Info, Calendar, MapPin, Tag, ClipboardList, ChevronRight, Filter, Folder, Search, CheckCircle, XCircle } from 'lucide-react';
+import { Package, LayoutGrid, List, Eye, Info, Calendar, MapPin, Tag, ClipboardList, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Folder, Search, CheckCircle, XCircle } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -95,6 +95,12 @@ export function MyInventoryPage() {
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+
   
   const [formData, setFormData] = useState<FormData>({
     parent_category: '',
@@ -127,7 +133,7 @@ export function MyInventoryPage() {
     } else if (viewMode === 'items') {
       fetchItems();
     }
-  }, [viewMode, selectedParentCategory, selectedKind, debouncedSearch, statusFilter, sortBy, sortOrder]);
+  }, [viewMode, selectedParentCategory, selectedKind, debouncedSearch, statusFilter, sortBy, sortOrder, currentPage, perPage]);
 
 
   const fetchParentCategories = async () => {
@@ -166,8 +172,12 @@ export function MyInventoryPage() {
         status: statusFilter || undefined,
         sort_by: sortBy,
         sort_order: sortOrder,
+        page: currentPage,
+        per_page: perPage,
       });
       setItems(response.data.data || []);
+      setTotalItems(response.data.total || 0);
+      setLastPage(response.data.last_page || 1);
     } catch (error) {
       console.error('Failed to load inventory:', error);
       toast.error('Failed to load items');
@@ -877,6 +887,100 @@ export function MyInventoryPage() {
                     ))}
                   </div>
                 )}
+
+                {/* Pagination Controls */}
+                {!loading && viewMode === 'items' && totalItems > 0 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm text-gray-500 font-medium">
+                        Showing <span className="font-bold text-gray-900">{items.length}</span> of <span className="font-bold text-gray-900">{totalItems}</span> items
+                      </div>
+                      <div className="w-40">
+                        <select
+                          value={perPage}
+                          onChange={(e) => {
+                            setPerPage(parseInt(e.target.value));
+                            setCurrentPage(1);
+                          }}
+                          className="w-full px-3 py-2 text-xs font-bold border border-gray-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        >
+                          <option value={5}>5 per page</option>
+                          <option value={10}>10 per page</option>
+                          <option value={20}>20 per page</option>
+                          <option value={50}>50 per page</option>
+                          <option value={totalItems}>All ({totalItems})</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(1)}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronsLeft className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, lastPage) }, (_, i) => {
+                          let pageNum;
+                          if (lastPage <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= lastPage - 2) {
+                            pageNum = lastPage - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? 'primary' : 'ghost'}
+                              size="sm"
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={`h-9 w-9 p-0 text-xs font-bold ${currentPage === pageNum ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === lastPage}
+                        onClick={() => setCurrentPage(prev => Math.min(lastPage, prev + 1))}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === lastPage}
+                        onClick={() => setCurrentPage(lastPage)}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronsRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -1165,8 +1269,6 @@ export function MyInventoryPage() {
           </div>
         </Modal>
       )}
-        </div>
-      </div>
     </div>
   );
 }

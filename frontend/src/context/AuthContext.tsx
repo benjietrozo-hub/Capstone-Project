@@ -7,6 +7,7 @@ interface User {
   email: string;
   full_name?: string;
   role?: string;
+  password_change_required?: boolean;
 }
 
 interface AuthContextType {
@@ -63,18 +64,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(true);
       setError(null);
       const response = await authAPI.login(credentials);
-      const { user, token, role, refresh_token } = response.data;
+      const { user, token, role, refresh_token, password_change_required } = response.data;
       
       localStorage.setItem('token', token);
       localStorage.setItem('refresh_token', refresh_token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify({ ...user, password_change_required }));
       localStorage.setItem('role', role);
       
-      setUser(user);
+      setUser({ ...user, password_change_required });
       setToken(token);
       setRefreshToken(refresh_token);
       setLastActivityTime(Date.now());
-      return { success: true, user, token, role };
+      return { success: true, user, token, role, password_change_required };
     } catch (err: any) {
       const message = err.response?.data?.message || 'Login failed';
       setError(message);

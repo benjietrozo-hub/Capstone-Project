@@ -10,6 +10,7 @@ import { Package, Clock, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { Footer } from '@/components/common/Footer';
 import AuthHeader from '@/components/common/AuthHeader';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
+import ForcedPasswordResetModal from '@/components/auth/ForcedPasswordResetModal';
 import axios from 'axios';
 
 export function LoginPage() {
@@ -26,6 +27,8 @@ export function LoginPage() {
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showForcedReset, setShowForcedReset] = useState(false);
+  const [resetRole, setResetRole] = useState<'admin' | 'teacher'>('teacher');
 
   // Check lockout status on mount and restore from localStorage
   useEffect(() => {
@@ -113,13 +116,19 @@ export function LoginPage() {
 
     try {
       const response = await login(formData);
-      const { role } = response;
+      const { role, password_change_required } = response;
       
       // Clear lockout data on successful login
       localStorage.removeItem('login_username');
       localStorage.removeItem('login_lock_until');
       localStorage.removeItem('login_lock_message');
       
+      if (password_change_required) {
+        setResetRole(role);
+        setShowForcedReset(true);
+        return;
+      }
+
       // Show success modal
       setLoginRole(role);
       setShowLoginSuccess(true);
@@ -321,6 +330,19 @@ export function LoginPage() {
         type="login"
         autoClose={true}
         autoCloseDelay={2000}
+      />
+
+      <ForcedPasswordResetModal
+        isOpen={showForcedReset}
+        userRole={resetRole}
+        onSuccess={() => {
+          setShowForcedReset(false);
+          if (resetRole === 'admin') {
+            navigate('/admin/dashboard');
+          } else {
+            navigate('/teacher/dashboard');
+          }
+        }}
       />
     </>
   );

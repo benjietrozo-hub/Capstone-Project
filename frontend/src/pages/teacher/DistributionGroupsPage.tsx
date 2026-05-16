@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Users, Lock, Globe, Trash2, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { teacherAPI, authAPI } from '@/api';
+import { teacherAPI } from '@/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -28,7 +28,7 @@ interface DistributionGroup {
 const DistributionGroupsPage: React.FC = () => {
   const [groups, setGroups] = useState<DistributionGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'system' | 'user'>('all');
+  const [filter, setFilter] = useState<'all' | 'system' | 'user' | 'mine'>('all');
   const [pagination, setPagination] = useState({
     currentPage: 1,
     lastPage: 1,
@@ -36,6 +36,12 @@ const DistributionGroupsPage: React.FC = () => {
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<DistributionGroup | null>(null);
+  const [summary, setSummary] = useState({
+    total: 0,
+    system: 0,
+    user: 0,
+    mine: 0
+  });
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const { toast } = useToast();
@@ -47,8 +53,8 @@ const DistributionGroupsPage: React.FC = () => {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await authAPI.getMe();
-      setCurrentUser(response.data.data);
+      const response = await teacherAPI.getMe();
+      setCurrentUser(response.data.user ?? response.data.data ?? response.data);
     } catch (error) {
       console.error('Error fetching current user:', error);
     }
@@ -70,6 +76,9 @@ const DistributionGroupsPage: React.FC = () => {
         lastPage: last_page,
         total: total
       });
+      if (response.data.summary) {
+        setSummary(response.data.summary);
+      }
     } catch (error: any) {
       console.error('Error fetching distribution groups:', error);
       toast({
@@ -122,8 +131,6 @@ const DistributionGroupsPage: React.FC = () => {
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-  const systemGroups = groups.filter(g => g.list_type === 'system');
-  const userGroups = groups.filter(g => g.list_type === 'user');
 
   return (
     <div>
@@ -170,7 +177,7 @@ const DistributionGroupsPage: React.FC = () => {
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          All Groups ({groups.length})
+          All Groups ({summary.total})
         </button>
         <button
           onClick={() => setFilter('system')}
@@ -180,7 +187,7 @@ const DistributionGroupsPage: React.FC = () => {
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          System Groups ({systemGroups.length})
+          System Groups ({summary.system})
         </button>
         <button
           onClick={() => {
@@ -193,8 +200,23 @@ const DistributionGroupsPage: React.FC = () => {
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          My Groups ({userGroups.length})
+          User Groups ({summary.user})
         </button>
+        {currentUser && (
+          <button
+            onClick={() => {
+              setFilter('mine');
+              setPagination(prev => ({ ...prev, currentPage: 1 }));
+            }}
+            className={`px-4 py-2 font-medium transition-colors ${
+              filter === 'mine'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            My Groups ({summary.mine})
+          </button>
+        )}
       </div>
 
       {/* Groups Grid */}
@@ -208,11 +230,11 @@ const DistributionGroupsPage: React.FC = () => {
           <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No Distribution Groups</h3>
           <p className="text-gray-600 mb-4">
-            {filter === 'user'
+            {filter === 'mine' || filter === 'user'
               ? 'Create your first custom distribution group to organize notifications.'
               : 'No distribution groups available.'}
           </p>
-          {filter === 'user' && (
+          {(filter === 'mine' || filter === 'user') && (
             <Button onClick={() => setShowCreateModal(true)}>Create Group</Button>
           )}
         </Card>
@@ -254,7 +276,7 @@ const DistributionGroupsPage: React.FC = () => {
               </div>
 
               <div className="flex justify-end gap-2 mt-4 border-t pt-4">
-                {group.list_type === 'user' && (
+                {group.list_type === 'user' && currentUser && group.created_by != null && Number(group.created_by) === Number(currentUser.id) && (
                   <>
                     <Button
                       variant="outline"

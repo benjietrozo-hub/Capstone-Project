@@ -21,6 +21,7 @@ interface FormFieldProps {
   min?: string;
   max?: string;
   step?: string;
+  helperText?: string;
 }
 
 export function FormField({
@@ -38,6 +39,7 @@ export function FormField({
   min,
   max,
   step,
+  helperText,
 }: FormFieldProps) {
   if (type === 'select') {
     return (
@@ -72,6 +74,7 @@ export function FormField({
           ))}
         </select>
         {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
+        {helperText && !error && <p className="text-gray-500 text-xs mt-1">{helperText}</p>}
       </div>
     );
   }
@@ -104,6 +107,7 @@ export function FormField({
           }}
         />
         {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
+        {helperText && !error && <p className="text-gray-500 text-xs mt-1">{helperText}</p>}
       </div>
     );
   }
@@ -137,6 +141,7 @@ export function FormField({
           </button>
         </div>
         {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
+        {helperText && !error && <p className="text-gray-500 text-xs mt-1">{helperText}</p>}
       </div>
     );
   }
@@ -167,9 +172,10 @@ export function FormField({
 
 interface ButtonProps {
   children: ReactNode;
-  onClick?: () => void;
+  onClick?: (e: any) => void;
   type?: 'button' | 'submit' | 'reset';
-  variant?: 'primary' | 'secondary' | 'danger' | 'success';
+  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'ghost';
+  size?: 'sm' | 'md' | 'lg' | 'icon';
   loading?: boolean;
   disabled?: boolean;
   className?: string;
@@ -181,6 +187,7 @@ export function Button({
   onClick,
   type = 'button',
   variant = 'primary',
+  size = 'md',
   loading = false,
   disabled = false,
   className = '',
@@ -192,6 +199,7 @@ export function Button({
     secondary: 'bg-gray-300 text-gray-800 hover:bg-gray-400',
     danger: 'bg-red-600 text-white hover:bg-red-700',
     success: 'bg-green-600 text-white hover:bg-green-700',
+    ghost: 'bg-transparent hover:bg-gray-100 text-gray-600',
   };
 
   const variantStyle: Record<string, CSSProperties> = {
@@ -202,6 +210,7 @@ export function Button({
     secondary: {},
     danger: {},
     success: {},
+    ghost: {},
   };
 
   return (

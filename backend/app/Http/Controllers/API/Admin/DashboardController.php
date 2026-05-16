@@ -25,6 +25,7 @@ class DashboardController extends Controller
                     ->count(),
                 'total_logs' => (int) DB::table('system_logs')->count(),
                 'total_reports' => (int) DB::table('reports')->count(),
+                'ready_for_disposal' => (int) DB::table('inventory_items')->where('status', 'ready_for_disposal')->count(),
             ];
         });
 

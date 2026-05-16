@@ -39,6 +39,7 @@ import DistributionGroupsPage from './pages/teacher/DistributionGroupsPage';
 import DistributionRequestsPage from './pages/teacher/DistributionRequestsPage';
 import TeacherReportsPage from './pages/teacher/ReportsPage';
 import NotificationsPage from './pages/shared/NotificationsPage';
+import HelpPage from './pages/common/HelpPage';
 
 // Common Components
 import { ProtectedRoute } from './components/common/ProtectedRoute';
@@ -299,6 +300,17 @@ function App() {
                     {/* my-requests removed as redundant with reservations?tab=requests */}
                     <Route path="*" element={<Navigate to="/teacher/dashboard" />} />
                   </Routes>
+                }
+              />
+
+              <Route
+                path="/help"
+                element={
+                  <ProtectedRoute>
+                    <ProtectedLayout>
+                      <HelpPage />
+                    </ProtectedLayout>
+                  </ProtectedRoute>
                 }
               />
 

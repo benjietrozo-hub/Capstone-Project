@@ -23,6 +23,18 @@ export const authAPI = {
 
   refreshToken: (refreshToken) =>
     axiosInstance.post('/auth/refresh-token', { refresh_token: refreshToken }),
+
+  sendOTP: (role) =>
+    axiosInstance.post(`/${role}/send-otp`),
+
+  verifyOTP: (role, otp) =>
+    axiosInstance.post(`/${role}/verify-otp`, { otp }),
+
+  resetForcedPassword: (role, data) =>
+    axiosInstance.post(`/${role}/reset-forced-password`, data),
+
+  verifyPassword: (role, password) =>
+    axiosInstance.post(`/${role}/verify-password`, { password }),
 };
 
 export const adminAPI = {
@@ -138,6 +150,9 @@ export const adminAPI = {
   getTeachers: (params) =>
     axiosInstance.get('/admin/teachers', { params }),
 
+  validateTeacherUnique: (field, value, exclude_id = null) => 
+    axiosInstance.get('/admin/teachers/validate-unique', { params: { field, value, exclude_id } }),
+
   createTeacher: (data) =>
     axiosInstance.post('/admin/teachers', data),
 
@@ -168,6 +183,9 @@ export const adminAPI = {
 
   deleteAdmin: (id) =>
     axiosInstance.delete(`/admin/admins/${id}`),
+  
+  demoteAdmin: (id) =>
+    axiosInstance.post(`/admin/admins/${id}/demote`),
 
   // Reports
   getReports: (params) =>
@@ -302,9 +320,15 @@ export const adminAPI = {
     axiosInstance.post(`/admin/distributions/${id}/lost`),
   getDistributionCoreStats: () =>
     axiosInstance.get('/admin/distributions/statistics'),
+  getSystemHealth: () =>
+    axiosInstance.get('/admin/system/health'),
 };
 
 export const teacherAPI = {
+  // Profile
+  getMe: () =>
+    axiosInstance.get('/teacher/me'),
+
   // Dashboard
   getDashboard: () =>
     axiosInstance.get('/teacher/dashboard'),
@@ -413,7 +437,7 @@ export const teacherAPI = {
 
   // Activity Logs
   getActivityLogs: (params) =>
-    axiosInstance.get('/teacher/activity-logs', { params }),
+    axiosInstance.get('/teacher/logs', { params }),
 
   getActivityLogStats: () =>
     axiosInstance.get('/teacher/activity-logs/statistics'),

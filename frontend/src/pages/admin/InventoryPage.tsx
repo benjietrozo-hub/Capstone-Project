@@ -8,7 +8,8 @@ import { toast } from 'sonner';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
 import { InventorySkeleton } from '../../components/common/Skeleton';
-import { Package, Layers, Settings, ArrowLeft, Image as ImageIcon, Archive, Plus, Edit, Folder, LayoutGrid, List, Trash2, Hash } from 'lucide-react';
+import { Package, Layers, Settings, ArrowLeft, Image as ImageIcon, Archive, Plus, Edit, Folder, LayoutGrid, List, Trash2, Hash, Calendar, Download, Eye, FileText, Info, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Modal } from '../../components/common/Modal';
 
 interface CustomField {
   id: number;
@@ -81,8 +82,15 @@ export function InventoryPage() {
   const [verifying, setVerifying] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'category' | 'item', id: number } | null>(null);
 
+  // CSV Export state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [csvContent, setCsvContent] = useState<string[][]>([]);
+
   // Display Mode state for items
   const [displayMode, setDisplayMode] = useState<'card' | 'list'>('card');
+  const [itemsPage, setItemsPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [itemSearch, setItemSearch] = useState('');
 
   // --- API Queries ---
   const { data: parentData, isLoading: loadingParents } = useQuery({
@@ -107,11 +115,53 @@ export function InventoryPage() {
     : categories;
 
   const { data: itemsResponse, isLoading: loadingItems } = useQuery({
-    queryKey: ['inventory-items', selectedCategory?.id],
-    queryFn: () => adminAPI.getInventoryItems({ category_id: selectedCategory?.id, per_page: 100 }),
+    queryKey: ['inventory-items', selectedCategory?.id, itemsPage, itemsPerPage, itemSearch],
+    queryFn: () => adminAPI.getInventoryItems({ 
+      category_id: selectedCategory?.id, 
+      page: itemsPage, 
+      per_page: itemsPerPage, 
+      search: itemSearch 
+    }),
     enabled: viewMode === 'items' && !!selectedCategory
   });
   const items: InventoryItem[] = itemsResponse?.data?.data || [];
+  const totalItemsCount = itemsResponse?.data?.total || 0;
+  const lastItemPage = itemsResponse?.data?.last_page || 1;
+
+  const handlePrepareCSV = () => {
+    if (!items || items.length === 0) {
+      toast.error('No items available to export');
+      return;
+    }
+
+    const headers = ['ID', 'Item Name', 'Serial Number', 'Property Number', 'Condition', 'Status', 'Date Acquired'];
+    const rows = items.map((item: InventoryItem) => [
+      item.id.toString(),
+      item.item_name,
+      item.serial_number,
+      item.property_number || 'N/A',
+      item.condition,
+      item.status,
+      item.date_acquired || 'N/A'
+    ]);
+
+    setCsvContent([headers, ...rows]);
+    setShowExportModal(true);
+  };
+
+  const downloadCSV = () => {
+    const csvString = csvContent.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `inventory_export_${selectedCategory?.category_name.toLowerCase().replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setShowExportModal(false);
+  };
 
   // --- Category Form State ---
   const [catName, setCatName] = useState('');
@@ -151,6 +201,18 @@ export function InventoryPage() {
   }, [addQuantity, serialNumber]);
 
   // --- Category Handlers ---
+  const handleMarkForDisposal = async (item: InventoryItem) => {
+    if (!confirm(`Are you sure you want to mark ${item.item_name} (SN: ${item.serial_number}) as ready for disposal?`)) return;
+    try {
+      await adminAPI.updateInventoryItem(item.id, { status: 'ready_for_disposal' });
+      toast.success('Item moved to disposal queue');
+      queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
+      queryClient.invalidateQueries({ queryKey: ['item-categories'] });
+    } catch (error) {
+      toast.error('Failed to mark item for disposal');
+    }
+  };
+
   const handleOpenCategoryModal = (cat: ItemCategory | null = null) => {
     setEditingCategory(cat);
     if (cat) {
@@ -524,6 +586,8 @@ export function InventoryPage() {
                     onClick={() => {
                       setSelectedCategory(cat);
                       setViewMode('items');
+                      setItemsPage(1);
+                      setItemSearch('');
                     }}
                     className="bg-white rounded overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col"
                   >
@@ -615,7 +679,14 @@ export function InventoryPage() {
                     <span className="block text-xs font-bold text-gray-500 uppercase mb-1">Total Units</span>
                     <span className="text-2xl font-black text-gray-700">{selectedCategory.total_items}</span>
                   </div>
-                  <div className="ml-auto flex items-end">
+                  <div className="ml-auto flex items-end gap-2">
+                    <Button 
+                      variant="secondary" 
+                      onClick={handlePrepareCSV} 
+                      className="flex items-center gap-2 border-gray-200"
+                    >
+                      <FileText className="w-4 h-4" /> Export CSV
+                    </Button>
                     <Button onClick={() => handleOpenItemModal()} className="flex items-center gap-2">
                       <Plus className="w-4 h-4" /> Add New Unit
                     </Button>
@@ -626,39 +697,54 @@ export function InventoryPage() {
 
             {/* Serialized Items List */}
             {/* Units Display Control */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-sm border border-gray-100 shadow-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-sm border border-gray-100 shadow-sm gap-4">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-primary/10 rounded">
                   <Package className="w-4 h-4 text-primary" />
                 </div>
                 <h3 className="font-bold text-gray-800">
-                  Serialized Units ({items.length})
+                  Serialized Units ({totalItemsCount})
                 </h3>
               </div>
 
-              <div className="flex items-center bg-gray-100 p-1 rounded-sm">
-                <button
-                  onClick={() => setDisplayMode('card')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
-                    displayMode === 'card' 
-                      ? 'bg-white text-primary shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                  Cards
-                </button>
-                <button
-                  onClick={() => setDisplayMode('list')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
-                    displayMode === 'list' 
-                      ? 'bg-white text-primary shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                  List
-                </button>
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, SN, property no..."
+                    value={itemSearch}
+                    onChange={(e) => {
+                      setItemSearch(e.target.value);
+                      setItemsPage(1);
+                    }}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div className="flex items-center bg-gray-100 p-1 rounded-sm w-full sm:w-auto justify-center">
+                  <button
+                    onClick={() => setDisplayMode('card')}
+                    className={`flex flex-1 sm:flex-none justify-center items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                      displayMode === 'card' 
+                        ? 'bg-white text-primary shadow-sm' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                    Cards
+                  </button>
+                  <button
+                    onClick={() => setDisplayMode('list')}
+                    className={`flex flex-1 sm:flex-none justify-center items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                      displayMode === 'list' 
+                        ? 'bg-white text-primary shadow-sm' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <List className="w-4 h-4" />
+                    List
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -674,165 +760,253 @@ export function InventoryPage() {
                 <p className="text-gray-500 mt-1 mb-4">Add your first unit to this category to start tracking.</p>
                 <Button onClick={() => handleOpenItemModal()}>Add Unit</Button>
               </div>
-            ) : displayMode === 'card' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {items.map((item) => (
-                  <div key={item.id} className="bg-white rounded overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all group flex flex-col">
-                    <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
-                      {item.item_image ? (
-                        <img 
-                          src={`http://localhost:8000/storage/${item.item_image}`} 
-                          alt={item.item_name} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <ImageIcon className="w-12 h-12 text-gray-300" />
-                      )}
-                      <div className="absolute top-3 right-3">
-                        <StatusBadge label={item.status} status={item.status} />
-                      </div>
+            ) : (
+              <div className="space-y-12">
+                {Object.entries(
+                  items.reduce((acc: Record<string, any[]>, item) => {
+                    const year = item.date_acquired ? new Date(item.date_acquired).getFullYear().toString() : 'Unknown Year';
+                    if (!acc[year]) acc[year] = [];
+                    acc[year].push(item);
+                    return acc;
+                  }, {})
+                )
+                .sort((a, b) => b[0].localeCompare(a[0]))
+                .map(([year, yearItems]) => (
+                  <div key={year} className="space-y-6">
+                    <div className="flex items-center gap-4">
+                      <div className="h-px flex-1 bg-gray-200"></div>
+                      <h3 className="text-sm font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 shrink-0">
+                        <Calendar className="w-4 h-4" />
+                        Acquisition Year: {year}
+                        <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-[10px]">{yearItems.length} Units</span>
+                      </h3>
+                      <div className="h-px flex-1 bg-gray-200"></div>
                     </div>
-                    
-                    <div className="p-5 flex-1 flex flex-col">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex flex-col">
-                          <h4 className="font-bold text-gray-900 line-clamp-1">{item.item_name}</h4>
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs font-mono text-primary font-bold">SN: {item.serial_number}</p>
-                            {item.is_approaching_end_of_life && (
-                              <div className="bg-amber-100 text-amber-700 p-1 rounded-full animate-pulse" title={`Approaching End of Life (${item.end_of_life_date ? new Date(item.end_of_life_date).toLocaleDateString() : 'N/A'})`}>
-                                <Settings className="w-3 h-3" />
+
+                    {displayMode === 'card' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {yearItems.map((item) => (
+                          <div key={item.id} className="bg-white rounded overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all group flex flex-col">
+                            <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
+                              {item.item_image ? (
+                                <img 
+                                  src={`http://localhost:8000/storage/${item.item_image}`} 
+                                  alt={item.item_name} 
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                              ) : (
+                                <ImageIcon className="w-12 h-12 text-gray-300" />
+                              )}
+                              <div className="absolute top-3 right-3">
+                                <StatusBadge label={item.status} status={item.status} />
                               </div>
-                            )}
-                          </div>
-                        </div>
+                            </div>
+                            
+                            <div className="p-5 flex-1 flex flex-col">
+                              <div className="flex justify-between items-start mb-3">
+                                <div className="flex flex-col">
+                                  <h4 className="font-bold text-gray-900 line-clamp-1">{item.item_name}</h4>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs font-mono text-primary font-bold">SN: {item.serial_number}</p>
+                                    {item.is_approaching_end_of_life && (
+                                      <div className="bg-amber-100 text-amber-700 p-1 rounded-full animate-pulse" title={`Approaching End of Life`}>
+                                        <Settings className="w-3 h-3" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex gap-1">
+                                  <button 
+                                    onClick={() => handleOpenItemModal(item, false)}
+                                    className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-sm transition-colors"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteItem(item.id)}
+                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-sm transition-colors"
+                                  >
+                                    <Archive className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
 
-                        <button 
-                          onClick={() => handleOpenItemModal(item, false)}
-                          className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-sm transition-colors"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-sm transition-colors"
-                        >
-                          <Archive className="w-4 h-4" />
-                        </button>
-                      </div>
+                              <div className="space-y-2 mb-4 flex-1">
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-500">Property No.</span>
+                                  <span className="font-medium text-gray-700">{item.property_number || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-500">Condition</span>
+                                  <span className="font-medium text-gray-700 capitalize">{item.condition}</span>
+                                </div>
+                              </div>
 
-                      <div className="space-y-2 mb-4 flex-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">Property No.</span>
-                          <span className="font-medium text-gray-700">{item.property_number || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">Condition</span>
-                          <span className="font-medium text-gray-700 capitalize">{item.condition}</span>
-                        </div>
-                        {Object.entries(item.custom_attributes || {}).slice(0, 2).map(([k, v]) => (
-                          <div key={k} className="flex justify-between text-xs border-t border-gray-50 pt-1">
-                            <span className="text-gray-500 line-clamp-1">{k}</span>
-                            <span className="font-medium text-gray-700 line-clamp-1">{String(v)}</span>
+                              <div className="pt-4 border-t border-gray-100 flex gap-2">
+                                <Button 
+                                  variant="secondary" 
+                                  className="flex-1 text-[10px] font-black uppercase tracking-widest py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200"
+                                  onClick={() => handleOpenItemModal(item, true)}
+                                >
+                                  Details
+                                </Button>
+                                {(item.status === 'damaged' || item.condition === 'damaged' || item.is_approaching_end_of_life) && item.status !== 'ready_for_disposal' && item.status !== 'disposed' && (
+                                  <Button 
+                                    className="flex-1 text-[10px] font-black uppercase tracking-widest py-2 bg-red-600 hover:bg-red-700 text-white shadow-sm"
+                                    onClick={() => handleMarkForDisposal(item)}
+                                  >
+                                    Dispose
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
-
-                      <div className="pt-4 border-t border-gray-100">
-                        <Button 
-                          variant="secondary" 
-                          className="w-full text-xs py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200"
-                          onClick={() => handleOpenItemModal(item, true)}
-                        >
-                          View Details
-                        </Button>
+                    ) : (
+                      <div className="bg-white rounded-sm shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+                              <tr>
+                                <th className="px-6 py-3 font-semibold">Asset Info</th>
+                                <th className="px-6 py-3 font-semibold">Identifiers</th>
+                                <th className="px-6 py-3 font-semibold">Condition</th>
+                                <th className="px-6 py-3 font-semibold">Status</th>
+                                <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {yearItems.map((item) => (
+                                <tr key={item.id} className="border-b last:border-0 hover:bg-blue-50/30 transition-colors">
+                                  <td className="px-6 py-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-sm bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
+                                        {item.item_image ? <img src={`http://localhost:8000/storage/${item.item_image}`} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-4 h-4 text-gray-400" />}
+                                      </div>
+                                      <div>
+                                        <div className="font-bold text-gray-900 flex items-center gap-2">
+                                          {item.item_name}
+                                          {item.is_approaching_end_of_life && <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded font-black uppercase">EOL</span>}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 font-mono text-xs">SN: {item.serial_number}</td>
+                                  <td className="px-6 py-4 capitalize">{item.condition}</td>
+                                  <td className="px-6 py-4"><StatusBadge label={item.status} status={item.status} /></td>
+                                  <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                    {(item.status === 'damaged' || item.condition === 'damaged' || item.is_approaching_end_of_life) && item.status !== 'ready_for_disposal' && item.status !== 'disposed' && (
+                                      <button onClick={() => handleMarkForDisposal(item)} className="text-red-600 hover:text-red-800 font-bold text-xs uppercase tracking-tighter transition-colors">Dispose</button>
+                                    )}
+                                    <button onClick={() => handleOpenItemModal(item, true)} className="text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors">View</button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="bg-white rounded-sm shadow-sm border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
-                      <tr>
-                        <th className="px-6 py-3 font-semibold">Asset Info</th>
-                        <th className="px-6 py-3 font-semibold">Identifiers</th>
-                        <th className="px-6 py-3 font-semibold">Condition</th>
-                        <th className="px-6 py-3 font-semibold">Status</th>
-                        <th className="px-6 py-3 font-semibold text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((item) => (
-                        <tr key={item.id} className="border-b last:border-0 hover:bg-blue-50/30 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-sm bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
-                                {item.item_image ? (
-                                  <img src={`http://localhost:8000/storage/${item.item_image}`} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <ImageIcon className="w-4 h-4 text-gray-400" />
-                                )}
-                              </div>
-                              <div>
-                                <div className="font-bold text-gray-900 flex items-center gap-2">
-                                  {item.item_name}
-                                  {item.is_approaching_end_of_life && (
-                                    <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded font-black uppercase flex items-center gap-1">
-                                      <Settings className="w-2.5 h-2.5" /> End of Life
-                                    </span>
-                                  )}
-                                </div>
-                                {Object.entries(item.custom_attributes || {}).slice(0, 2).map(([k, v]) => (
-                                  <div key={k} className="text-xs text-gray-500">{k}: {String(v)}</div>
-                                ))}
-                              </div>
+            )}
 
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="font-mono text-xs font-bold text-gray-800 bg-gray-100 px-2 py-1 rounded inline-block border border-gray-200 mb-1">
-                              SN: {item.serial_number}
-                            </div>
-                            {item.property_number && (
-                              <div className="text-xs text-gray-500">PN: {item.property_number}</div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="capitalize text-gray-700 font-medium">{item.condition}</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <StatusBadge label={item.status} status={item.status} />
-                          </td>
-                          <td className="px-6 py-4 text-right flex justify-end gap-2">
-                            <button 
-                              onClick={() => handleOpenItemModal(item, true)}
-                              className="text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors"
-                            >
-                              View
-                            </button>
-                            <button 
-                              onClick={() => handleOpenItemModal(item, false)}
-                              className="text-primary hover:text-blue-800 font-medium text-sm transition-colors"
-                            >
-                              Edit
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteItem(item.id)}
-                              className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors"
-                            >
-                              Archive
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            {/* Pagination Controls for Items */}
+            {!loadingItems && totalItemsCount > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="text-sm text-gray-500 font-medium">
+                    Showing <span className="font-bold text-gray-900">{items.length}</span> of <span className="font-bold text-gray-900">{totalItemsCount}</span> units
+                  </div>
+                  <div className="w-40">
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(parseInt(e.target.value));
+                        setItemsPage(1);
+                      }}
+                      className="w-full px-3 py-2 text-xs font-bold border border-gray-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                    >
+                      <option value={5}>5 per page</option>
+                      <option value={10}>10 per page</option>
+                      <option value={20}>20 per page</option>
+                      <option value={50}>50 per page</option>
+                      <option value={100}>100 per page</option>
+                      <option value={totalItemsCount}>All ({totalItemsCount})</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === 1}
+                    onClick={() => setItemsPage(1)}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === 1}
+                    onClick={() => setItemsPage(prev => Math.max(1, prev - 1))}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, lastItemPage) }, (_, i) => {
+                      let pageNum;
+                      if (lastItemPage <= 5) {
+                        pageNum = i + 1;
+                      } else if (itemsPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (itemsPage >= lastItemPage - 2) {
+                        pageNum = lastItemPage - 4 + i;
+                      } else {
+                        pageNum = itemsPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={itemsPage === pageNum ? 'primary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setItemsPage(pageNum)}
+                          className={`h-9 w-9 p-0 text-xs font-bold ${itemsPage === pageNum ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === lastItemPage}
+                    onClick={() => setItemsPage(prev => Math.min(lastItemPage, prev + 1))}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === lastItemPage}
+                    onClick={() => setItemsPage(lastItemPage)}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-            ) }
+            )}
           </div>
         )}
 
@@ -900,6 +1074,46 @@ export function InventoryPage() {
               <Button onClick={handleSaveCategory}>Save Category</Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Rename Master Modal */}
+      {showRenameMasterModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold">Rename Master Category</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField 
+                label="Master Category Name" 
+                value={newMasterName} 
+                onChange={(e) => setNewMasterName(e.target.value)}
+                placeholder="Enter name..."
+                required
+              />
+              <FormField 
+                label="Description" 
+                value={masterDesc} 
+                onChange={(e) => setMasterDesc(e.target.value)}
+                type="textarea"
+                placeholder="Describe this master category..."
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Master Category Image</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={e => setMasterImage(e.target.files?.[0] || null)} 
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" 
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <Button variant="secondary" onClick={() => setShowRenameMasterModal(false)}>Cancel</Button>
+                <Button onClick={handleRenameMaster} loading={renamingMaster}>Save Changes</Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -1131,77 +1345,104 @@ export function InventoryPage() {
           </div>
         </div>
       )}
-
-      {/* Rename Master Modal */}
-      {showRenameMasterModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-            <CardHeader>
-              <CardTitle className="text-xl font-bold">Rename Master Category</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField 
-                label="Master Category Name" 
-                value={newMasterName} 
-                onChange={(e) => setNewMasterName(e.target.value)}
-                placeholder="Enter name..."
-                required
-              />
-              <FormField 
-                label="Description" 
-                value={masterDesc} 
-                onChange={(e) => setMasterDesc(e.target.value)}
-                type="textarea"
-                placeholder="Describe this master category..."
-              />
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Master Category Image</label>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={e => setMasterImage(e.target.files?.[0] || null)} 
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" 
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <Button variant="secondary" onClick={() => setShowRenameMasterModal(false)}>Cancel</Button>
-                <Button onClick={handleRenameMaster} loading={renamingMaster}>Save Changes</Button>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Verification Modal */}
+      <Modal
+        isOpen={showVerifyModal}
+        onClose={() => {
+          setShowVerifyModal(false);
+          setVerifyPassword('');
+          setPendingAction(null);
+        }}
+        title="Admin Verification Required"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 bg-amber-50 p-3 rounded border border-amber-100 mb-2">
+            <Settings className="w-5 h-5 text-amber-600 animate-pulse" />
+            <p className="text-xs text-amber-800 font-medium">Please enter your password to confirm this sensitive action.</p>
+          </div>
+          <FormField
+            label="Admin Password"
+            type="password"
+            value={verifyPassword}
+            onChange={(e) => setVerifyPassword(e.target.value)}
+            placeholder="Enter password..."
+          />
+          <div className="flex gap-3 pt-2">
+            <Button 
+              className="flex-1" 
+              onClick={handleVerifyAndExecute}
+              disabled={verifying || !verifyPassword}
+            >
+              {verifying ? 'Verifying...' : 'Confirm Action'}
+            </Button>
+            <Button 
+              variant="secondary" 
+              className="flex-1"
+              onClick={() => setShowVerifyModal(false)}
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
-      )}
+      </Modal>
 
-      {/* Password Verification Modal */}
-      {showVerifyModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 border-red-100">
-            <CardHeader className="bg-red-50/50 pb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-2">
-                <Settings className="w-6 h-6 text-red-600 animate-pulse" />
-              </div>
-              <CardTitle className="text-xl font-bold text-gray-900">Security Verification</CardTitle>
-              <p className="text-sm text-gray-500">Please enter your administrator password to authorize this archive action.</p>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              <FormField 
-                label="Admin Password" 
-                type="password"
-                value={verifyPassword} 
-                onChange={(e) => setVerifyPassword(e.target.value)}
-                placeholder="Enter your password..."
-                required
-              />
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <Button variant="secondary" onClick={() => { setShowVerifyModal(false); setVerifyPassword(''); }}>Cancel</Button>
-                <Button variant="danger" onClick={handleVerifyAndExecute} loading={verifying}>
-                  Confirm Archive
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+      {/* CSV Export Preview Modal */}
+      <Modal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Data Preview"
+      >
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-100 p-4 rounded flex items-center gap-3">
+            <Info className="w-5 h-5 text-blue-500" />
+            <p className="text-xs text-blue-700 font-medium leading-relaxed">
+              Below is a preview of the data that will be exported to your CSV file. 
+              Confirm the contents before initiating the download.
+            </p>
+          </div>
+
+          <div className="max-h-[400px] overflow-auto border border-gray-100 rounded shadow-inner bg-gray-50/30">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead className="sticky top-0 bg-white border-b border-gray-200 z-10 shadow-sm">
+                <tr>
+                  {csvContent[0]?.map((header, idx) => (
+                    <th key={idx} className="px-3 py-2 font-black uppercase text-gray-500 tracking-wider bg-gray-50/50">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {csvContent.slice(1).map((row, rowIdx) => (
+                  <tr key={rowIdx} className="hover:bg-blue-50/30 transition-colors bg-white">
+                    {row.map((cell, cellIdx) => (
+                      <td key={cellIdx} className="px-3 py-2 text-gray-600 font-medium whitespace-nowrap">
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex gap-4 pt-4 border-t border-gray-100">
+            <Button 
+              className="flex-1 flex items-center justify-center gap-2 shadow-lg" 
+              onClick={downloadCSV}
+            >
+              <Download className="w-4 h-4" /> Download CSV File
+            </Button>
+            <Button 
+              variant="secondary" 
+              className="flex-1 border-gray-200"
+              onClick={() => setShowExportModal(false)}
+            >
+              Close Preview
+            </Button>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

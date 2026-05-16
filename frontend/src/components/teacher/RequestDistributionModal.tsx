@@ -16,6 +16,8 @@ import { toast } from 'sonner';
 interface RequestDistributionModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  initialCategoryId?: number;
+  initialItemCode?: any;
 }
 
 interface Category {
@@ -32,19 +34,24 @@ interface Entity {
   name: string;
 }
 
-export default function RequestDistributionModal({ onClose, onSuccess }: RequestDistributionModalProps) {
+export default function RequestDistributionModal({ 
+  onClose, 
+  onSuccess,
+  initialCategoryId,
+  initialItemCode 
+}: RequestDistributionModalProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
   
   const [formData, setFormData] = useState({
-    category_id: '',
+    category_id: initialCategoryId?.toString() || '',
     quantity_requested: '',
     reason: '',
-    notes: '',
+    notes: initialItemCode ? `Requesting specific item: ${initialItemCode}` : '',
     priority: 'normal',
-    requested_for: 'Teacher-self' // format: "Type-ID"
+    requested_for: 'Teacher-0' // Changed 'Teacher-self' to 'Teacher-0' to match logic in fetchInitialData
   });
 
   useEffect(() => {

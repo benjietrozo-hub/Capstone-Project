@@ -71,44 +71,92 @@ export const exportToCSV = (data: any[], filename: string, headers?: Record<stri
 export const generateRequestPDF = (reqData: BorrowRequestData) => {
   const doc = new jsPDF();
   
-  // Title
-  doc.setFontSize(22);
-  doc.setTextColor(40, 40, 40);
-  doc.text('Borrow Request Details', 14, 22);
-  
-  // Request ID / Status
+  // Institutional Header (DepEd Standard)
   doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
-  doc.text(`Request ID: #${reqData.id}`, 14, 30);
-  doc.text(`Status: ${reqData.status?.toUpperCase() || 'N/A'}`, 14, 35);
-  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 40);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Republic of the Philippines', doc.internal.pageSize.width / 2, 15, { align: 'center' });
+  doc.text('Department of Education', doc.internal.pageSize.width / 2, 20, { align: 'center' });
+  doc.text('Caraga Region XIII', doc.internal.pageSize.width / 2, 25, { align: 'center' });
+  doc.text('Division of Agusan del Norte', doc.internal.pageSize.width / 2, 30, { align: 'center' });
+  
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CALOC-AN ELEMENTARY SCHOOL', doc.internal.pageSize.width / 2, 38, { align: 'center' });
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'italic');
+  doc.text('Caloc-an, Magallanes, Agusan del Norte', doc.internal.pageSize.width / 2, 43, { align: 'center' });
   
   // Divider line
-  doc.setDrawColor(200, 200, 200);
-  doc.line(14, 45, 196, 45);
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.5);
+  doc.line(14, 48, 196, 48);
 
+  // Document Title
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  doc.text('EQUIPMENT BORROWER\'S SLIP', doc.internal.pageSize.width / 2, 58, { align: 'center' });
+  
+  // Meta Info
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Request Code: ${reqData.request_code || `REQ-${reqData.id}`}`, 14, 68);
+  doc.text(`Date Generated: ${new Date().toLocaleString()}`, 196, 68, { align: 'right' });
+  
   // AutoTable for Request Details
   autoTable(doc, {
-    startY: 50,
+    startY: 75,
     theme: 'grid',
-    headStyles: { fillColor: [102, 126, 234], textColor: 255 },
+    headStyles: { fillColor: [50, 50, 50], textColor: 255, fontStyle: 'bold' },
+    styles: { fontSize: 10, cellPadding: 5 },
     columnStyles: {
-      0: { fontStyle: 'bold', cellWidth: 60, fillColor: [245, 245, 245] },
+      0: { fontStyle: 'bold', cellWidth: 50, fillColor: [250, 250, 250] },
       1: { cellWidth: 'auto' }
     },
     body: [
-      ['Request Code', reqData.request_code || `REQ-${reqData.id}`],
-      ['Teacher Name', reqData.teacher_name || 'N/A'],
-      ['Employee ID', reqData.employee_id || 'N/A'],
-      ['Category Name', reqData.category_name || 'N/A'],
-      ['Category Code', reqData.category_code || 'N/A'],
-      ['Quantity', String(reqData.quantity || '0')],
+      ['Full Name of Borrower', reqData.teacher_name || 'N/A'],
+      ['Employee/ID Number', reqData.employee_id || 'N/A'],
+      ['Equipment Category', reqData.category_name || 'N/A'],
+      ['Requested Quantity', String(reqData.quantity || '0')],
       ['Date Requested', reqData.date_requested ? formatDate(reqData.date_requested) : 'N/A'],
-      ['Expected Return', reqData.expected_return ? formatDate(reqData.expected_return) : 'N/A'],
-      ['Purpose', reqData.purpose || 'None provided'],
-      ['Admin Notes', reqData.admin_notes || 'None']
+      ['Expected Return Date', reqData.expected_return ? formatDate(reqData.expected_return) : 'N/A'],
+      ['Purpose of Use', reqData.purpose || 'None provided'],
+      ['Status', reqData.status?.toUpperCase() || 'PENDING'],
+      ['Admin/Office Notes', reqData.admin_notes || 'N/A']
     ],
   });
+
+  // Accountability / Signatures
+  const finalY = (doc as any).lastAutoTable.finalY + 30;
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  
+  // Borrower
+  doc.line(14, finalY, 74, finalY);
+  doc.text(reqData.teacher_name?.toUpperCase() || 'BORROWER NAME', 44, finalY + 5, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Signature over Printed Name', 44, finalY + 10, { align: 'center' });
+  doc.text('(Borrower)', 44, finalY + 15, { align: 'center' });
+
+  // Supply Officer
+  doc.setFont('helvetica', 'bold');
+  doc.line(136, finalY, 196, finalY);
+  doc.text('BENJIE TROZO', 166, finalY + 5, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Signature over Printed Name', 166, finalY + 10, { align: 'center' });
+  doc.text('School Property Custodian', 166, finalY + 15, { align: 'center' });
+
+  // Approval (Centered Bottom)
+  const approvalY = finalY + 35;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Approved by:', doc.internal.pageSize.width / 2, approvalY - 10, { align: 'center' });
+  doc.line(doc.internal.pageSize.width / 2 - 30, approvalY + 5, doc.internal.pageSize.width / 2 + 30, approvalY + 5);
+  doc.text('SCHOOL PRINCIPAL', doc.internal.pageSize.width / 2, approvalY + 10, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Office of the Principal', doc.internal.pageSize.width / 2, approvalY + 15, { align: 'center' });
 
   // Footer
   const pageCount = (doc.internal as any).getNumberOfPages();
@@ -117,7 +165,7 @@ export const generateRequestPDF = (reqData: BorrowRequestData) => {
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(
-      'Role-Based Online Inventory Management System',
+      'Property Inventory Management System - Caloc-an Elementary School',
       doc.internal.pageSize.width / 2,
       doc.internal.pageSize.height - 10,
       { align: 'center' }
@@ -125,5 +173,5 @@ export const generateRequestPDF = (reqData: BorrowRequestData) => {
   }
 
   // Save the PDF
-  doc.save(`Borrow_Request_${reqData.id}.pdf`);
+  doc.save(`Borrow_Slip_${reqData.request_code || reqData.id}.pdf`);
 };

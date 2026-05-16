@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Download, Filter, Calendar, Package, Users, User, Clock, CheckCircle, XCircle, AlertCircle, Eye, FileText } from "lucide-react";
+import { Search, Download, Filter, Calendar, Package, Users, User, Clock, CheckCircle, XCircle, AlertCircle, Eye, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +84,11 @@ export default function DistributionLogsPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedLog, setSelectedLog] = useState<DistributionLog | null>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [perPage, setPerPage] = useState(50);
+  const [totalLogsCount, setTotalLogsCount] = useState(0);
+
   useEffect(() => {
     fetchLogs();
     fetchStats();
@@ -91,14 +96,17 @@ export default function DistributionLogsPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, [actionFilter, dateFrom, dateTo]);
+  }, [actionFilter, dateFrom, dateTo, currentPage, perPage]);
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
       
-      const params: any = {};
+      const params: any = {
+        page: currentPage,
+        per_page: perPage,
+      };
       if (actionFilter !== "all") params.action = actionFilter;
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
@@ -109,7 +117,14 @@ export default function DistributionLogsPage() {
         params
       });
 
-      setLogs(response.data.data.data || response.data.data);
+      const responseData = response.data.data;
+      if (responseData && responseData.data) {
+        setLogs(responseData.data);
+        setTotalLogsCount(responseData.total);
+        setLastPage(responseData.last_page);
+      } else {
+        setLogs(responseData);
+      }
     } catch (error: any) {
       console.error("Error fetching distribution logs:", error);
       toast.error("Failed to load distribution logs");
@@ -271,12 +286,12 @@ export default function DistributionLogsPage() {
                 placeholder="Search logs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchLogs()}
+                onKeyDown={(e) => { if (e.key === 'Enter') { setCurrentPage(1); fetchLogs(); } }}
                 className="pl-10"
               />
             </div>
 
-            <Select value={actionFilter} onValueChange={setActionFilter}>
+            <Select value={actionFilter} onValueChange={(val) => { setActionFilter(val); setCurrentPage(1); }}>
               <SelectTrigger>
                 <SelectValue placeholder="All Actions" />
               </SelectTrigger>
@@ -293,14 +308,14 @@ export default function DistributionLogsPage() {
             <Input
               type="date"
               value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }}
               placeholder="From Date"
             />
 
             <Input
               type="date"
               value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }}
               placeholder="To Date"
             />
           </div>
@@ -394,6 +409,105 @@ export default function DistributionLogsPage() {
               <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No logs found</h3>
               <p className="text-gray-600">Try adjusting your filters</p>
+            </div>
+          )}
+          
+          {/* Pagination Controls */}
+          {!loading && totalLogsCount > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-gray-500 font-medium">
+                  Showing <span className="font-bold text-gray-900">{logs.length}</span> of <span className="font-bold text-gray-900">{totalLogsCount}</span> logs
+                </div>
+                <div className="w-40">
+                  <Select
+                    value={perPage.toString()}
+                    onValueChange={(val) => {
+                      setPerPage(parseInt(val));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Items per page" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 per page</SelectItem>
+                      <SelectItem value="10">10 per page</SelectItem>
+                      <SelectItem value="20">20 per page</SelectItem>
+                      <SelectItem value="50">50 per page</SelectItem>
+                      <SelectItem value="100">100 per page</SelectItem>
+                      <SelectItem value={totalLogsCount.toString()}>All ({totalLogsCount})</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(1)}
+                  className="h-9 w-9 p-0 flex items-center justify-center"
+                >
+                  <ChevronsLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  className="h-9 w-9 p-0 flex items-center justify-center"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, lastPage) }, (_, i) => {
+                    let pageNum;
+                    if (lastPage <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= lastPage - 2) {
+                      pageNum = lastPage - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`h-9 w-9 p-0 text-xs font-bold`}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={currentPage === lastPage}
+                  onClick={() => setCurrentPage(prev => Math.min(lastPage, prev + 1))}
+                  className="h-9 w-9 p-0 flex items-center justify-center"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={currentPage === lastPage}
+                  onClick={() => setCurrentPage(lastPage)}
+                  className="h-9 w-9 p-0 flex items-center justify-center"
+                >
+                  <ChevronsRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

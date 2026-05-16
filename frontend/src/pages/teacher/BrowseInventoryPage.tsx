@@ -6,7 +6,7 @@ import { teacherAPI } from '../../api';
 import { toast } from '@/hooks/use-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
-import { Package, Layers, Search, Filter, Calendar, Clock, AlertCircle, ArrowRight, ArrowLeft, X, Check, FileText, Image as ImageIcon, Plus, Trash2, Folder, LayoutGrid, List, Info, ClipboardCheck, Eye } from 'lucide-react';
+import { Package, Layers, Search, Filter, Calendar, Clock, AlertCircle, ArrowRight, ArrowLeft, X, Check, FileText, Image as ImageIcon, Plus, Trash2, Folder, LayoutGrid, List, Info, ClipboardCheck, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { STORAGE_BASE_URL } from '../../utils/constants';
 import RequestDistributionModal from '@/components/teacher/RequestDistributionModal';
@@ -48,18 +48,34 @@ export function BrowseInventoryPage() {
   const [sortBy, setSortBy] = useState('category_name');
   const [sortOrder, setSortOrder] = useState('asc');
   
+  // Item-level filtering and pagination
+  const [itemSearch, setItemSearch] = useState('');
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [itemsPage, setItemsPage] = useState(1);
+  
   const [selectedCategory, setSelectedCategory] = useState<ItemCategory | null>(null);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const calculateSuggestedDate = (qty: number) => {
+    const days = Math.max(1, qty * 3); // Suggest 3 days per item
+    return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  };
+
   const [requestForm, setRequestForm] = useState<RequestForm>({
     quantity: 1,
     purpose: '',
-    expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Tomorrow
+    expected_return_date: calculateSuggestedDate(1),
   });
   const [requestType, setRequestType] = useState<'borrow' | 'distribution'>('borrow');
   const [showPolymorphicRequestModal, setShowPolymorphicRequestModal] = useState(false);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [perPage, setPerPage] = useState(12);
+  const [totalItems, setTotalItems] = useState(0);
 
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -71,7 +87,7 @@ export function BrowseInventoryPage() {
     } else if (viewMode === 'categories') {
       fetchCategories();
     }
-  }, [search, sortBy, sortOrder, viewMode, selectedParentCategory]);
+  }, [search, sortBy, sortOrder, viewMode, selectedParentCategory, currentPage, perPage]);
 
   const fetchParentCategories = async () => {
     try {
@@ -93,9 +109,12 @@ export function BrowseInventoryPage() {
         sort_by: sortBy,
         sort_order: sortOrder,
         parent_category: selectedParentCategory,
-        per_page: 50,
+        page: currentPage,
+        per_page: perPage,
       });
       setCategories(response.data.data);
+      setTotalItems(response.data.total || 0);
+      setLastPage(response.data.last_page || 1);
     } catch (error) {
       console.error('Failed to load inventory categories:', error);
     } finally {
@@ -107,6 +126,8 @@ export function BrowseInventoryPage() {
     try {
       setLoadingDetails(true);
       setViewMode('items');
+      setItemSearch('');
+      setItemsPage(1);
       const response = await teacherAPI.getCategoryDetails(id);
       setSelectedCategory(response.data);
     } catch (error) {
@@ -132,11 +153,12 @@ export function BrowseInventoryPage() {
     setSelectedCategory(cat);
     setSelectedItem(item || null);
     setRequestType('borrow');
+    const initialQty = 1;
     setRequestForm({
       inventory_item_id: item?.id,
-      quantity: 1,
+      quantity: initialQty,
       purpose: '',
-      expected_return_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      expected_return_date: calculateSuggestedDate(initialQty),
     });
     setShowRequestModal(true);
   };
@@ -213,6 +235,17 @@ export function BrowseInventoryPage() {
       }
     }
   };
+
+  // Client-side items filtering and pagination
+  const filteredItems = selectedCategory?.inventory_items?.filter(item => 
+    item.item_name.toLowerCase().includes(itemSearch.toLowerCase()) ||
+    item.serial_number.toLowerCase().includes(itemSearch.toLowerCase()) ||
+    (item.property_number && item.property_number.toLowerCase().includes(itemSearch.toLowerCase()))
+  ) || [];
+  
+  const totalFilteredItems = filteredItems.length;
+  const lastItemPage = Math.ceil(totalFilteredItems / itemsPerPage) || 1;
+  const paginatedItems = filteredItems.slice((itemsPage - 1) * itemsPerPage, itemsPage * itemsPerPage);
 
   return (
     <div className="bg-gray-50 min-h-screen pb-10">
@@ -341,52 +374,161 @@ export function BrowseInventoryPage() {
                 <p className="text-gray-500 mt-1">Check back later for available inventory.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {categories.map((cat) => (
-                  <div 
-                    key={cat.id} 
-                    className="bg-white rounded overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer group hover:border-blue-300"
-                    onClick={() => handleViewCategoryItems(cat.id)}
-                  >
-                    <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
-                      {cat.category_image ? (
-                        <img 
-                          src={`${STORAGE_BASE_URL}/${cat.category_image}`} 
-                          alt={cat.category_name} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <Layers className="w-12 h-12 text-gray-300" />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                        <span className="text-white font-medium text-sm flex items-center gap-2">
-                          View Units <ArrowLeft className="w-4 h-4 rotate-180" />
-                        </span>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {categories.map((cat) => (
+                    <div 
+                      key={cat.id} 
+                      className={`bg-white rounded overflow-hidden border border-gray-200 shadow-sm transition-all flex flex-col cursor-pointer group ${
+                        cat.available_items > 0 
+                          ? 'hover:shadow-md hover:border-blue-300' 
+                          : 'opacity-80 grayscale-[0.3] cursor-not-allowed bg-slate-50 border-slate-200'
+                      }`}
+                      onClick={() => cat.available_items > 0 ? handleViewCategoryItems(cat.id) : toast({ title: "Currently Unavailable", description: "All units in this category are currently borrowed or distributed.", variant: "destructive" })}
+                    >
+                      <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
+                        {cat.category_image ? (
+                          <img 
+                            src={`${STORAGE_BASE_URL}/${cat.category_image}`} 
+                            alt={cat.category_name} 
+                            className={`w-full h-full object-cover transition-transform duration-500 ${cat.available_items > 0 ? 'group-hover:scale-105' : ''}`}
+                          />
+                        ) : (
+                          <Layers className="w-12 h-12 text-gray-300" />
+                        )}
+                        
+                        {cat.available_items > 0 ? (
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                            <span className="text-white font-medium text-sm flex items-center gap-2">
+                              View Units <ArrowLeft className="w-4 h-4 rotate-180" />
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-sm shadow-xl">
+                              All Units Out
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="p-5 flex-1 flex flex-col">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{cat.category_name}</h3>
+                        <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-1">
+                          {cat.description || 'No description provided.'}
+                        </p>
+                        
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Available</span>
+                            <span className={`text-lg font-black ${cat.available_items > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                              {cat.available_items}
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Units</span>
+                            <span className="text-lg font-black text-gray-700">{cat.total_items}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="p-5 flex-1 flex flex-col">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{cat.category_name}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-1">
-                        {cat.description || 'No description provided.'}
-                      </p>
-                      
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Available</span>
-                          <span className={`text-lg font-black ${cat.available_items > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                            {cat.available_items}
-                          </span>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Units</span>
-                          <span className="text-lg font-black text-gray-700">{cat.total_items}</span>
-                        </div>
+                  ))}
+                </div>
+
+                {/* Pagination Controls */}
+                {!loading && viewMode === 'categories' && totalItems > 0 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm text-gray-500 font-medium">
+                        Showing <span className="font-bold text-gray-900">{categories.length}</span> of <span className="font-bold text-gray-900">{totalItems}</span> categories
                       </div>
+                      <div className="w-40">
+                        <select
+                          value={perPage}
+                          onChange={(e) => {
+                            setPerPage(parseInt(e.target.value));
+                            setCurrentPage(1);
+                          }}
+                          className="w-full px-3 py-2 text-xs font-bold border border-gray-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        >
+                          <option value={5}>5 per page</option>
+                          <option value={10}>10 per page</option>
+                          <option value={20}>20 per page</option>
+                          <option value={50}>50 per page</option>
+                          <option value={totalItems}>All ({totalItems})</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(1)}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronsLeft className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, lastPage) }, (_, i) => {
+                          let pageNum;
+                          if (lastPage <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= lastPage - 2) {
+                            pageNum = lastPage - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? 'primary' : 'ghost'}
+                              size="sm"
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={`h-9 w-9 p-0 text-xs font-bold ${currentPage === pageNum ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === lastPage}
+                        onClick={() => setCurrentPage(prev => Math.min(lastPage, prev + 1))}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={currentPage === lastPage}
+                        onClick={() => setCurrentPage(lastPage)}
+                        className="h-9 w-9 p-0 flex items-center justify-center"
+                      >
+                        <ChevronsRight className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </Card>
         )}
@@ -441,39 +583,54 @@ export function BrowseInventoryPage() {
             </div>
 
             {/* Units Display Control */}
-            <div className="flex justify-between items-center bg-white p-4 rounded border border-gray-100 shadow-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded border border-gray-100 shadow-sm gap-4">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-blue-50 rounded">
                   <Package className="w-4 h-4 text-blue-600" />
                 </div>
                 <h3 className="font-bold text-gray-800">
-                  Serialized Units ({selectedCategory?.inventory_items?.length || 0})
+                  Serialized Units ({totalFilteredItems})
                 </h3>
               </div>
 
-              <div className="flex items-center bg-gray-100 p-1 rounded-sm">
-                <button
-                  onClick={() => setDisplayMode('card')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
-                    displayMode === 'card' 
-                      ? 'bg-white text-blue-600 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                  Cards
-                </button>
-                <button
-                  onClick={() => setDisplayMode('list')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
-                    displayMode === 'list' 
-                      ? 'bg-white text-blue-600 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                  List
-                </button>
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, SN, property no..."
+                    value={itemSearch}
+                    onChange={(e) => {
+                      setItemSearch(e.target.value);
+                      setItemsPage(1);
+                    }}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex items-center bg-gray-100 p-1 rounded-sm w-full sm:w-auto justify-center">
+                  <button
+                    onClick={() => setDisplayMode('card')}
+                    className={`flex flex-1 sm:flex-none justify-center items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                      displayMode === 'card' 
+                        ? 'bg-white text-blue-600 shadow-sm' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                    Cards
+                  </button>
+                  <button
+                    onClick={() => setDisplayMode('list')}
+                    className={`flex flex-1 sm:flex-none justify-center items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                      displayMode === 'list' 
+                        ? 'bg-white text-blue-600 shadow-sm' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <List className="w-4 h-4" />
+                    List
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -494,7 +651,7 @@ export function BrowseInventoryPage() {
               </div>
             ) : displayMode === 'card' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {selectedCategory.inventory_items.map((item) => (
+                {paginatedItems.map((item) => (
                   <div key={item.id} className="bg-white p-5 rounded border border-gray-100 shadow-sm hover:border-blue-300 transition-all group">
                     <div className="flex justify-between items-start mb-4">
                         <div className="w-full h-40 bg-gray-100 rounded-sm overflow-hidden border border-gray-100 flex items-center justify-center relative">
@@ -585,7 +742,7 @@ export function BrowseInventoryPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {selectedCategory.inventory_items.map((item) => (
+                      {paginatedItems.map((item) => (
                         <tr key={item.id} className="hover:bg-blue-50/30 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
@@ -656,6 +813,100 @@ export function BrowseInventoryPage() {
                 </div>
               </div>
             )}
+
+            {/* Pagination Controls for Items */}
+            {!loadingDetails && totalFilteredItems > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="text-sm text-gray-500 font-medium">
+                    Showing <span className="font-bold text-gray-900">{paginatedItems.length}</span> of <span className="font-bold text-gray-900">{totalFilteredItems}</span> units
+                  </div>
+                  <div className="w-40">
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(parseInt(e.target.value));
+                        setItemsPage(1);
+                      }}
+                      className="w-full px-3 py-2 text-xs font-bold border border-gray-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value={5}>5 per page</option>
+                      <option value={10}>10 per page</option>
+                      <option value={20}>20 per page</option>
+                      <option value={50}>50 per page</option>
+                      <option value={selectedCategory?.inventory_items?.length || 0}>All ({selectedCategory?.inventory_items?.length || 0})</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === 1}
+                    onClick={() => setItemsPage(1)}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === 1}
+                    onClick={() => setItemsPage(prev => Math.max(1, prev - 1))}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, lastItemPage) }, (_, i) => {
+                      let pageNum;
+                      if (lastItemPage <= 5) {
+                        pageNum = i + 1;
+                      } else if (itemsPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (itemsPage >= lastItemPage - 2) {
+                        pageNum = lastItemPage - 4 + i;
+                      } else {
+                        pageNum = itemsPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={itemsPage === pageNum ? 'primary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setItemsPage(pageNum)}
+                          className={`h-9 w-9 p-0 text-xs font-bold ${itemsPage === pageNum ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === lastItemPage}
+                    onClick={() => setItemsPage(prev => Math.min(lastItemPage, prev + 1))}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === lastItemPage}
+                    onClick={() => setItemsPage(lastItemPage)}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -687,20 +938,32 @@ export function BrowseInventoryPage() {
                   label={`Quantity (Max: ${selectedCategory?.available_items})`}
                   type="number"
                   value={requestForm.quantity.toString()}
-                  onChange={(e) => setRequestForm({ ...requestForm, quantity: parseInt(e.target.value) || 1 })}
+                  onChange={(e) => {
+                    const qty = parseInt(e.target.value) || 1;
+                    setRequestForm({ 
+                      ...requestForm, 
+                      quantity: qty,
+                      expected_return_date: calculateSuggestedDate(qty)
+                    });
+                  }}
                   required
                   min="1"
                   max={selectedCategory?.available_items?.toString()}
                 />
               )}
-              <FormField
-                label="Expected Return Date"
-                type="date"
-                value={requestForm.expected_return_date}
-                onChange={(e) => setRequestForm({ ...requestForm, expected_return_date: e.target.value })}
-                required
-                min={new Date().toISOString().split('T')[0]}
-              />
+              <div className="space-y-1">
+                <FormField
+                  label="Expected Return Date"
+                  type="date"
+                  value={requestForm.expected_return_date}
+                  onChange={(e) => setRequestForm({ ...requestForm, expected_return_date: e.target.value })}
+                  required
+                  min={new Date().toISOString().split('T')[0]}
+                />
+                <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest pl-1">
+                  * Suggested based on quantity (3 days/item)
+                </p>
+              </div>
             </div>
 
 

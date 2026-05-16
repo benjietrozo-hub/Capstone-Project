@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TableSkeleton } from '../../components/common/Skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,12 +80,15 @@ interface FormErrors {
 }
 
 export function TeachersPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [generalError, setGeneralError] = useState<string>('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successAccount, setSuccessAccount] = useState<any>(null);
   const [formData, setFormData] = useState<TeacherFormData>({
     teacher_id: '',
     full_name: '',
@@ -99,6 +103,14 @@ export function TeachersPage() {
     role: 'teacher',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    label: 'Weak',
+    color: 'bg-red-500',
+    text: 'text-red-500'
+  });
+  const [fieldValidating, setFieldValidating] = useState<{[key: string]: boolean}>({});
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
@@ -116,6 +128,30 @@ export function TeachersPage() {
   });
 
   const teachers = teachersResponse?.data?.data || [];
+  
+  const calculateStrength = (pass: string) => {
+    let score = 0;
+    if (pass.length >= 8) score++;
+    if (/[A-Z]/.test(pass)) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+    let label = 'Weak';
+    let color = 'bg-red-500';
+    let text = 'text-red-500';
+
+    if (score >= 4) {
+      label = 'Strong';
+      color = 'bg-green-500';
+      text = 'text-green-500';
+    } else if (score >= 2) {
+      label = 'Medium';
+      color = 'bg-orange-500';
+      text = 'text-orange-500';
+    }
+
+    setPasswordStrength({ score, label, color, text });
+  };
 
   
   const handleOpenModal = (teacher: Teacher | null = null) => {
@@ -166,19 +202,82 @@ export function TeachersPage() {
     setShowModal(true);
   };
 
+  const validateField = async (field: string, value: string) => {
+    // 1. Required field check
+    if (!value) {
+      setFormErrors(prev => ({ ...prev, [field]: ['This field is required.'] }));
+      return;
+    }
+
+    // 2. Uniqueness check for specific fields
+    if (['teacher_id', 'username', 'email'].includes(field)) {
+      setFieldValidating(prev => ({ ...prev, [field]: true }));
+      try {
+        const response = await adminAPI.validateTeacherUnique(field, value, editingId);
+        if (!response.data.valid) {
+          setFormErrors(prev => ({ ...prev, [field]: [response.data.message] }));
+        } else {
+          setFormErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[field];
+            return newErrors;
+          });
+        }
+      } catch (error) {
+        console.error('Validation error:', error);
+      } finally {
+        setFieldValidating(prev => ({ ...prev, [field]: false }));
+      }
+    } else {
+      // Clear error for other fields if value exists
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  // Debounced validation helper
+  const debounce = (fn: Function, ms = 500) => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    return function (this: any, ...args: any[]) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn.apply(this, args), ms);
+    };
+  };
+
+  const debouncedValidate = React.useMemo(
+    () => debounce(validateField, 500),
+    [editingId]
+  );
+
   const handleSaveTeacher = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Clear previous errors
-    setFormErrors({});
-    setGeneralError('');
+    if (saving) return;
+
+    // 1. Check if any background validation is still pending
+    const isStillValidating = Object.values(fieldValidating).some(v => v === true);
+    if (isStillValidating) {
+      toast.error('Please wait for account verification to finish...');
+      return;
+    }
+
+    // 2. Check if there are any existing validation errors
+    if (Object.keys(formErrors).length > 0) {
+      toast.error('Please fix the errors in the form before saving.');
+      return;
+    }
     
     // Basic validation - check individual name fields instead of full_name
     if (!formData.teacher_id || !formData.first_name || !formData.last_name || !formData.username || !formData.email) {
-      setGeneralError('Please fill in all required fields (Teacher ID, First Name, Last Name, Username, Email)');
+      setGeneralError('Please fill in all required fields (Teacher ID, Name, Username, Email)');
       toast.error('Please fill in all required fields');
       return;
     }
+    
+    setSaving(true);
+    setGeneralError('');
     
     if (!editingId && !formData.password) {
       setGeneralError('Password is required for new teachers');
@@ -210,9 +309,16 @@ export function TeachersPage() {
         toast.success('Teacher updated successfully');
       } else {
         await adminAPI.createTeacher(dataToSend);
-        toast.success('Teacher created successfully');
       }
+
+      setSuccessAccount({
+        name: generatedFullName,
+        email: formData.email,
+        role: updatedFormData.role
+      });
+
       setShowModal(false);
+      setShowSuccessModal(true);
       setFormErrors({});
       setGeneralError('');
       queryClient.invalidateQueries({ queryKey: ['teachers'] });
@@ -234,6 +340,8 @@ export function TeachersPage() {
         setGeneralError(errorMessage);
         toast.error(errorMessage);
       }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -399,7 +507,7 @@ export function TeachersPage() {
               className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-md shadow-blue-100 flex items-center gap-2 px-5 py-2.5 rounded-sm transition-all hover:-translate-y-0.5"
             >
               <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">Add Teacher</span>
+              <span className="hidden sm:inline">Add Account</span>
             </Button>
           </div>
         </div>
@@ -419,7 +527,7 @@ export function TeachersPage() {
             {/* Modal Header */}
             <div className="bg-white border-b border-gray-200 px-5 py-3 flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">
-                {editingId ? 'Edit Teacher' : 'Add New Teacher'}
+                {editingId ? 'Edit Account' : 'Add New Account'}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
@@ -463,10 +571,10 @@ export function TeachersPage() {
                     </div>
                   )}
                   
-                  {/* Form Fields - Clean Single Column Layout */}
-                  <div className="space-y-3">
-                    {/* Teacher ID */}
-                    <div>
+                  {/* Form Fields - Compact Dual Column Layout */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    {/* Teacher ID - Full Width */}
+                    <div className="col-span-2">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Teacher ID <span className="text-red-500">*</span>
                       </label>
@@ -474,202 +582,228 @@ export function TeachersPage() {
                         type="text"
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         value={formData.teacher_id}
-                        onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData({ ...formData, teacher_id: val });
+                          debouncedValidate('teacher_id', val);
+                        }}
                         placeholder="Enter teacher ID"
                         required
                         disabled={!!editingId}
                       />
-                      {editingId && (
-                        <p className="text-xs text-gray-500 mt-1">Teacher ID cannot be changed</p>
-                      )}
-                      {formErrors.teacher_id && (
-                        <p className="text-xs text-red-500 mt-1">{formErrors.teacher_id[0]}</p>
-                      )}
-                    </div>
-
-                    {/* Name Fields */}
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          First Name <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          value={formData.first_name}
-                          onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                          placeholder="First name"
-                          required
-                        />
-                        {formErrors.first_name && (
-                          <p className="text-xs text-red-500 mt-1">{formErrors.first_name[0]}</p>
+                      <div className="flex justify-between items-center mt-1">
+                        {editingId ? (
+                          <p className="text-[10px] text-gray-500 uppercase font-bold">Read-only field</p>
+                        ) : (
+                          <div className="h-4">
+                            {fieldValidating.teacher_id && <span className="text-[10px] text-blue-500 animate-pulse font-medium italic">Verifying uniqueness...</span>}
+                          </div>
                         )}
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Middle Initial
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          value={formData.middle_initial || ''}
-                          onChange={(e) => setFormData({ ...formData, middle_initial: e.target.value })}
-                          placeholder="Middle name"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Last Name <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          value={formData.last_name}
-                          onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                          placeholder="Last name"
-                          required
-                        />
-                        {formErrors.last_name && (
-                          <p className="text-xs text-red-500 mt-1">{formErrors.last_name[0]}</p>
+                        {formErrors.teacher_id && (
+                          <p className="text-xs text-red-500 font-medium">{formErrors.teacher_id[0]}</p>
                         )}
                       </div>
                     </div>
 
-                    {/* Gender and Birthdate */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Gender
-                        </label>
-                        <select
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
-                          value={formData.gender || ''}
-                          onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                        >
-                          <option value="">Select Gender</option>
-                          <option value="male">Male</option>
-                          <option value="female">Female</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Birthdate
-                        </label>
-                        <input
-                          type="date"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          value={formData.birthdate || ''}
-                          onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Address */}
+                    {/* First Name and Last Name */}
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Address
+                        First Name <span className="text-red-500">*</span>
                       </label>
-                      <textarea
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-                        rows={2}
-                        value={formData.address || ''}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        placeholder="Enter complete address"
+                      <input
+                        type="text"
+                        className={`w-full px-3 py-2 text-sm border rounded focus:ring-2 transition-colors ${
+                          formErrors.first_name ? 'border-red-300 focus:ring-red-500 bg-red-50/30' : 'border-gray-300 focus:ring-blue-500'
+                        }`}
+                        value={formData.first_name}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData({ ...formData, first_name: val });
+                          if (!val) setFormErrors(prev => ({ ...prev, first_name: ['First name is required.'] }));
+                          else setFormErrors(prev => {
+                            const n = { ...prev };
+                            delete n.first_name;
+                            return n;
+                          });
+                        }}
+                        placeholder="First name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Last Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className={`w-full px-3 py-2 text-sm border rounded focus:ring-2 transition-colors ${
+                          formErrors.last_name ? 'border-red-300 focus:ring-red-500 bg-red-50/30' : 'border-gray-300 focus:ring-blue-500'
+                        }`}
+                        value={formData.last_name}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData({ ...formData, last_name: val });
+                          if (!val) setFormErrors(prev => ({ ...prev, last_name: ['Last name is required.'] }));
+                          else setFormErrors(prev => {
+                            const n = { ...prev };
+                            delete n.last_name;
+                            return n;
+                          });
+                        }}
+                        placeholder="Last name"
+                        required
                       />
                     </div>
 
-                    
-                    {/* Contact Number and Email Address */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Contact Number
-                        </label>
-                        <input
-                          type="tel"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          placeholder="Enter contact number"
-                        />
-                        {formErrors.phone && (
-                          <p className="text-xs text-red-500 mt-1">{formErrors.phone[0]}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Email Address <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="email"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          placeholder="Enter email address"
-                          required
-                        />
-                        {formErrors.email && (
-                          <p className="text-xs text-red-500 mt-1">{formErrors.email[0]}</p>
-                        )}
-                      </div>
+                    {/* Middle Initial and Username */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Middle Initial
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        value={formData.middle_initial || ''}
+                        onChange={(e) => setFormData({ ...formData, middle_initial: e.target.value })}
+                        placeholder="M.I."
+                      />
                     </div>
-
-                    {/* Username */}
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Username <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        className={`w-full px-3 py-2 text-sm border rounded focus:ring-2 transition-colors ${
+                          formErrors.username ? 'border-red-300 focus:ring-red-500 bg-red-50/30' : 'border-gray-300 focus:ring-blue-500'
+                        } disabled:bg-gray-50`}
                         value={formData.username}
-                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                        placeholder="Enter username"
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData({ ...formData, username: val });
+                          debouncedValidate('username', val);
+                        }}
+                        placeholder="Username"
                         required
                         disabled={!!editingId}
                       />
-                      {editingId && (
-                        <p className="text-xs text-gray-500 mt-1">Username cannot be changed</p>
-                      )}
-                      {formErrors.username && (
-                        <p className="text-xs text-red-500 mt-1">{formErrors.username[0]}</p>
-                      )}
+                      <div className="h-4 mt-0.5">
+                        {fieldValidating.username && <span className="text-[10px] text-blue-500 animate-pulse font-medium italic">Verifying...</span>}
+                        {formErrors.username && <span className="text-xs text-red-500 font-medium">{formErrors.username[0]}</span>}
+                      </div>
+                    </div>
+
+                    {/* Contact and Email */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Contact Number
+                      </label>
+                      <input
+                        type="tel"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        placeholder="Contact #"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        className={`w-full px-3 py-2 text-sm border rounded focus:ring-2 transition-colors ${
+                          formErrors.email ? 'border-red-300 focus:ring-red-500 bg-red-50/30' : 'border-gray-300 focus:ring-blue-500'
+                        }`}
+                        value={formData.email}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData({ ...formData, email: val });
+                          debouncedValidate('email', val);
+                        }}
+                        placeholder="Email address"
+                        required
+                      />
+                      <div className="h-4 mt-0.5">
+                        {fieldValidating.email && <span className="text-[10px] text-blue-500 animate-pulse font-medium italic">Verifying...</span>}
+                        {formErrors.email && <span className="text-xs text-red-500 font-medium">{formErrors.email[0]}</span>}
+                      </div>
+                    </div>
+
+                    {/* Gender and Birthdate */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Gender
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        value={formData.gender || ''}
+                        onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                      >
+                        <option value="">Select</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Birthdate
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        value={formData.birthdate || ''}
+                        onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
+                      />
                     </div>
 
                     {/* Password and Confirm Password */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Password {!editingId && <span className="text-red-500">*</span>}
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors pr-10"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            placeholder={editingId ? "Leave blank to keep current password" : "Enter password"}
-                            required={!editingId}
-                          />
-                          <button
-                            type="button"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                        {editingId && (
-                          <p className="text-xs text-gray-500 mt-1">Leave blank to keep current password</p>
-                        )}
-                        {formErrors.password && (
-                          <p className="text-xs text-red-500 mt-1">{formErrors.password[0]}</p>
-                        )}
+                    <div className={editingId ? 'col-span-2' : ''}>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Password {!editingId && <span className="text-red-500">*</span>}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors pr-10"
+                          value={formData.password}
+                          onChange={(e) => {
+                            setFormData({ ...formData, password: e.target.value });
+                            calculateStrength(e.target.value);
+                          }}
+                          placeholder={editingId ? "Leave blank to keep current" : "Enter password"}
+                          required={!editingId}
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
                       </div>
+                      
+                      {formData.password && (
+                        <div className="mt-2 space-y-1">
+                          <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden flex gap-0.5">
+                            {[1, 2, 3, 4].map((i) => (
+                              <div
+                                key={i}
+                                className={`h-full flex-1 transition-all duration-500 ${
+                                  i <= passwordStrength.score ? passwordStrength.color : 'bg-gray-200'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <p className={`text-[10px] font-bold uppercase ${passwordStrength.text}`}>Strength: {passwordStrength.label}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {!editingId && (
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Confirm Password {!editingId && <span className="text-red-500">*</span>}
+                          Confirm Password <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                           <input
@@ -677,56 +811,63 @@ export function TeachersPage() {
                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors pr-10"
                             value={formData.confirm_password || ''}
                             onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
-                            placeholder="Confirm password"
+                            placeholder="Confirm"
                             required={!editingId}
                           />
-                          <button
-                            type="button"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
+                          {/* Real-time Match Indicator */}
+                          {formData.confirm_password && (
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                              {formData.password === formData.confirm_password ? (
+                                <ShieldCheck className="w-4 h-4 text-green-500" />
+                              ) : (
+                                <UserX className="w-4 h-4 text-red-500" />
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {formErrors.confirm_password && (
-                          <p className="text-xs text-red-500 mt-1">{formErrors.confirm_password[0]}</p>
-                        )}
                       </div>
-                    </div>
+                    )}
 
-                    {/* Status */}
+                    {/* Role and Status */}
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Status
+                        Access Level
                       </label>
                       <select
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-bold"
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      >
+                        <option value="teacher">TEACHER</option>
+                        <option value="admin">ADMIN</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Account Status
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'suspended' })}
                       >
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
-                        <option value="suspended">Suspended</option>
                       </select>
                     </div>
 
-                    {/* Role */}
-                    <div>
+                    {/* Address - Full Width */}
+                    <div className="col-span-2">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
-                        User Role
+                        Complete Address
                       </label>
-                      <select
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white font-bold text-gray-900"
-                        value={formData.role}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      >
-                        <option value="teacher">TEACHER</option>
-                        <option value="admin">ADMINISTRATOR</option>
-                      </select>
-                      <p className="text-xs text-gray-500 mt-1 px-1 flex items-center gap-1 font-medium">
-                        <ShieldCheck className="w-3 h-3 text-blue-500" />
-                        Determines the user's access level in the system
-                      </p>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        value={formData.address || ''}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        placeholder="Street, City, Province"
+                      />
                     </div>
                   </div>
                 </div>
@@ -743,12 +884,75 @@ export function TeachersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+                  disabled={saving || Object.keys(formErrors).length > 0 || Object.values(fieldValidating).some(v => v === true)}
+                  className="px-5 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {editingId ? 'Update Teacher' : 'Save Teacher'}
+                  {saving ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    editingId ? 'Update Account' : 'Save Account'
+                  )}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[60] p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform animate-in zoom-in-95 duration-300">
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-8 text-center text-white">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-4 animate-bounce">
+                <ShieldCheck className="w-10 h-10" />
+              </div>
+              <h3 className="text-2xl font-black tracking-tight">Account Created!</h3>
+              <p className="text-green-50 opacity-90 text-sm mt-1">Ready for first login</p>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="space-y-3">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Account Holder</p>
+                  <p className="font-bold text-slate-900">{successAccount?.name}</p>
+                  <p className="text-sm text-slate-500 truncate">{successAccount?.email}</p>
+                </div>
+                
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-xs font-medium text-slate-500">Access Role:</span>
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    successAccount?.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {successAccount?.role}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl">
+                <div className="flex gap-3">
+                  <Mail className="w-5 h-5 text-blue-600 shrink-0" />
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    A welcome email with login credentials and security instructions has been sent to the email above.
+                  </p>
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  if (successAccount?.role === 'admin') {
+                    navigate('/admin/admins');
+                  }
+                }}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold shadow-lg transition-all active:scale-95"
+              >
+                {successAccount?.role === 'admin' ? 'Go to Admin Management' : 'Continue'}
+              </Button>
+            </div>
           </div>
         </div>
       )}

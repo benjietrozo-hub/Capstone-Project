@@ -12,10 +12,12 @@ import {
   TrendingDown,
   Minus,
   MapPin,
-  Building2
+  Building2,
+  Trash2
 } from "lucide-react";
 import NavHeader from "@/components/NavHeader";
 import NotificationProfile from "@/components/NotificationProfile";
+import SystemHealthCard from '@/components/admin/SystemHealthCard';
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardSkeleton } from "../../components/common/Skeleton";
@@ -30,6 +32,7 @@ interface DashboardData {
   overdue_items: number;
   total_logs: number;
   total_reports: number;
+  ready_for_disposal: number;
 }
 
 export function AdminDashboard() {
@@ -55,6 +58,7 @@ export function AdminDashboard() {
     overdue_items: 0,
     total_logs: 0,
     total_reports: 0,
+    ready_for_disposal: 0,
   };
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -140,6 +144,16 @@ export function AdminDashboard() {
       value: dashboardData.total_reports.toString(),
       change: "+0%",
       trend: "up"
+    },
+    {
+      title: "Disposal Queue",
+      description: "Ready for disposal",
+      icon: Trash2,
+      url: "/admin/inventory?status=ready_for_disposal",
+      color: "from-rose-600 to-red-700",
+      value: dashboardData.ready_for_disposal.toString(),
+      change: "0%",
+      trend: "neutral"
     },
   ];
 
@@ -262,6 +276,35 @@ export function AdminDashboard() {
                 <div className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full bg-gradient-to-r ${stat.color} transition-all duration-500 ease-out`} />
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* System Health Section */}
+        {!loading && (
+          <div className="mt-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <SystemHealthCard />
+              <Card className="border-none shadow-md bg-white overflow-hidden flex flex-col justify-center p-6 relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10 opacity-50"></div>
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Defense Ready Status</p>
+                  <h4 className="text-xl font-black text-gray-900">Capstone Final Audit</h4>
+                  <p className="text-sm text-gray-500 leading-relaxed max-w-sm">
+                    All system modules are synchronized with the institutional standards of 
+                    <span className="font-bold text-gray-800"> Caloc-an Elementary School</span>. 
+                    Redundant checks for accountability and equipment lifecycle are active.
+                  </p>
+                </div>
+                <div className="mt-6 flex items-center gap-4">
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-bold">BT</div>
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-400 font-medium italic">Project Lead: Benjie Trozo</span>
+                </div>
+              </Card>
+            </div>
           </div>
         )}
       </div>

@@ -107,6 +107,7 @@ class UnifiedAuthController extends Controller
                 'token' => $token,
                 'refresh_token' => $refreshToken,
                 'role' => 'admin',
+                'password_change_required' => $admin->password_change_required,
             ]);
         }
 
@@ -159,6 +160,7 @@ class UnifiedAuthController extends Controller
                 'token' => $token,
                 'refresh_token' => $refreshToken,
                 'role' => 'teacher',
+                'password_change_required' => $teacher->password_change_required,
             ], 201);
         }
 
@@ -418,5 +420,114 @@ class UnifiedAuthController extends Controller
         return response()->json([
             'message' => 'Password verified successfully.'
         ]);
+    }
+
+    /**
+     * Send OTP for forced password reset
+     */
+    public function sendOTP(Request $request)
+    {
+        $user = $request->user();
+        
+        // Generate a 6-digit OTP
+        $otp = sprintf("%06d", mt_rand(1, 999999));
+        
+        // Set expiration (3 minutes)
+        $user->otp_code = $otp;
+        $user->otp_expires_at = now()->addMinutes(3);
+        $user->save();
+        
+        // Send OTP Email
+        $sent = \App\Services\PHPMailerService::sendOTPEmail($user, $otp);
+        
+        if ($sent) {
+            SystemLog::logActivity(
+                'auth',
+                'otp_generated',
+                'Security OTP generated and sent to email',
+                $user->id,
+                $user instanceof Admin ? 'admin' : 'teacher',
+                $user->first_name . ' ' . $user->last_name,
+                'info'
+            );
+            
+            return response()->json(['message' => 'OTP has been sent to your email.']);
+        }
+        
+        return response()->json(['message' => 'Failed to send OTP email. Please try again.'], 500);
+    }
+
+    /**
+     * Verify OTP without resetting password
+     */
+    public function verifyOTP(Request $request)
+    {
+        $request->validate([
+            'otp' => 'required|string|size:6',
+        ]);
+
+        $user = $request->user();
+
+        if (!$user->otp_code || $user->otp_code !== $request->otp) {
+             return response()->json(['message' => 'Invalid verification code.'], 422);
+        }
+
+        if (!$user->otp_expires_at || $user->otp_expires_at->isPast()) {
+             return response()->json(['message' => 'Verification code has expired.'], 422);
+        }
+
+        return response()->json(['message' => 'Code verified successfully.']);
+    }
+
+    /**
+     * Reset password after OTP verification (Forced Reset)
+     */
+    public function resetForcedPassword(Request $request)
+    {
+        $request->validate([
+            'otp' => 'required|string|size:6',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        // 1. Verify OTP
+        if (!$user->otp_code || $user->otp_code !== $request->otp) {
+             return response()->json(['message' => 'Invalid OTP code.'], 422);
+        }
+
+        // 2. Check Expiration
+        if (!$user->otp_expires_at || $user->otp_expires_at->isPast()) {
+             return response()->json(['message' => 'OTP has expired. Please request a new one.'], 422);
+        }
+
+        // 3. Security Check: Cannot use old password
+        if (Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'message' => 'New password cannot be the same as your old password. Please choose a different one.',
+                'errors' => [
+                    'password' => ['The new password cannot be the same as the old password.']
+                ]
+            ], 422);
+        }
+
+        // 4. Update Password
+        $user->password = Hash::make($request->password);
+        $user->password_change_required = false;
+        $user->otp_code = null;
+        $user->otp_expires_at = null;
+        $user->save();
+
+        SystemLog::logActivity(
+            'auth',
+            'forced_password_reset_success',
+            'Mandatory password reset completed successfully',
+            $user->id,
+            $user instanceof Admin ? 'admin' : 'teacher',
+            $user->first_name . ' ' . $user->last_name,
+            'info'
+        );
+
+        return response()->json(['message' => 'Password reset successfully. You now have full access.']);
     }
 }

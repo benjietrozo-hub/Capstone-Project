@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
 import { Button } from '@/components/ui/button';
-import { Eye, Download, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { Eye, Download, FileText, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { exportToCSV, generateRequestPDF } from '../../utils/exportUtils';
 
 interface BorrowRequest {
@@ -38,6 +38,13 @@ interface RejectionForm {
   admin_notes: string;
 }
 
+interface ReturnForm {
+  actual_return_date: string;
+  condition_on_return: string;
+  penalty_amount: number;
+  admin_notes: string;
+}
+
 export function BorrowRequestsPage() {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState('');
@@ -52,6 +59,14 @@ export function BorrowRequestsPage() {
     admin_notes: '',
   });
   const [rejectionForm, setRejectionForm] = useState<RejectionForm>({
+    admin_notes: '',
+  });
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returning, setReturning] = useState(false);
+  const [returnForm, setReturnForm] = useState<ReturnForm>({
+    actual_return_date: new Date().toISOString().split('T')[0],
+    condition_on_return: 'good',
+    penalty_amount: 0,
     admin_notes: '',
   });
 
@@ -130,17 +145,31 @@ export function BorrowRequestsPage() {
     }
   };
 
-  const handleReturn = async (id: number) => {
+  const handleReturnClick = (req: BorrowRequest) => {
+    setSelectedRequest(req);
+    setReturnForm({
+      actual_return_date: new Date().toISOString().split('T')[0],
+      condition_on_return: 'good',
+      penalty_amount: 0,
+      admin_notes: '',
+    });
+    setShowReturnModal(true);
+  };
+
+  const handleReturnSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRequest) return;
+
     try {
-      // In a real implementation this should open a modal to confirm condition
-      await adminAPI.returnBorrowRequest(id, {
-        actual_return_date: new Date().toISOString().split('T')[0],
-        condition_on_return: 'good'
-      });
-      toast.success('Item returned successfully');
+      setReturning(true);
+      await adminAPI.returnBorrowRequest(selectedRequest.id, returnForm);
+      toast.success('Return processed successfully');
+      setShowReturnModal(false);
       queryClient.invalidateQueries({ queryKey: ['borrow-requests'] });
-    } catch (error) {
-      toast.error('Failed to process return');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to process return');
+    } finally {
+      setReturning(false);
     }
   };
 
@@ -356,7 +385,7 @@ export function BorrowRequestsPage() {
 
                           {req.status === 'borrowed' && (
                             <button
-                              onClick={() => handleReturn(req.id)}
+                              onClick={() => handleReturnClick(req)}
                               className="px-4 py-1.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
                             >
                               Return
@@ -527,6 +556,92 @@ export function BorrowRequestsPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Return Modal Upgrade */}
+        {showReturnModal && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white w-full max-md rounded-sm overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-emerald-600 px-6 py-6 text-white relative">
+                <h3 className="text-xl font-black uppercase tracking-tight">Process Return</h3>
+                <p className="text-emerald-100 text-xs font-bold mt-1 uppercase tracking-widest">
+                  {selectedRequest?.request_code} • {selectedRequest?.teacher?.full_name}
+                </p>
+              </div>
+
+              <form onSubmit={handleReturnSubmit} className="p-6 space-y-6">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Actual Return Date</label>
+                    <input
+                      type="date"
+                      className="w-full h-12 bg-gray-50 border border-gray-200 rounded-sm px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+                      value={returnForm.actual_return_date}
+                      onChange={(e) => setReturnForm({...returnForm, actual_return_date: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Condition on Return</label>
+                    <select
+                      className="w-full h-12 bg-gray-50 border border-gray-200 rounded-sm px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+                      value={returnForm.condition_on_return}
+                      onChange={(e) => setReturnForm({...returnForm, condition_on_return: e.target.value})}
+                    >
+                      <option value="good">🟢 Good / Functional</option>
+                      <option value="damaged">🟡 Damaged</option>
+                      <option value="lost">🔴 Lost / Missing</option>
+                    </select>
+                  </div>
+
+                  {(returnForm.condition_on_return === 'damaged' || returnForm.condition_on_return === 'lost') && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <label className="text-[10px] font-black text-red-600 uppercase tracking-widest flex items-center gap-2">
+                        <AlertCircle className="w-3 h-3" /> Penalty Amount (₱)
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full h-12 bg-red-50 border border-red-100 rounded-sm px-4 text-sm font-black text-red-700 focus:ring-2 focus:ring-red-500/20 transition-all outline-none"
+                        value={returnForm.penalty_amount}
+                        onChange={(e) => setReturnForm({...returnForm, penalty_amount: parseFloat(e.target.value) || 0})}
+                        placeholder="0.00"
+                        min="0"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Admin Remarks</label>
+                    <textarea
+                      className="w-full bg-gray-50 border border-gray-200 rounded-sm px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+                      value={returnForm.admin_notes}
+                      onChange={(e) => setReturnForm({ ...returnForm, admin_notes: e.target.value })}
+                      rows={2}
+                      placeholder="Any additional comments about the return..."
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowReturnModal(false)}
+                    className="flex-1 h-12 rounded-sm text-sm font-black text-gray-500 hover:bg-gray-50 transition-colors uppercase tracking-widest"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={returning}
+                    className="flex-[2] h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm text-sm font-black uppercase tracking-widest shadow-lg shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {returning ? 'Processing...' : 'Complete Return'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

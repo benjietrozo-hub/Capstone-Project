@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import RequestDistributionModal from '@/components/teacher/RequestDistributionModal';
-import { teacherAPI, authAPI } from '@/api';
+import { teacherAPI } from '@/api';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
 
@@ -58,8 +58,8 @@ export default function DistributionRequestsPage() {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await authAPI.getMe();
-      setCurrentUser(response.data.data);
+      const response = await teacherAPI.getMe();
+      setCurrentUser(response.data.user ?? response.data.data ?? response.data);
     } catch (error) {
       console.error('Error fetching current user:', error);
     }

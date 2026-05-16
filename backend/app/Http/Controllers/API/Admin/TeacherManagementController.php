@@ -51,12 +51,35 @@ class TeacherManagementController extends Controller
         ]);
         $v['password'] = Hash::make($v['password']);
         $v['status'] = 'active';
+        $v['password_change_required'] = true; // Force password change on first login
+        
         $teacher = Teacher::create($v);
+
+        // If role is admin, also create an admin record
+        if (isset($v['role']) && $v['role'] === 'admin') {
+            \App\Models\Admin::create([
+                'username' => $teacher->username,
+                'email' => $teacher->email,
+                'password' => $teacher->password, // Already hashed
+                'first_name' => $teacher->first_name,
+                'middle_name' => $teacher->middle_initial,
+                'last_name' => $teacher->last_name,
+                'phone' => $teacher->phone,
+                'status' => 'active',
+                'admin_type' => 'regular_admin',
+                'can_manage_all_admins' => false,
+                'can_manage_own_profile_only' => false,
+                'password_change_required' => true,
+            ]);
+        }
+        
+        // Send Welcome Email
+        \App\Services\PHPMailerService::sendWelcomeEmail($teacher, $request->password);
         
         // Log activity
         $this->logActivity(
-            'teacher_created',
-            "Created new teacher account: {$teacher->first_name} {$teacher->last_name} ({$teacher->teacher_id})",
+            'account_created',
+            "Created new " . ($v['role'] ?? 'teacher') . " account: {$teacher->first_name} {$teacher->last_name} ({$teacher->teacher_id})",
             'info'
         );
         
@@ -85,10 +108,31 @@ class TeacherManagementController extends Controller
         if (isset($v['password'])) $v['password'] = Hash::make($v['password']);
         $t->update($v);
         
+        // Handle promotion to admin
+        if (isset($v['role']) && $v['role'] === 'admin') {
+            // Check if admin record already exists
+            $adminExists = \App\Models\Admin::where('email', $t->email)->exists();
+            if (!$adminExists) {
+                \App\Models\Admin::create([
+                    'username' => $t->username,
+                    'email' => $t->email,
+                    'password' => $t->password, // Reuse teacher password
+                    'first_name' => $t->first_name,
+                    'middle_name' => $t->middle_initial,
+                    'last_name' => $t->last_name,
+                    'phone' => $t->phone,
+                    'status' => 'active',
+                    'admin_type' => 'regular_admin',
+                    'can_manage_all_admins' => false,
+                    'can_manage_own_profile_only' => false,
+                ]);
+            }
+        }
+
         // Log activity
         $this->logActivity(
             'teacher_updated',
-            "Updated teacher account: {$t->first_name} {$t->last_name} ({$t->teacher_id})",
+            "Updated teacher account: {$t->first_name} {$t->last_name} ({$t->teacher_id})" . (isset($v['role']) && $v['role'] === 'admin' ? " [PROMOTED TO ADMIN]" : ""),
             'info'
         );
         
@@ -113,12 +157,31 @@ class TeacherManagementController extends Controller
         return response()->json(null, 204);
     }
 
-    public function departments()
+    public function validateUnique(Request $request)
     {
-        $departments = Teacher::whereNotNull('department')
-            ->where('department', '!=', '')
-            ->distinct()
-            ->pluck('department');
-        return response()->json($departments);
+        $field = $request->field;
+        $value = $request->value;
+        $excludeId = $request->exclude_id;
+
+        if (!in_array($field, ['teacher_id', 'username', 'email'])) {
+            return response()->json(['valid' => false, 'message' => 'Invalid field'], 400);
+        }
+
+        $exists = Teacher::where($field, $value)
+            ->where('id', '!=', $excludeId)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        // Also check admins table for email/username
+        if (!$exists && ($field === 'email' || $field === 'username')) {
+            $exists = \App\Models\Admin::where($field, $value)
+                ->whereNull('deleted_at')
+                ->exists();
+        }
+
+        return response()->json([
+            'valid' => !$exists,
+            'message' => $exists ? "This " . str_replace('_', ' ', $field) . " is already taken." : null
+        ]);
     }
 }

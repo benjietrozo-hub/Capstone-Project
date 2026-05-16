@@ -26,6 +26,9 @@ class Teacher extends Authenticatable
         'status',
         'role',
         'last_login',
+        'password_change_required',
+        'otp_code',
+        'otp_expires_at',
     ];
 
     protected $hidden = [
@@ -36,7 +39,8 @@ class Teacher extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'last_login' => 'datetime',
-        'password' => 'hashed',
+        'password_change_required' => 'boolean',
+        'otp_expires_at' => 'datetime',
     ];
 
     protected $appends = ['full_name'];

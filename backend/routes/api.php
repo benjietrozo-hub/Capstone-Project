@@ -23,6 +23,7 @@ use App\Http\Controllers\API\Admin\ClubController;
 use App\Http\Controllers\API\Teacher\EntityController;
 use App\Http\Controllers\API\ItemTransferController;
 use App\Http\Controllers\API\ItemConditionLogController;
+use App\Http\Controllers\API\Admin\SystemHealthController;
 
 use App\Http\Controllers\API\Teacher\InventoryController as TeacherInventoryController;
 use App\Http\Controllers\API\Teacher\BorrowRequestController as TeacherBorrowRequestController;
@@ -67,6 +68,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::get('/me', [AdminAuthController::class, 'me']);
     Route::post('/refresh-token', [AdminAuthController::class, 'refreshToken']); // Add refresh endpoint
     Route::post('/verify-password', [UnifiedAuthController::class, 'verifyPassword']);
+    Route::post('/send-otp', [UnifiedAuthController::class, 'sendOTP']);
+    Route::post('/verify-otp', [UnifiedAuthController::class, 'verifyOTP']);
+    Route::post('/reset-forced-password', [UnifiedAuthController::class, 'resetForcedPassword']);
     
     Route::get('/dashboard', [AdminDashboardController::class, 'index']);
     Route::get('/dashboard/statistics', [AdminDashboardController::class, 'statistics']);
@@ -92,9 +96,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::post('/requests/{id}/issue', [AdminBorrowRequestController::class, 'issue']);
     Route::post('/requests/{id}/return', [AdminBorrowRequestController::class, 'return']);
     
+    Route::get('/teachers/validate-unique', [TeacherManagementController::class, 'validateUnique']);
     Route::apiResource('teachers', TeacherManagementController::class);
     Route::get('/teacher-departments', [TeacherManagementController::class, 'departments']);
     
+    Route::post('/admins/{id}/demote', [AdminManagementController::class, 'demote']);
     Route::apiResource('admins', AdminManagementController::class);
     
     Route::apiResource('reports', AdminReportController::class);
@@ -204,6 +210,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::post('/item-condition-logs/report-damage', [ItemConditionLogController::class, 'reportDamage']);
     Route::post('/item-condition-logs/log-repair', [ItemConditionLogController::class, 'logRepair']);
     Route::post('/item-condition-logs/record-disposal', [ItemConditionLogController::class, 'recordDisposal']);
+    
+    // System Health & Uptime
+    Route::get('/system/health', [SystemHealthController::class, 'getStatus']);
 });
 
 // Protected Teacher Routes
@@ -220,6 +229,10 @@ Route::prefix('teacher')->middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [TeacherAuthController::class, 'logout']);
     Route::get('/me', [TeacherAuthController::class, 'me']);
     Route::post('/refresh-token', [TeacherAuthController::class, 'refreshToken']); // Add refresh endpoint
+    Route::post('/verify-password', [UnifiedAuthController::class, 'verifyPassword']);
+    Route::post('/send-otp', [UnifiedAuthController::class, 'sendOTP']);
+    Route::post('/verify-otp', [UnifiedAuthController::class, 'verifyOTP']);
+    Route::post('/reset-forced-password', [UnifiedAuthController::class, 'resetForcedPassword']);
     
     Route::get('/dashboard', [TeacherDashboardController::class, 'index']);
     
@@ -265,6 +278,9 @@ Route::prefix('teacher')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/distributions', [\App\Http\Controllers\API\Teacher\ItemDistributionController::class, 'index']);
     Route::post('/distributions/{id}/accept', [\App\Http\Controllers\API\Teacher\ItemDistributionController::class, 'accept']);
     Route::post('/distributions/{id}/reject', [\App\Http\Controllers\API\Teacher\ItemDistributionController::class, 'reject']);
+    
+    // Teacher Activity Logs
+    Route::get('/logs', [\App\Http\Controllers\API\Teacher\SystemLogController::class, 'index']);
     
     // Notifications (Teacher)
     Route::get('/notifications', [NotificationController::class, 'index']);

@@ -156,24 +156,63 @@ class BorrowRequestController extends Controller
         }
         
         $v = $request->validate([
-            'return_notes' => 'nullable|string',
-            // Allow returning partial items or all at once. If not provided, assumes all items.
+            'admin_notes' => 'nullable|string',
+            'condition_on_return' => 'required|string|in:good,damaged,lost',
+            'penalty_amount' => 'nullable|numeric|min:0',
+            'actual_return_date' => 'nullable|date',
             'inventory_item_ids' => 'nullable|array',
             'inventory_item_ids.*' => 'exists:inventory_items,id'
         ]);
         
         $itemIdsToReturn = $v['inventory_item_ids'] ?? $br->inventoryItems->pluck('id')->toArray();
+        $condition = $v['condition_on_return'];
+        $penalty = $v['penalty_amount'] ?? 0;
         
         DB::beginTransaction();
         try {
-            // Update the items back to available
-            InventoryItem::whereIn('id', $itemIdsToReturn)->update(['status' => 'available']);
+            // Update the items based on condition
+            foreach ($itemIdsToReturn as $itemId) {
+                $item = InventoryItem::find($itemId);
+                if (!$item) continue;
+
+                $newStatus = 'available';
+                $newCondition = $item->condition;
+
+                if ($condition === 'lost') {
+                    $newStatus = 'lost';
+                } elseif ($condition === 'damaged') {
+                    $newStatus = 'damaged';
+                    $newCondition = 'damaged';
+                }
+
+                $item->update([
+                    'status' => $newStatus,
+                    'condition' => $newCondition
+                ]);
+
+                // Log condition change if not good
+                if ($condition !== 'good') {
+                    DB::table('item_condition_logs')->insert([
+                        'item_id' => $item->id,
+                        'reported_by_type' => 'admin',
+                        'reported_by_id' => auth()->id(),
+                        'log_type' => $condition === 'lost' ? 'inspection' : 'damage',
+                        'condition_before' => $item->getOriginal('condition'),
+                        'condition_after' => $newCondition,
+                        'description' => "Return reported as {$condition}. " . ($v['admin_notes'] ?? ''),
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+            }
             
             // Update the pivot table
             foreach ($itemIdsToReturn as $itemId) {
                 $br->inventoryItems()->updateExistingPivot($itemId, [
                     'status' => 'returned',
-                    'returned_at' => now(),
+                    'returned_at' => $v['actual_return_date'] ?? now(),
+                    'condition_on_return' => $condition,
+                    'penalty_amount' => $penalty,
                     'updated_at' => now()
                 ]);
             }
@@ -184,7 +223,11 @@ class BorrowRequestController extends Controller
             if ($stillBorrowedCount === 0) {
                 $br->update([
                     'status' => 'returned',
-                    'admin_notes' => $v['return_notes'] ?? $br->admin_notes,
+                    'admin_notes' => $v['admin_notes'] ?? $br->admin_notes,
+                    'condition_on_return' => $condition,
+                    'penalty_amount' => $penalty,
+                    'actual_return_date' => $v['actual_return_date'] ?? now()->toDateString(),
+                    'date_returned' => $v['actual_return_date'] ?? now()->toDateString(),
                     'received_by' => auth()->id()
                 ]);
             }
@@ -197,8 +240,8 @@ class BorrowRequestController extends Controller
         
         $this->logActivity(
             'item_returned',
-            "Items returned for {$br->category->category_name} by {$br->teacher->first_name} {$br->teacher->last_name}",
-            'info'
+            "Items returned ({$condition}) for {$br->category->category_name} by {$br->teacher->first_name} {$br->teacher->last_name}",
+            $condition === 'good' ? 'info' : 'warning'
         );
         
         NotificationService::notifyItemReturned($br);

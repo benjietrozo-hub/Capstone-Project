@@ -27,6 +27,9 @@ class Admin extends Authenticatable
         'permissions',
         'can_manage_all_admins',
         'can_manage_own_profile_only',
+        'password_change_required',
+        'otp_code',
+        'otp_expires_at',
     ];
 
     protected $hidden = [
@@ -37,10 +40,11 @@ class Admin extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'last_login' => 'datetime',
-        'password' => 'hashed',
         'permissions' => 'array',
         'can_manage_all_admins' => 'boolean',
         'can_manage_own_profile_only' => 'boolean',
+        'password_change_required' => 'boolean',
+        'otp_expires_at' => 'datetime',
     ];
 
     protected $appends = ['full_name'];
