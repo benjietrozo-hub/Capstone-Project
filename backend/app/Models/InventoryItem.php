@@ -18,10 +18,15 @@ class InventoryItem extends Model
         'item_name',
         'serial_number',
         'property_number',
+        'unit',
+        'description',
         'item_image',
         'condition',
         'status',
         'date_acquired',
+        'unit_price',
+        'source_of_fund',
+        'remarks',
         'lifespan_years',
         'location',
         'custom_attributes',
@@ -30,6 +35,8 @@ class InventoryItem extends Model
 
     protected $casts = [
         'date_acquired' => 'date',
+        'lifespan_years' => 'integer',
+        'unit_price' => 'decimal:2',
         'custom_attributes' => 'array', // This handles JSON encoding/decoding automatically!
     ];
 

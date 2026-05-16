@@ -97,6 +97,12 @@ export const adminAPI = {
 
   getInventoryItems: (params) =>
     axiosInstance.get('/admin/inventory-items', { params }),
+
+  getInventoryMasterList: (params) =>
+    axiosInstance.get('/admin/inventory-master-list', { params }),
+
+  updateInventoryMasterListGroup: (data) =>
+    axiosInstance.put('/admin/inventory-master-list', data),
     
   createInventoryItem: (data) =>
     axiosInstance.post('/admin/inventory-items', data, {

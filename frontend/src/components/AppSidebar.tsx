@@ -47,6 +47,7 @@ interface MenuItem {
 const adminItems: MenuItem[] = [
   { title: "Dashboard", url: "/admin/dashboard", icon: Home },
   { title: "Inventory", url: "/admin/inventory", icon: Boxes },
+  { title: "Master Inventory List", url: "/admin/inventory-master-list", icon: ClipboardList },
   { title: "Reservations", url: "/admin/reservations", icon: Calendar },
 
   { title: "Distribution List", url: "/admin/distribution", icon: List },

@@ -18,6 +18,7 @@ import { NotFoundPage, UnauthorizedPage } from './pages/ErrorPages';
 // Admin Pages
 import { AdminDashboard } from './pages/admin/Dashboard';
 import { InventoryPage } from './pages/admin/InventoryPage';
+import { MasterInventoryListPage } from './pages/admin/MasterInventoryListPage';
 import { BorrowRequestsPage } from './pages/admin/RequestsPage';
 import { ReservationsPage } from './pages/admin/ReservationsPage';
 import { TeachersPage } from './pages/admin/TeachersPage';
@@ -105,6 +106,16 @@ function App() {
                         <ProtectedRoute requiredRole="admin">
                           <ProtectedLayout>
                             <InventoryPage />
+                          </ProtectedLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="inventory-master-list"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ProtectedLayout>
+                            <MasterInventoryListPage />
                           </ProtectedLayout>
                         </ProtectedRoute>
                       }

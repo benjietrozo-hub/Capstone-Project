@@ -8,6 +8,15 @@ use Illuminate\Http\Request;
 
 class SystemSettingController extends Controller
 {
+    private function normalizeValue(string $key, mixed $value): mixed
+    {
+        if ($key === 'maintenance_mode') {
+            return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
+        }
+
+        return $value;
+    }
+
     /**
      * Get a setting by key
      */
@@ -24,7 +33,7 @@ class SystemSettingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $setting->value
+            'data' => $this->normalizeValue($key, $setting->value)
         ]);
     }
 
@@ -39,13 +48,13 @@ class SystemSettingController extends Controller
 
         $setting = SystemSetting::updateOrCreate(
             ['key' => $key],
-            ['value' => $request->value]
+            ['value' => $this->normalizeValue($key, $request->value)]
         );
 
         return response()->json([
             'success' => true,
             'message' => 'Setting updated successfully',
-            'data' => $setting->value
+            'data' => $this->normalizeValue($key, $setting->value)
         ]);
     }
 }

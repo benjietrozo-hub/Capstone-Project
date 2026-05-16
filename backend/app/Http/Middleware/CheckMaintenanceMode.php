@@ -19,7 +19,8 @@ class CheckMaintenanceMode
         // Get the maintenance mode setting
         $maintenanceSetting = SystemSetting::where('key', 'maintenance_mode')->first();
         
-        $isMaintenanceMode = $maintenanceSetting && $maintenanceSetting->value === true;
+        $isMaintenanceMode = $maintenanceSetting
+            && (filter_var($maintenanceSetting->value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false);
 
         // If maintenance mode is active, block non-admin users.
         if ($isMaintenanceMode) {

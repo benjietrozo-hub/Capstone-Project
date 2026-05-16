@@ -46,6 +46,139 @@ class InventoryItemController extends Controller
 
     }
 
+    public function masterList(Request $request)
+    {
+        $query = InventoryItem::query()
+            ->join('item_categories', 'inventory_items.category_id', '=', 'item_categories.id')
+            ->select([
+                'inventory_items.category_id',
+                'item_categories.parent_category',
+                'item_categories.category_name',
+                'inventory_items.item_name',
+                'inventory_items.unit',
+                'inventory_items.description',
+                'inventory_items.date_acquired',
+                'inventory_items.unit_price',
+                'inventory_items.source_of_fund',
+                'inventory_items.remarks',
+                DB::raw('COUNT(inventory_items.id) as quantity'),
+                DB::raw('MIN(inventory_items.id) as first_item_id'),
+            ])
+            ->whereNull('inventory_items.deleted_at');
+
+        if ($request->filled('category_id')) {
+            $query->where('inventory_items.category_id', $request->category_id);
+        }
+
+        if ($request->filled('parent_category')) {
+            $query->where('item_categories.parent_category', $request->parent_category);
+        }
+
+        if ($request->filled('source_of_fund')) {
+            $query->where('inventory_items.source_of_fund', $request->source_of_fund);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('inventory_items.date_acquired', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('inventory_items.date_acquired', '<=', $request->date_to);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('inventory_items.item_name', 'like', "%{$search}%")
+                    ->orWhere('inventory_items.description', 'like', "%{$search}%")
+                    ->orWhere('inventory_items.source_of_fund', 'like', "%{$search}%")
+                    ->orWhere('inventory_items.remarks', 'like', "%{$search}%")
+                    ->orWhere('item_categories.category_name', 'like', "%{$search}%")
+                    ->orWhere('item_categories.parent_category', 'like', "%{$search}%");
+            });
+        }
+
+        $query->groupBy([
+            'inventory_items.category_id',
+            'item_categories.parent_category',
+            'item_categories.category_name',
+            'inventory_items.item_name',
+            'inventory_items.unit',
+            'inventory_items.description',
+            'inventory_items.date_acquired',
+            'inventory_items.unit_price',
+            'inventory_items.source_of_fund',
+            'inventory_items.remarks',
+        ])
+            ->orderBy('item_categories.parent_category')
+            ->orderBy('item_categories.category_name')
+            ->orderBy('inventory_items.item_name')
+            ->orderBy('inventory_items.date_acquired');
+
+        return response()->json($query->paginate($request->get('per_page', 25)));
+    }
+
+    public function updateMasterListGroup(Request $request)
+    {
+        $validated = $request->validate([
+            'category_id' => 'required|exists:item_categories,id',
+            'item_name' => 'required|string|max:255',
+            'current_unit' => 'nullable|string|max:50',
+            'current_description' => 'nullable|string',
+            'current_date_acquired' => 'nullable|date',
+            'current_unit_price' => 'nullable|numeric|min:0',
+            'current_source_of_fund' => 'nullable|string|max:255',
+            'current_remarks' => 'nullable|string',
+            'unit' => 'nullable|string|max:50',
+            'description' => 'nullable|string',
+            'date_acquired' => 'nullable|date',
+            'unit_price' => 'nullable|numeric|min:0',
+            'source_of_fund' => 'nullable|string|max:255',
+            'remarks' => 'nullable|string',
+        ]);
+
+        $query = InventoryItem::where('category_id', $validated['category_id'])
+            ->where('item_name', $validated['item_name'])
+            ->whereNull('deleted_at');
+
+        $nullableFields = [
+            'unit' => 'current_unit',
+            'description' => 'current_description',
+            'date_acquired' => 'current_date_acquired',
+            'unit_price' => 'current_unit_price',
+            'source_of_fund' => 'current_source_of_fund',
+            'remarks' => 'current_remarks',
+        ];
+
+        foreach ($nullableFields as $column => $requestKey) {
+            if (array_key_exists($requestKey, $validated) && $validated[$requestKey] !== null && $validated[$requestKey] !== '') {
+                $query->where($column, $validated[$requestKey]);
+            } else {
+                $query->whereNull($column);
+            }
+        }
+
+        $updatedCount = $query->update([
+            'unit' => $validated['unit'] ?? null,
+            'description' => $validated['description'] ?? null,
+            'date_acquired' => $validated['date_acquired'] ?? null,
+            'unit_price' => $validated['unit_price'] ?? null,
+            'source_of_fund' => $validated['source_of_fund'] ?? null,
+            'remarks' => $validated['remarks'] ?? null,
+        ]);
+
+        $this->logActivity(
+            'master_inventory_update',
+            "Updated master inventory metadata for {$validated['item_name']} ({$updatedCount} serialized unit(s))",
+            'info'
+        );
+
+        return response()->json([
+            'message' => 'Master inventory row updated successfully',
+            'updated_count' => $updatedCount,
+        ]);
+    }
+
     public function store(Request $request)
     {
         \Log::info('InventoryItem@store request:', $request->all());
@@ -54,10 +187,15 @@ class InventoryItemController extends Controller
             'item_name' => 'required|string|max:255',
             'serial_number' => 'required|string|unique:inventory_items,serial_number',
             'property_number' => 'nullable|string|unique:inventory_items,property_number',
+            'unit' => 'nullable|string|max:50',
+            'description' => 'nullable|string',
             'item_image' => 'nullable|image|max:2048',
             'condition' => 'required|in:excellent,good,fair,poor,damaged',
             'status' => 'required|in:available,borrowed,distributed,maintenance,damaged,archived,disposed,lost,ready_for_disposal',
             'date_acquired' => 'nullable|date',
+            'unit_price' => 'nullable|numeric|min:0',
+            'source_of_fund' => 'nullable|string|max:255',
+            'remarks' => 'nullable|string',
             'lifespan_years' => 'nullable|integer|min:1',
             'location' => 'nullable|string|max:255',
             'custom_attributes' => 'nullable|array',
@@ -95,7 +233,12 @@ class InventoryItemController extends Controller
             'condition' => 'required|in:excellent,good,fair,poor,damaged',
             'status' => 'required|in:available,borrowed,distributed,maintenance,damaged,archived,disposed,lost,ready_for_disposal',
             'property_number' => 'nullable|string|unique:inventory_items,property_number',
+            'unit' => 'nullable|string|max:50',
+            'description' => 'nullable|string',
             'date_acquired' => 'nullable|date',
+            'unit_price' => 'nullable|numeric|min:0',
+            'source_of_fund' => 'nullable|string|max:255',
+            'remarks' => 'nullable|string',
             'lifespan_years' => 'nullable|integer|min:1',
             'location' => 'nullable|string|max:255',
             'custom_attributes' => 'nullable|array',
@@ -169,10 +312,15 @@ class InventoryItemController extends Controller
             'item_name' => 'sometimes|string|max:255',
             'serial_number' => 'sometimes|string|unique:inventory_items,serial_number,' . $item->id,
             'property_number' => 'nullable|string|unique:inventory_items,property_number,' . $item->id,
+            'unit' => 'nullable|string|max:50',
+            'description' => 'nullable|string',
             'item_image' => 'nullable|image|max:2048',
             'condition' => 'sometimes|in:excellent,good,fair,poor,damaged',
             'status' => 'sometimes|in:available,borrowed,distributed,maintenance,damaged,archived,disposed,lost,ready_for_disposal',
             'date_acquired' => 'nullable|date',
+            'unit_price' => 'nullable|numeric|min:0',
+            'source_of_fund' => 'nullable|string|max:255',
+            'remarks' => 'nullable|string',
             'lifespan_years' => 'nullable|integer|min:1',
             'location' => 'nullable|string|max:255',
             'custom_attributes' => 'nullable|array',

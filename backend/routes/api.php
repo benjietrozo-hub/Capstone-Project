@@ -104,6 +104,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     
     // New Serialized Individual Items
     Route::post('/inventory-items/bulk', [InventoryItemController::class, 'bulkStore']);
+    Route::get('/inventory-master-list', [InventoryItemController::class, 'masterList']);
+    Route::put('/inventory-master-list', [InventoryItemController::class, 'updateMasterListGroup']);
     Route::apiResource('inventory-items', InventoryItemController::class);
     
     Route::get('/requests', [AdminBorrowRequestController::class, 'index']);

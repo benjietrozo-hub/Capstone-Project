@@ -35,10 +35,15 @@ interface InventoryItem {
   item_name: string;
   serial_number: string;
   property_number: string | null;
+  unit: string | null;
+  description: string | null;
   item_image: string | null;
   condition: string;
   status: string;
   date_acquired: string | null;
+  unit_price: string | number | null;
+  source_of_fund: string | null;
+  remarks: string | null;
   lifespan_years: number | null;
   is_approaching_end_of_life?: boolean;
   end_of_life_date?: string | null;
@@ -59,6 +64,7 @@ export function InventoryPage() {
   const [editingCategory, setEditingCategory] = useState<ItemCategory | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [isViewOnly, setIsViewOnly] = useState(false);
+  const [savingItem, setSavingItem] = useState(false);
 
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const currentUser = storedUser ? JSON.parse(storedUser) : null;
@@ -174,9 +180,14 @@ export function InventoryPage() {
   const [itemName, setItemName] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [propertyNumber, setPropertyNumber] = useState('');
+  const [unit, setUnit] = useState('unit');
+  const [itemDescription, setItemDescription] = useState('');
   const [condition, setCondition] = useState('good');
   const [status, setStatus] = useState('available');
   const [dateAcquired, setDateAcquired] = useState('');
+  const [unitPrice, setUnitPrice] = useState('');
+  const [sourceOfFund, setSourceOfFund] = useState('');
+  const [remarks, setRemarks] = useState('');
   const [lifespanYears, setLifespanYears] = useState('5');
   const [itemImage, setItemImage] = useState<File | null>(null);
   const [customAttributes, setCustomAttributes] = useState<Record<string, any>>({});
@@ -273,9 +284,14 @@ export function InventoryPage() {
       setItemName(item.item_name);
       setSerialNumber(item.serial_number);
       setPropertyNumber(item.property_number || '');
+      setUnit(item.unit || 'unit');
+      setItemDescription(item.description || '');
       setCondition(item.condition);
       setStatus(item.status);
       setDateAcquired(item.date_acquired ? item.date_acquired.split('T')[0] : '');
+      setUnitPrice(item.unit_price ? item.unit_price.toString() : '');
+      setSourceOfFund(item.source_of_fund || '');
+      setRemarks(item.remarks || '');
       setLifespanYears(item.lifespan_years ? item.lifespan_years.toString() : '5');
       setCustomAttributes(item.custom_attributes || {});
 
@@ -283,9 +299,14 @@ export function InventoryPage() {
       setItemName('');
       setSerialNumber('');
       setPropertyNumber('');
+      setUnit('unit');
+      setItemDescription('');
       setCondition('good');
       setStatus('available');
       setDateAcquired(new Date().toISOString().split('T')[0]);
+      setUnitPrice('');
+      setSourceOfFund('');
+      setRemarks('');
       setLifespanYears('5');
       setCustomAttributes({});
 
@@ -321,15 +342,21 @@ export function InventoryPage() {
   const handleSaveItem = async (e?: any) => {
     if (e) e.preventDefault();
     if (!selectedCategory) return;
+    if (savingItem) return;
     
     const formData = new FormData();
     formData.append('category_id', selectedCategory.id.toString());
     formData.append('item_name', itemName);
     formData.append('serial_number', serialNumber);
     formData.append('property_number', propertyNumber || '');
+    formData.append('unit', unit);
+    formData.append('description', itemDescription);
     formData.append('condition', condition);
     formData.append('status', status);
     formData.append('date_acquired', dateAcquired);
+    formData.append('unit_price', unitPrice);
+    formData.append('source_of_fund', sourceOfFund);
+    formData.append('remarks', remarks);
     formData.append('lifespan_years', lifespanYears);
     if (itemImage) formData.append('item_image', itemImage);
 
@@ -342,6 +369,7 @@ export function InventoryPage() {
     }
 
     try {
+      setSavingItem(true);
       if (editingItem) {
         formData.append('_method', 'PUT');
         await adminAPI.updateInventoryItem(editingItem.id, formData);
@@ -373,6 +401,8 @@ export function InventoryPage() {
       queryClient.invalidateQueries({ queryKey: ['parent-categories'] });
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error saving item');
+    } finally {
+      setSavingItem(false);
     }
   };
 
@@ -1190,6 +1220,15 @@ export function InventoryPage() {
                   )}
 
                   <FormField label="Property Tag (Optional)" value={propertyNumber} onChange={e => setPropertyNumber(e.target.value)} disabled={isViewOnly} />
+
+                  <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider border-b pb-2 pt-2">Master List Record</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label="Unit" value={unit} onChange={e => setUnit(e.target.value)} placeholder="e.g. pc, set, box" disabled={isViewOnly} />
+                    <FormField label="Unit Price" type="number" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} step="0.01" min="0" disabled={isViewOnly} />
+                  </div>
+                  <FormField label="Description" type="textarea" rows={3} value={itemDescription} onChange={e => setItemDescription(e.target.value)} disabled={isViewOnly} />
+                  <FormField label="Source of Fund" value={sourceOfFund} onChange={e => setSourceOfFund(e.target.value)} placeholder="e.g. MOOE, Donation, PTA" disabled={isViewOnly} />
+                  <FormField label="Remarks" type="textarea" rows={3} value={remarks} onChange={e => setRemarks(e.target.value)} disabled={isViewOnly} />
                   
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <FormField label="Condition" type="select" value={condition} onChange={e => setCondition(e.target.value)} disabled={isViewOnly} options={[
@@ -1340,7 +1379,11 @@ export function InventoryPage() {
             
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
               <Button variant="secondary" onClick={() => setShowItemModal(false)}>{isViewOnly ? 'Close' : 'Cancel'}</Button>
-              {!isViewOnly && <Button onClick={handleSaveItem}>Save Serialized Unit</Button>}
+              {!isViewOnly && (
+                <Button onClick={handleSaveItem} disabled={savingItem}>
+                  {savingItem ? 'Saving...' : 'Save Serialized Unit'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
