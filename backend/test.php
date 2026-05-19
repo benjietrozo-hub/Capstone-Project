@@ -1,1 +1,0 @@
-<?php require __DIR__.'/vendor/autoload.php'; \ = require_once __DIR__.'/bootstrap/app.php'; \ = \->make(Illuminate\Contracts\Console\Kernel::class); \->bootstrap(); echo json_encode(\App\Models\BorrowRequest::with(['category'])->where('teacher_id', 2)->paginate(1));

@@ -74,13 +74,21 @@ class DistributionGroup extends Model
     public function scopeVisible($query, $teacherId = null)
     {
         return $query->where(function($q) use ($teacherId) {
-            $q->where('visibility', 'shared')
-              ->orWhere(function($subQ) use ($teacherId) {
-                  if ($teacherId) {
-                      $subQ->where('visibility', 'private')
-                           ->where('created_by', $teacherId);
-                  }
-              });
+            // Always show shared groups
+            $q->where('visibility', 'shared');
+
+            if ($teacherId) {
+                // Show private groups the teacher created
+                $q->orWhere(function($subQ) use ($teacherId) {
+                    $subQ->where('visibility', 'private')
+                         ->where('created_by', $teacherId);
+                });
+
+                // Show ANY group the teacher is a member of (admin-assigned or self-joined)
+                $q->orWhereHas('teachers', function($memberQ) use ($teacherId) {
+                    $memberQ->where('teachers.id', $teacherId);
+                });
+            }
         });
     }
 }

@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TableSkeleton, DashboardSkeleton } from "../../components/common/Skeleton";
-import { Search, Download, Users, Users2, Filter, Plus, Mail, Phone, Building2, UserCheck, UserX, Package, Calendar, AlertCircle, CheckCircle, XCircle, Eye, Clock, ClipboardList, Printer, Archive, ShieldCheck, TrendingUp, ArrowUpRight, Layers, Settings } from "lucide-react";
+import { Search, Download, Users, Users2, Filter, Plus, Mail, Phone, Building2, UserCheck, UserX, Package, Calendar, AlertCircle, CheckCircle, XCircle, Eye, Clock, ClipboardList, Printer, Archive, ShieldCheck, TrendingUp, ArrowUpRight, Layers, Settings, Zap } from "lucide-react";
 
 
 import { adminAPI } from "../../api";
@@ -21,6 +21,7 @@ import ManageGroupMembersModal from "@/components/admin/ManageGroupMembersModal"
 import CreateDistributionModal from "@/components/admin/CreateDistributionModal";
 import ReturnDistributionModal from "@/components/admin/ReturnDistributionModal";
 import ViewDistributionRequestModal from "@/components/admin/ViewDistributionRequestModal";
+import DirectAssignModal from "@/components/admin/DirectAssignModal";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import NavHeader from "@/components/NavHeader";
 import NotificationProfile from "@/components/NotificationProfile";
@@ -234,6 +235,7 @@ export default function DistributionListPage() {
   const [distributionSearch, setDistributionSearch] = useState("");
   const [distributionStatus, setDistributionStatus] = useState("all");
   const [showCreateDistributionModal, setShowCreateDistributionModal] = useState(false);
+  const [showDirectAssignModal, setShowDirectAssignModal] = useState(false);
     const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedDistribution, setSelectedDistribution] = useState<ItemDistribution | null>(null);
 
@@ -708,7 +710,7 @@ export default function DistributionListPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded shadow-lg shadow-blue-200">
+            <div className="p-2 bg-blue-600 rounded-sm shadow-lg shadow-blue-200">
               <Users2 className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Distribution Hub</h1>
@@ -722,14 +724,14 @@ export default function DistributionListPage() {
           <Button 
             onClick={handleExport} 
             variant="outline" 
-            className="w-full sm:w-auto h-12 px-6 rounded border-slate-200 bg-white hover:bg-slate-50 font-bold transition-all gap-2"
+            className="w-full sm:w-auto h-12 px-6 rounded-sm border-slate-200 bg-white hover:bg-slate-50 font-bold transition-all gap-2"
           >
             <Download className="w-4 h-4 text-slate-400" />
             Export Data
           </Button>
           <Button 
             onClick={() => setShowCreateGroupModal(true)} 
-            className="w-full sm:w-auto h-12 px-8 rounded bg-slate-900 hover:bg-slate-800 text-white font-black shadow-xl shadow-slate-200 transition-all active:scale-95 gap-2"
+            className="w-full sm:w-auto h-12 px-8 rounded-sm bg-slate-900 hover:bg-slate-800 text-white font-black shadow-xl shadow-slate-200 transition-all active:scale-95 gap-2"
           >
             <Plus className="w-5 h-5" />
             Create Group
@@ -745,14 +747,14 @@ export default function DistributionListPage() {
           { label: 'Pending Requests', value: distributionRequestStats?.pending_requests || 0, icon: Clock, color: 'amber', sub: 'Awaiting admin review' },
           { label: 'Active Channels', value: groupPagination.total, icon: Building2, color: 'purple', sub: 'Distribution groups' }
         ].map((stat, i) => (
-          <div key={i} className="group relative overflow-hidden bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
+          <div key={i} className="group relative overflow-hidden bg-white p-8 rounded-sm border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
             <div className={`absolute top-0 right-0 w-32 h-32 bg-${stat.color}-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-${stat.color}-500/10 transition-colors`} />
             <div className="relative flex items-start justify-between">
               <div>
                 <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block">{stat.label}</span>
                 <div className="flex items-center gap-3">
                   <h3 className="text-4xl font-black text-slate-900 leading-none">{stat.value}</h3>
-                  <div className={`p-1.5 bg-${stat.color}-50 rounded`}>
+                  <div className={`p-1.5 bg-${stat.color}-50 rounded-sm`}>
                     <TrendingUp className={`w-4 h-4 text-${stat.color}-600`} />
                   </div>
                 </div>
@@ -761,7 +763,7 @@ export default function DistributionListPage() {
                   <ArrowUpRight className="w-3 h-3" />
                 </p>
               </div>
-              <div className={`p-4 bg-${stat.color}-50 rounded-[20px] text-${stat.color}-600 group-hover:scale-110 transition-transform duration-500`}>
+              <div className={`p-4 bg-${stat.color}-50 rounded-sm text-${stat.color}-600 group-hover:scale-110 transition-transform duration-500`}>
                 <stat.icon className="w-6 h-6" />
               </div>
             </div>
@@ -772,7 +774,7 @@ export default function DistributionListPage() {
       {/* Main Interactive Interface */}
       <Tabs defaultValue="all" className="space-y-6 md:space-y-8">
         <div className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-          <TabsList className="h-auto md:h-16 p-2 bg-slate-100 rounded-[24px] border border-slate-200 flex sm:inline-flex w-full sm:w-auto min-w-max">
+          <TabsList className="h-auto md:h-16 p-2 bg-slate-100 rounded-sm border border-slate-200 flex sm:inline-flex w-full sm:w-auto min-w-max">
             {[
               { value: 'all', label: 'Personnel', icon: Users },
               { value: 'groups', label: 'Groups', icon: Layers },
@@ -782,7 +784,7 @@ export default function DistributionListPage() {
               <TabsTrigger 
                 key={tab.value}
                 value={tab.value} 
-                className="flex-1 sm:flex-none px-4 md:px-8 py-3 md:h-full rounded-[18px] data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg font-black text-slate-500 gap-2 md:gap-3 transition-all"
+                className="flex-1 sm:flex-none px-4 md:px-8 py-3 md:h-full rounded-sm data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg font-black text-slate-500 gap-2 md:gap-3 transition-all"
               >
                 <tab.icon className="w-4 h-4" />
                 <span className="hidden sm:inline">{tab.label}</span>
@@ -793,7 +795,7 @@ export default function DistributionListPage() {
 
         {/* Personnel Directory Tab */}
         <TabsContent value="all" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Card className="rounded-[40px] border-slate-100 shadow-xl shadow-slate-100 overflow-hidden">
+          <Card className="rounded-sm border-slate-100 shadow-xl shadow-slate-100 overflow-hidden">
             <CardContent className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 pb-8 border-b border-slate-100">
                 <div className="relative md:col-span-1">
@@ -802,12 +804,12 @@ export default function DistributionListPage() {
                     placeholder="Search personnel..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-12 h-14 rounded border-slate-200 bg-slate-50/50 shadow-inner focus:bg-white"
+                    className="pl-12 h-14 rounded-sm border-slate-200 bg-slate-50/50 shadow-inner focus:bg-white"
                   />
                 </div>
 
                 <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                  <SelectTrigger className="h-14 rounded border-slate-200 bg-slate-50/50">
+                  <SelectTrigger className="h-14 rounded-sm border-slate-200 bg-slate-50/50">
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
                   <SelectContent>
@@ -819,7 +821,7 @@ export default function DistributionListPage() {
                 </Select>
 
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="h-14 rounded border-slate-200 bg-slate-50/50">
+                  <SelectTrigger className="h-14 rounded-sm border-slate-200 bg-slate-50/50">
                     <SelectValue placeholder="Roster Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -830,7 +832,7 @@ export default function DistributionListPage() {
                 </Select>
 
                 <Select value={selectedGroup?.toString() || "all"} onValueChange={(v) => setSelectedGroup(v === "all" ? null : parseInt(v))}>
-                  <SelectTrigger className="h-14 rounded border-slate-200 bg-slate-50/50">
+                  <SelectTrigger className="h-14 rounded-sm border-slate-200 bg-slate-50/50">
                     <SelectValue placeholder="Filter by Group" />
                   </SelectTrigger>
                   <SelectContent>
@@ -846,11 +848,11 @@ export default function DistributionListPage() {
 
               {loadingTeachers ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {[1, 2, 3, 4, 5, 6].map(n => <div key={n} className="h-48 bg-slate-50 rounded-[32px] animate-pulse" />)}
+                  {[1, 2, 3, 4, 5, 6].map(n => <div key={n} className="h-48 bg-slate-50 rounded-sm animate-pulse" />)}
                 </div>
               ) : teachers.length === 0 ? (
                 <div className="py-24 text-center">
-                  <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center mx-auto mb-6">
+                  <div className="w-20 h-20 bg-slate-50 rounded-sm flex items-center justify-center mx-auto mb-6">
                     <Users className="w-10 h-10 text-slate-200" />
                   </div>
                   <h3 className="text-xl font-black text-slate-900">Zero personnel matched</h3>
@@ -859,10 +861,10 @@ export default function DistributionListPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {teachers.map((teacher) => (
-                    <div key={teacher.id} className="group p-6 bg-white border border-slate-100 rounded-[32px] hover:shadow-2xl hover:shadow-slate-200 transition-all duration-300 relative">
+                    <div key={teacher.id} className="group p-6 bg-white border border-slate-100 rounded-sm hover:shadow-2xl hover:shadow-slate-200 transition-all duration-300 relative">
                       <div className="flex items-start justify-between mb-6">
                         <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 bg-slate-50 rounded flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                          <div className="w-14 h-14 bg-slate-50 rounded-sm flex items-center justify-center group-hover:bg-blue-50 transition-colors">
                             <span className="text-lg font-black text-slate-400 group-hover:text-blue-600">{teacher.full_name.charAt(0)}</span>
                           </div>
                           <div>
@@ -876,11 +878,11 @@ export default function DistributionListPage() {
                       </div>
                       
                       <div className="space-y-3">
-                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-3 rounded group-hover:bg-white group-hover:border-slate-100 border border-transparent transition-all">
+                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-3 rounded-sm group-hover:bg-white group-hover:border-slate-100 border border-transparent transition-all">
                           <Mail className="w-4 h-4 text-slate-400" />
                           <span className="truncate">{teacher.email}</span>
                         </div>
-                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-3 rounded group-hover:bg-white group-hover:border-slate-100 border border-transparent transition-all">
+                        <div className="flex items-center gap-3 text-sm font-medium text-slate-600 bg-slate-50 p-3 rounded-sm group-hover:bg-white group-hover:border-slate-100 border border-transparent transition-all">
                           <Building2 className="w-4 h-4 text-slate-400" />
                           <span>{teacher.department}</span>
                         </div>
@@ -927,23 +929,23 @@ export default function DistributionListPage() {
         <TabsContent value="groups" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {loadingGroups ? (
-              [1, 2, 3].map(n => <div key={n} className="h-64 bg-slate-100 rounded-[40px] animate-pulse" />)
+              [1, 2, 3].map(n => <div key={n} className="h-64 bg-slate-100 rounded-sm animate-pulse" />)
             ) : groups.length === 0 ? (
-              <div className="col-span-full py-24 text-center bg-white rounded-[40px] border border-slate-100 shadow-sm">
+              <div className="col-span-full py-24 text-center bg-white rounded-sm border border-slate-100 shadow-sm">
                 <Layers className="w-16 h-16 text-slate-100 mx-auto mb-6" />
                 <h3 className="text-xl font-black text-slate-900">No Distribution Groups</h3>
                 <p className="text-slate-400 mt-2">Initialize a new group to start collective distributions</p>
-                <Button onClick={() => setShowCreateGroupModal(true)} className="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-black px-8 h-12 rounded">Create First Group</Button>
+                <Button onClick={() => setShowCreateGroupModal(true)} className="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-black px-8 h-12 rounded-sm">Create First Group</Button>
               </div>
             ) : (
               groups.map((group) => (
-                <div key={group.id} className="group bg-white border border-slate-100 rounded-[40px] shadow-sm hover:shadow-2xl hover:shadow-slate-200 transition-all duration-500 overflow-hidden flex flex-col">
+                <div key={group.id} className="group bg-white border border-slate-100 rounded-sm shadow-sm hover:shadow-2xl hover:shadow-slate-200 transition-all duration-500 overflow-hidden flex flex-col">
                   <div className="p-8 pb-4">
                     <div className="flex items-center justify-between mb-6">
                       <div className="p-4 bg-slate-50 rounded-sm group-hover:bg-blue-50 transition-colors">
                         <Users className="w-6 h-6 text-slate-400 group-hover:text-blue-600" />
                       </div>
-                      <Badge className={`${group.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'} font-black px-3 h-7`}>
+                      <Badge className={`${group.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'} font-black px-3 h-7 rounded-sm`}>
                         {group.is_active ? 'ACTIVE CHANNEL' : 'INACTIVE'}
                       </Badge>
                     </div>
@@ -963,8 +965,8 @@ export default function DistributionListPage() {
                   </div>
 
                   <div className="p-6 grid grid-cols-2 gap-3 bg-white">
-                    <Button onClick={() => handleViewGroup(group)} variant="outline" className="h-12 rounded border-slate-100 font-bold hover:bg-slate-50 text-slate-600">View Roster</Button>
-                    <Button onClick={() => handleManageMembers(group)} className="h-12 rounded bg-slate-900 hover:bg-slate-800 text-white font-black shadow-lg">Manage</Button>
+                    <Button onClick={() => handleViewGroup(group)} variant="outline" className="h-12 rounded-sm border-slate-100 font-bold hover:bg-slate-50 text-slate-600">View Roster</Button>
+                    <Button onClick={() => handleManageMembers(group)} className="h-12 rounded-sm bg-slate-900 hover:bg-slate-800 text-white font-black shadow-lg">Manage</Button>
                   </div>
                 </div>
               ))
@@ -974,14 +976,21 @@ export default function DistributionListPage() {
 
         {/* Active Distributions Tab */}
         <TabsContent value="distributions" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Card className="rounded-[40px] border-slate-100 shadow-xl shadow-slate-100 overflow-hidden">
+          <Card className="rounded-sm border-slate-100 shadow-xl shadow-slate-100 overflow-hidden">
             <CardHeader className="p-8 pb-0 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-black text-slate-900">Distribution Ledger</CardTitle>
                 <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Real-time allocation tracking</p>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="relative w-64">
+                <div className="flex items-center gap-4">
+                <Button
+                    onClick={() => setShowDirectAssignModal(true)}
+                    className="h-11 px-6 rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-100 transition-all active:scale-95 gap-2 shrink-0"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Direct Assign
+                  </Button>
+                  <div className="relative w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input 
                     placeholder="Filter records..." 
@@ -1079,7 +1088,7 @@ export default function DistributionListPage() {
 
         {/* Incoming Requests Tab */}
         <TabsContent value="requests" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-           <Card className="rounded-[40px] border-slate-100 shadow-xl shadow-slate-100 overflow-hidden">
+           <Card className="rounded-sm border-slate-100 shadow-xl shadow-slate-100 overflow-hidden">
             <CardHeader className="p-8 pb-0">
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -1111,19 +1120,19 @@ export default function DistributionListPage() {
               </div>
 
               <div className="grid grid-cols-4 gap-4 mb-8">
-                <div className="p-4 bg-amber-50 rounded border border-amber-100 flex flex-col">
+                <div className="p-4 bg-amber-50 rounded-sm border border-amber-100 flex flex-col">
                   <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">Awaiting Review</span>
                   <span className="text-xl font-black text-amber-900">{distributionRequestStats?.pending_requests || 0}</span>
                 </div>
-                <div className="p-4 bg-emerald-50 rounded border border-emerald-100 flex flex-col">
+                <div className="p-4 bg-emerald-50 rounded-sm border border-emerald-100 flex flex-col">
                   <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Approved Cases</span>
                   <span className="text-xl font-black text-emerald-900">{distributionRequestStats?.approved_requests || 0}</span>
                 </div>
-                <div className="p-4 bg-blue-50 rounded border border-blue-100 flex flex-col">
+                <div className="p-4 bg-blue-50 rounded-sm border border-blue-100 flex flex-col">
                   <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Active Distributions</span>
                   <span className="text-xl font-black text-blue-900">{distributionRequestStats?.distributed_requests || 0}</span>
                 </div>
-                <div className="p-4 bg-slate-50 rounded border border-slate-100 flex flex-col">
+                <div className="p-4 bg-slate-50 rounded-sm border border-slate-100 flex flex-col">
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Queue</span>
                   <span className="text-xl font-black text-slate-900">{distributionRequestStats?.total_requests || 0}</span>
                 </div>
@@ -1211,13 +1220,23 @@ export default function DistributionListPage() {
         <ManageGroupMembersModal isOpen={showManageMembersModal} onClose={() => { setShowManageMembersModal(false); setSelectedGroupData(null); }} onSuccess={() => { setShowManageMembersModal(false); setSelectedGroupData(null); queryClient.invalidateQueries({ queryKey: ['distribution-groups'] }); }} group={selectedGroupData} />
       )}
 
+      {showDirectAssignModal && (
+        <DirectAssignModal
+          onClose={() => setShowDirectAssignModal(false)}
+          onSuccess={() => {
+            setShowDirectAssignModal(false);
+            queryClient.invalidateQueries({ queryKey: ['item-distributions'] });
+          }}
+        />
+      )}
+
       {/* High-Fidelity Security Verification Modal */}
       {showVerifyModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-300 rounded-[40px] border-none overflow-hidden">
+          <Card className="w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-300 rounded-sm border-none overflow-hidden">
             <div className="bg-gradient-to-br from-red-600 to-rose-700 p-8 text-center relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-              <div className="w-20 h-20 bg-white/20 rounded-[32px] backdrop-blur-xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/20">
+              <div className="w-20 h-20 bg-white/20 rounded-sm backdrop-blur-xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/20">
                 <ShieldCheck className="w-10 h-10 text-white" />
               </div>
               <h2 className="text-2xl font-black text-white tracking-tight">Access Authorization</h2>
@@ -1232,22 +1251,22 @@ export default function DistributionListPage() {
                     value={verifyPassword} 
                     onChange={(e) => setVerifyPassword(e.target.value)}
                     placeholder="Enter security token..."
-                    className="h-14 rounded border-slate-200 bg-slate-50 focus:bg-white text-lg shadow-inner"
+                    className="h-14 rounded-sm border-slate-200 bg-slate-50 focus:bg-white text-lg shadow-inner"
                     onKeyDown={(e) => e.key === 'Enter' && handleVerifyAndExecute()}
                     autoFocus
                   />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-slate-100 rounded">
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-slate-100 rounded-sm">
                     <Settings className="w-4 h-4 text-slate-400" />
                   </div>
                 </div>
               </div>
               
               <div className="flex gap-4">
-                <Button variant="ghost" onClick={() => { setShowVerifyModal(false); setVerifyPassword(''); setPendingAction(null); }} className="flex-1 h-14 rounded font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50">Cancel</Button>
+                <Button variant="ghost" onClick={() => { setShowVerifyModal(false); setVerifyPassword(''); setPendingAction(null); }} className="flex-1 h-14 rounded-sm font-black text-slate-400 hover:text-slate-600 hover:bg-slate-50">Cancel</Button>
                 <Button 
                   onClick={handleVerifyAndExecute} 
                   disabled={verifying}
-                  className="flex-[2] h-14 rounded bg-red-600 hover:bg-red-700 text-white font-black shadow-lg shadow-red-100 active:scale-95 transition-all"
+                  className="flex-[2] h-14 rounded-sm bg-red-600 hover:bg-red-700 text-white font-black shadow-lg shadow-red-100 active:scale-95 transition-all"
                 >
                   {verifying ? (
                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />

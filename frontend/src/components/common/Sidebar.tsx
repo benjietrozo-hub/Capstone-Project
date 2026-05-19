@@ -68,7 +68,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           fontWeight: '600',
           fontSize: '1rem'
         }}>
-          OlineIMS
+          PIMS
         </h3>
       </div>
 
@@ -126,7 +126,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         color: 'rgba(255, 255, 255, 0.7)',
         fontSize: '0.85rem'
       }}>
-        <p style={{ margin: 0 }}>OlineIMS v1.0</p>
+        <p style={{ margin: 0 }}>PIMS v1.0</p>
       </div>
     </aside>
   );

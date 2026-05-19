@@ -338,4 +338,199 @@ class ItemDistributionController extends Controller
             return response()->json(['success' => false, 'message' => 'Failed to delete distribution', 'error' => $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Directly assign items to a single teacher (no prior request required).
+     * Sets status to 'active' immediately — bypasses pending_acceptance flow.
+     */
+    public function directAssign(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'category_id'               => 'required|exists:item_categories,id',
+            'teacher_id'                => 'required|exists:teachers,id',
+            'inventory_item_ids'        => 'required|array|min:1',
+            'inventory_item_ids.*'      => 'exists:inventory_items,id',
+            'distribution_date'         => 'required|date',
+            'expected_return_date'      => 'nullable|date|after_or_equal:distribution_date',
+            'purpose'                   => 'nullable|string|max:500',
+            'notes'                     => 'nullable|string',
+            'condition_on_distribution' => 'required|in:excellent,good,fair,poor',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => 'Validation failed', 'errors' => $validator->errors()], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $items = InventoryItem::whereIn('id', $request->inventory_item_ids)->get();
+
+            foreach ($items as $item) {
+                if ($item->status !== 'available') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Item {$item->serial_number} is not available (current status: {$item->status})"
+                    ], 422);
+                }
+                if ((int) $item->category_id !== (int) $request->category_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Item {$item->serial_number} does not belong to the selected category."
+                    ], 422);
+                }
+            }
+
+            // Create distribution — status ACTIVE immediately (no pending_acceptance)
+            $distribution = ItemDistribution::create([
+                'category_id'               => $request->category_id,
+                'teacher_id'                => $request->teacher_id,
+                'distributed_by'            => auth()->id(),
+                'quantity_distributed'      => count($request->inventory_item_ids),
+                'status'                    => 'active',
+                'distribution_date'         => $request->distribution_date,
+                'expected_return_date'      => $request->expected_return_date,
+                'purpose'                   => $request->purpose,
+                'notes'                     => $request->notes,
+                'condition_on_distribution' => $request->condition_on_distribution,
+            ]);
+
+            InventoryItem::whereIn('id', $request->inventory_item_ids)->update(['status' => 'distributed']);
+
+            $syncData = [];
+            foreach ($request->inventory_item_ids as $itemId) {
+                $syncData[$itemId] = ['status' => 'distributed', 'created_at' => now(), 'updated_at' => now()];
+            }
+            $distribution->inventoryItems()->attach($syncData);
+
+            \App\Services\NotificationService::notifyDirectAssignment($distribution);
+
+            SystemLog::create([
+                'log_type'     => 'distribution',
+                'action'       => 'direct_assign',
+                'description'  => 'Admin directly assigned ' . count($request->inventory_item_ids) . " item(s) to teacher #{$request->teacher_id}",
+                'user_type'    => 'admin',
+                'user_id'      => auth()->id(),
+                'reference_id' => $distribution->id,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Items directly assigned to teacher successfully',
+                'data'    => $distribution->load(['category', 'teacher', 'distributedBy', 'inventoryItems'])
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Direct assignment failed', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Directly assign items to every teacher in a distribution group (no prior request required).
+     * Creates one ItemDistribution per teacher, all status = 'active' immediately.
+     */
+    public function directAssignToGroup(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'category_id'               => 'required|exists:item_categories,id',
+            'group_id'                  => 'required|exists:distribution_groups,id',
+            'inventory_item_ids'        => 'required|array|min:1',
+            'inventory_item_ids.*'      => 'exists:inventory_items,id',
+            'quantity_per_member'       => 'required|integer|min:1',
+            'distribution_date'         => 'required|date',
+            'expected_return_date'      => 'nullable|date|after_or_equal:distribution_date',
+            'purpose'                   => 'nullable|string|max:500',
+            'notes'                     => 'nullable|string',
+            'condition_on_distribution' => 'required|in:excellent,good,fair,poor',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => 'Validation failed', 'errors' => $validator->errors()], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $group = \App\Models\DistributionGroup::with('teachers')->findOrFail($request->group_id);
+            $memberCount = $group->teachers->count();
+
+            if ($memberCount === 0) {
+                return response()->json(['success' => false, 'message' => 'The selected group has no members.'], 422);
+            }
+
+            $expectedCount = $memberCount * (int) $request->quantity_per_member;
+            if (count($request->inventory_item_ids) !== $expectedCount) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Expected {$expectedCount} items for {$memberCount} members × {$request->quantity_per_member} per member, but received " . count($request->inventory_item_ids) . '.',
+                ], 422);
+            }
+
+            $items = InventoryItem::whereIn('id', $request->inventory_item_ids)->get();
+            foreach ($items as $item) {
+                if ($item->status !== 'available') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Item {$item->serial_number} is not available (status: {$item->status})"
+                    ], 422);
+                }
+            }
+
+            // Mark all items as distributed upfront
+            InventoryItem::whereIn('id', $request->inventory_item_ids)->update(['status' => 'distributed']);
+
+            $itemChunks  = array_chunk($request->inventory_item_ids, $request->quantity_per_member);
+            $createdIds  = [];
+
+            foreach ($group->teachers as $index => $teacher) {
+                $teacherItems = $itemChunks[$index] ?? [];
+
+                $distribution = ItemDistribution::create([
+                    'category_id'               => $request->category_id,
+                    'teacher_id'                => $teacher->id,
+                    'distributed_by'            => auth()->id(),
+                    'quantity_distributed'      => $request->quantity_per_member,
+                    'status'                    => 'active',
+                    'distribution_date'         => $request->distribution_date,
+                    'expected_return_date'      => $request->expected_return_date,
+                    'purpose'                   => $request->purpose,
+                    'notes'                     => $request->notes,
+                    'condition_on_distribution' => $request->condition_on_distribution,
+                ]);
+
+                $syncData = [];
+                foreach ($teacherItems as $itemId) {
+                    $syncData[$itemId] = ['status' => 'distributed', 'created_at' => now(), 'updated_at' => now()];
+                }
+                $distribution->inventoryItems()->attach($syncData);
+
+                \App\Services\NotificationService::notifyDirectAssignment($distribution);
+                $createdIds[] = $distribution->id;
+            }
+
+            SystemLog::create([
+                'log_type'    => 'distribution',
+                'action'      => 'direct_assign_group',
+                'description' => "Admin directly assigned items to group '{$group->group_name}' ({$memberCount} members)",
+                'user_type'   => 'admin',
+                'user_id'     => auth()->id(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success'              => true,
+                'message'              => "Items directly assigned to all {$memberCount} members of '{$group->group_name}'",
+                'distributions_count'  => count($createdIds),
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Group direct assignment failed', 'error' => $e->getMessage()], 500);
+        }
+    }
 }
+

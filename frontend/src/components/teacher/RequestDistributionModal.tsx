@@ -5,6 +5,7 @@ import {
   AlertTriangle, Flag, Layers, Layout
 } from 'lucide-react';
 import { teacherAPI } from '@/api';
+import axiosInstance from '@/api/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,9 +62,11 @@ export default function RequestDistributionModal({
   const fetchInitialData = async () => {
     try {
       setFetchingData(true);
-      const [itemsRes, entitiesRes] = await Promise.all([
+      const [itemsRes, entitiesRes, groupsRes] = await Promise.all([
         teacherAPI.getAvailableItems(),
-        teacherAPI.getMyEntities()
+        teacherAPI.getMyEntities(),
+        // my-groups returns ONLY groups the teacher is a member of (not all public/shared groups)
+        axiosInstance.get('/teacher/distribution-groups/my-groups')
       ]);
       
       setCategories(itemsRes.data.data || []);
@@ -79,6 +82,12 @@ export default function RequestDistributionModal({
         if (data.clubs) data.clubs.forEach((e: any) => flattenedEntities.push({ type: 'Club', id: e.id, name: `Club: ${e.name}` }));
         if (data.departments) data.departments.forEach((e: any) => flattenedEntities.push({ type: 'Department', id: e.id, name: `Dept: ${e.name}` }));
       }
+
+      // Add only groups the teacher is a member of
+      const rawGroups = Array.isArray(groupsRes.data?.data) ? groupsRes.data.data : [];
+      rawGroups.forEach((g: any) => {
+        flattenedEntities.push({ type: 'DistributionGroup' as any, id: g.id, name: `Group: ${g.group_name}` });
+      });
       
       setEntities(flattenedEntities);
     } catch (error) {

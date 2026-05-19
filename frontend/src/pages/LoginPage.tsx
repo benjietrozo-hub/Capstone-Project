@@ -169,7 +169,8 @@ export function LoginPage() {
     <>
       <AuthHeader 
         title="Property Inventory Management System" 
-        subtitle="Welcome back! Please login to continue"
+        subtitle="Caloc-an Elementary School" 
+        
       />
 
       <div className="min-h-[calc(100vh-70px-60px)] flex items-center justify-center bg-white px-4 py-8 overflow-auto">
@@ -193,7 +194,7 @@ export function LoginPage() {
                   {isLocked ? 'Account Locked' : 'Property IMS'}
                 </CardTitle>
                 <CardDescription className="text-sm mt-1 text-white/90">
-                  {isLocked ? 'Too many failed attempts' : 'Online Inventory Management System'}
+                  {isLocked ? 'Too many failed attempts' : 'Property Inventory Management System'}
                 </CardDescription>
               </div>
             </CardHeader>

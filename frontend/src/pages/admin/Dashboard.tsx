@@ -285,23 +285,18 @@ export function AdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <SystemHealthCard />
               <Card className="border-none shadow-md bg-white overflow-hidden flex flex-col justify-center p-6 relative">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10 opacity-50"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10 opacity-50" />
                 <div className="space-y-2">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Defense Ready Status</p>
-                  <h4 className="text-xl font-black text-gray-900">Capstone Final Audit</h4>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">System Overview</p>
+                  <h4 className="text-xl font-black text-gray-900">Property Control & Audit</h4>
                   <p className="text-sm text-gray-500 leading-relaxed max-w-sm">
-                    All system modules are synchronized with the institutional standards of 
-                    <span className="font-bold text-gray-800"> Caloc-an Elementary School</span>. 
-                    Redundant checks for accountability and equipment lifecycle are active.
+                    Welcome to the PIMS Administration Portal. This interface provides real-time oversight of school assets, equipment distribution lists, and active accountability tracking for
+                    <span className="font-bold text-gray-800"> Caloc-an Elementary School</span>.
                   </p>
                 </div>
-                <div className="mt-6 flex items-center gap-4">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-bold">BT</div>
-                    ))}
-                  </div>
-                  <span className="text-xs text-gray-400 font-medium italic">Project Lead: Benjie Trozo</span>
+                <div className="mt-6 flex items-center gap-3">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operation Mode</span>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 font-bold px-2.5 py-0.5 rounded-full uppercase">Production Active</span>
                 </div>
               </Card>
             </div>

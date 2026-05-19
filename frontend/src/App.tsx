@@ -57,7 +57,7 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
-        <main className="flex-1 w-full overflow-x-hidden">
+        <main className="flex-1 w-full overflow-x-hidden relative z-20">
           {children}
         </main>
       </div>

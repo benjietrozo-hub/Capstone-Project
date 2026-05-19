@@ -328,6 +328,18 @@ export const adminAPI = {
     axiosInstance.get('/admin/distributions/statistics'),
   getSystemHealth: () =>
     axiosInstance.get('/admin/system/health'),
+
+  // Direct Assignment (admin pushes items without a prior teacher request)
+  directAssignToTeacher: (data) =>
+    axiosInstance.post('/admin/distributions/direct', data),
+  directAssignToGroup: (data) =>
+    axiosInstance.post('/admin/distributions/direct-group', data),
+
+  // Item Categories & Inventory Items (used by DirectAssignModal)
+  getAdminItemCategories: (params) =>
+    axiosInstance.get('/admin/item-categories', { params }),
+  getAdminInventoryItems: (params) =>
+    axiosInstance.get('/admin/inventory-items', { params }),
 };
 
 export const teacherAPI = {
@@ -399,6 +411,9 @@ export const teacherAPI = {
   // Distribution Groups
   getDistributionGroups: (params) =>
     axiosInstance.get('/teacher/distribution-groups', { params }),
+
+  createDistributionGroup: (data) =>
+    axiosInstance.post('/teacher/distribution-groups', data),
 
   getDistributionGroup: (id) =>
     axiosInstance.get(`/teacher/distribution-groups/${id}`),

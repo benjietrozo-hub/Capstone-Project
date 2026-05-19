@@ -341,6 +341,28 @@ class NotificationService
         );
     }
 
+    /**
+     * Notify a teacher that items have been directly assigned to them by an admin
+     * (no prior request — immediate active status)
+     */
+    public static function notifyDirectAssignment($distribution)
+    {
+        $distribution->loadMissing(['teacher', 'category', 'distributedBy']);
+
+        $itemName = $distribution->category->category_name ?? 'items';
+        $qty      = $distribution->quantity_distributed;
+
+        self::send(
+            $distribution->teacher_id,
+            'teacher',
+            'direct_assignment',
+            'Items Assigned to You',
+            "{$qty} unit(s) of {$itemName} have been directly assigned to you by the administrator.",
+            $distribution->id,
+            'item_distribution'
+        );
+    }
+
 
 
     /**

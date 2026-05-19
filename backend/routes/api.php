@@ -40,26 +40,26 @@ Route::get('/test', function() {
 
 // Public Auth Routes
 Route::prefix('auth')->group(function () {
-    // Unified login endpoint
-    Route::post('/login', [UnifiedAuthController::class, 'login']);
+    // Unified login endpoint - rate limited to 5 attempts per minute (brute force protection)
+    Route::post('/login', [UnifiedAuthController::class, 'login'])->middleware('throttle:5,1');
     
-    // Token refresh endpoint (public - uses refresh token)
-    Route::post('/refresh-token', [UnifiedAuthController::class, 'refreshToken']);
+    // Token refresh endpoint (public - uses refresh token) - rate limited to 30 attempts per minute
+    Route::post('/refresh-token', [UnifiedAuthController::class, 'refreshToken'])->middleware('throttle:30,1');
     
-    // Password reset endpoints
-    Route::post('/forgot-password', [UnifiedAuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [UnifiedAuthController::class, 'resetPassword']);
+    // Password reset endpoints - rate limited to 3 attempts per minute
+    Route::post('/forgot-password', [UnifiedAuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
+    Route::post('/reset-password', [UnifiedAuthController::class, 'resetPassword'])->middleware('throttle:3,1');
     
-    // Teacher registration
-    Route::post('/teacher/register', [TeacherAuthController::class, 'register']);
+    // Teacher registration - rate limited to 5 attempts per minute
+    Route::post('/teacher/register', [TeacherAuthController::class, 'register'])->middleware('throttle:5,1');
     
-    // Legacy endpoints (kept for backward compatibility)
+    // Legacy endpoints (kept for backward compatibility) - rate limited to 5 attempts per minute
     Route::prefix('admin')->group(function () {
-        Route::post('/login', [AdminAuthController::class, 'login']);
+        Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1');
     });
     
     Route::prefix('teacher')->group(function () {
-        Route::post('/login', [TeacherAuthController::class, 'login']);
+        Route::post('/login', [TeacherAuthController::class, 'login'])->middleware('throttle:5,1');
     });
 });
 
@@ -140,6 +140,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::post('/distribution/groups', [DistributionGroupController::class, 'store']);
     Route::put('/distribution/groups/{id}', [DistributionListController::class, 'updateGroup']);
     Route::delete('/distribution/groups/{id}', [DistributionListController::class, 'deleteGroup']);
+    // Admin-side member management routes (used by ManageGroupMembersModal)
     Route::post('/distribution/groups/{id}/add-teachers', [DistributionGroupController::class, 'addTeachers']);
     Route::post('/distribution/groups/{id}/remove-teachers', [DistributionGroupController::class, 'removeTeachers']);
     Route::get('/distribution/export', [DistributionListController::class, 'export']);
@@ -162,6 +163,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', \App\Http\Middleware\LogAuth
     Route::post('/distributions', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'store']);
     Route::post('/distributions/bulk', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'bulkDistribute']);
     Route::get('/distributions/statistics', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'statistics']);
+    // Direct Assignment (no prior request needed)
+    Route::post('/distributions/direct', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'directAssign']);
+    Route::post('/distributions/direct-group', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'directAssignToGroup']);
     Route::get('/distributions/{id}', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'show']);
     Route::put('/distributions/{id}', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'update']);
     Route::post('/distributions/{id}/return', [\App\Http\Controllers\API\Admin\ItemDistributionController::class, 'markAsReturned']);
@@ -282,6 +286,7 @@ Route::prefix('teacher')->middleware(['auth:sanctum'])->group(function () {
     // Distribution Groups (Teacher Access)
     Route::get('/distribution-groups', [DistributionGroupController::class, 'index']);
     Route::post('/distribution-groups', [DistributionGroupController::class, 'store']);
+    // my-groups MUST be before {id} to avoid wildcard capture
     Route::get('/distribution-groups/my-groups', [DistributionGroupController::class, 'teacherGroups']);
     Route::get('/distribution-groups/{id}', [DistributionGroupController::class, 'show']);
     Route::put('/distribution-groups/{id}', [DistributionGroupController::class, 'update']);

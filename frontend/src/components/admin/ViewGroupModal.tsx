@@ -94,14 +94,14 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-[32px] shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-slate-100">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-in fade-in duration-300">
+      <div className="bg-white rounded-sm shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-slate-100">
         
         {/* Premium Header */}
         <div className="bg-gradient-to-br from-[#0F172A] to-[#1E293B] px-10 py-8 flex items-center justify-between shrink-0 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
           <div className="flex items-center gap-6 z-10">
-            <div className="p-4 bg-white/10 rounded-[24px] backdrop-blur-xl border border-white/10 shadow-inner">
+            <div className="p-4 bg-white/10 rounded-sm backdrop-blur-xl border border-white/10 shadow-inner">
               <Users className="w-8 h-8 text-blue-400" />
             </div>
             <div>
@@ -205,7 +205,7 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
                         className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-sm hover:shadow-xl hover:shadow-slate-200/50 hover:border-blue-100 transition-all group"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-slate-100 rounded flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                          <div className="w-12 h-12 bg-slate-100 rounded-sm flex items-center justify-center group-hover:bg-blue-50 transition-colors">
                             <span className="font-black text-slate-400 group-hover:text-blue-500">
                               {teacher.full_name.charAt(0)}
                             </span>
@@ -222,7 +222,7 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
                     ))}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-[40px] border border-dashed border-slate-200">
+                  <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-sm border border-dashed border-slate-200">
                     <div className="w-16 h-16 bg-white rounded-sm flex items-center justify-center text-slate-200 mb-4 shadow-sm">
                       <Users className="w-8 h-8" />
                     </div>
@@ -233,12 +233,12 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
               </div>
             </div>
           </div>
-
+ 
           {/* Footer Action */}
           <div className="px-10 py-8 border-t border-slate-100 bg-slate-50/50 flex justify-end shrink-0">
             <Button 
               onClick={onClose}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold h-12 px-10 rounded shadow-lg shadow-slate-200 transition-all active:scale-95"
+              className="bg-slate-900 hover:bg-slate-800 text-white font-bold h-12 px-10 rounded-sm shadow-lg shadow-slate-200 transition-all active:scale-95"
             >
               Close Record
             </Button>
@@ -248,7 +248,7 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
 
       {/* Premium Archive Confirmation */}
       <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
-        <AlertDialogContent className="rounded-[32px] p-8">
+        <AlertDialogContent className="rounded-sm p-8">
           <AlertDialogHeader>
             <div className="w-16 h-16 bg-red-50 rounded-sm flex items-center justify-center text-red-600 mb-6">
               <Archive className="w-8 h-8" />
@@ -261,13 +261,13 @@ export default function ViewGroupModal({ group, onClose, onUpdate }: ViewGroupMo
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-3 mt-8">
-            <AlertDialogCancel disabled={loading} className="h-12 rounded font-bold border-slate-200 px-8">
+            <AlertDialogCancel disabled={loading} className="h-12 rounded-sm font-bold border-slate-200 px-8">
               Keep Group
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleArchive}
               disabled={loading}
-              className="h-12 rounded bg-red-600 hover:bg-red-700 font-bold px-10"
+              className="h-12 rounded-sm bg-red-600 hover:bg-red-700 font-bold px-10"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

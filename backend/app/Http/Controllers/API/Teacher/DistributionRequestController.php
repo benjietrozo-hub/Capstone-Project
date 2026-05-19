@@ -10,6 +10,7 @@ use App\Models\SystemLog;
 use App\Models\Classroom;
 use App\Models\Club;
 use App\Models\Department;
+use App\Models\DistributionGroup;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -117,7 +118,7 @@ class DistributionRequestController extends Controller
             'notes'                => 'nullable|string',
             'priority'             => 'nullable|in:low,normal,high,urgent',
             // Entity selection (optional — defaults to self)
-            'requested_for_type'   => 'nullable|in:Teacher,Classroom,Club,Department',
+            'requested_for_type'   => 'nullable|in:Teacher,Classroom,Club,Department,DistributionGroup',
             'requested_for_id'     => 'nullable|integer',
         ]);
 
@@ -128,10 +129,11 @@ class DistributionRequestController extends Controller
             $requestedForType = $request->requested_for_type ?? 'Teacher';
             $requestedForId   = $request->requested_for_id   ?? $teacher->id;
             $entityModelMap   = [
-                'Teacher'    => 'App\\Models\\Teacher',
-                'Classroom'  => 'App\\Models\\Classroom',
-                'Club'       => 'App\\Models\\Club',
-                'Department' => 'App\\Models\\Department',
+                'Teacher'           => 'App\\Models\\Teacher',
+                'Classroom'         => 'App\\Models\\Classroom',
+                'Club'              => 'App\\Models\\Club',
+                'Department'        => 'App\\Models\\Department',
+                'DistributionGroup' => 'App\\Models\\DistributionGroup',
             ];
             $morphType = $entityModelMap[$requestedForType];
 
@@ -158,6 +160,16 @@ class DistributionRequestController extends Controller
                     return response()->json([
                         'success' => false,
                         'message' => 'You are not the head of this department.'
+                    ], 403);
+                }
+            } elseif ($requestedForType === 'DistributionGroup') {
+                $group = DistributionGroup::findOrFail($requestedForId);
+                $isMember = $group->teachers()->where('teachers.id', $teacher->id)->exists();
+                $isCreator = (int) $group->created_by === $teacher->id;
+                if (!$isMember && !$isCreator) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You are not a member or creator of this distribution group.'
                     ], 403);
                 }
             } elseif ($requestedForType === 'Teacher') {

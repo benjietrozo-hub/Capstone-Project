@@ -19,24 +19,36 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'http://localhost',
-        'http://localhost:3000',
-        'http://localhost:5173',
-        'http://127.0.0.1',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:5173',
-        'http://127.0.0.1:8000',
-        'http://Benz',
-        'http://Benz:3000',
-        'http://Benz:5173',
-        'http://Benz:8000',
-    ],
+    'allowed_origins' => env('APP_ENV') === 'production' 
+        ? [
+            'https://pims.example.com',  // UPDATE: Replace with your production domain
+            'https://www.pims.example.com',
+        ]
+        : [
+            'http://localhost',
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'http://127.0.0.1',
+            'http://127.0.0.1:3000',
+            'http://127.0.0.1:5173',
+            'http://127.0.0.1:8000',
+            'http://Benz',
+            'http://Benz:3000',
+            'http://Benz:5173',
+            'http://Benz:8000',
+            'https://Benz',
+            'https://Benz:3000',
+            'https://Benz:8000',
+        ],
 
-    'allowed_origins_patterns' => [
-        '#^http://192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$#',
-        '#^http://10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$#',
-    ],
+    'allowed_origins_patterns' => env('APP_ENV') === 'production'
+        ? []  // No wildcard patterns in production
+        : [
+            '#^http://192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$#',
+            '#^https://192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$#',
+            '#^http://10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$#',
+            '#^https://10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$#',
+        ],
 
     'allowed_headers' => ['*'],
 

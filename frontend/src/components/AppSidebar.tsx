@@ -111,8 +111,8 @@ export function AppSidebar() {
             </div>
             {sidebarOpen && (
               <div className="flex-1">
-                <h2 className="text-lg font-bold text-white">Online IMS</h2>
-                <p className="text-xs text-sidebar-foreground/70">Inventory System</p>
+                <h2 className="text-lg font-bold text-white">PIMS</h2>
+                <p className="text-[10px] text-sidebar-foreground/70 leading-snug">Property Inventory Management System</p>
               </div>
             )}
           </div>
