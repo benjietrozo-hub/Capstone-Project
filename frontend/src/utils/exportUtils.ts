@@ -175,3 +175,83 @@ export const generateRequestPDF = (reqData: BorrowRequestData) => {
   // Save the PDF
   doc.save(`Borrow_Slip_${reqData.request_code || reqData.id}.pdf`);
 };
+
+/**
+ * Generates and downloads a PDF for a specific equipment issue report
+ * @param report Report data object
+ */
+export const generateIssueReportPDF = (report: any) => {
+  const doc = new jsPDF();
+  
+  // Institutional Header (DepEd Standard)
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Republic of the Philippines', doc.internal.pageSize.width / 2, 15, { align: 'center' });
+  doc.text('Department of Education', doc.internal.pageSize.width / 2, 20, { align: 'center' });
+  doc.text('Caraga Region XIII', doc.internal.pageSize.width / 2, 25, { align: 'center' });
+  doc.text('Division of Agusan del Norte', doc.internal.pageSize.width / 2, 30, { align: 'center' });
+  
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CALOC-AN ELEMENTARY SCHOOL', doc.internal.pageSize.width / 2, 38, { align: 'center' });
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'italic');
+  doc.text('Caloc-an, Magallanes, Agusan del Norte', doc.internal.pageSize.width / 2, 43, { align: 'center' });
+  
+  // Divider line
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.5);
+  doc.line(14, 48, 196, 48);
+
+  // Document Title
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  doc.text('EQUIPMENT ISSUE REPORT', doc.internal.pageSize.width / 2, 58, { align: 'center' });
+  
+  // Meta Info
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Report ID: #${report.id}`, 14, 68);
+  doc.text(`Date Generated: ${new Date().toLocaleString()}`, 196, 68, { align: 'right' });
+  
+  // AutoTable for Details
+  autoTable(doc, {
+    startY: 75,
+    theme: 'grid',
+    headStyles: { fillColor: [50, 50, 50], textColor: 255, fontStyle: 'bold' },
+    styles: { fontSize: 10, cellPadding: 5 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 50, fillColor: [250, 250, 250] },
+      1: { cellWidth: 'auto' }
+    },
+    body: [
+      ['Reported By', report.teacher?.full_name || 'N/A'],
+      ['Equipment Affected', report.item?.item_name || 'N/A'],
+      ['Report Type', report.report_type || 'N/A'],
+      ['Description of Issue', report.description || 'N/A'],
+      ['Date Reported', report.date_reported ? formatDate(report.date_reported) : formatDate(report.created_at)],
+      ['Status', report.status?.toUpperCase() || 'PENDING'],
+      ['Admin Notes/Resolution', report.admin_response || report.resolution || 'N/A']
+    ],
+  });
+
+  // Footer
+  const pageCount = (doc.internal as any).getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(
+      'Property Inventory Management System - Caloc-an Elementary School',
+      doc.internal.pageSize.width / 2,
+      doc.internal.pageSize.height - 10,
+      { align: 'center' }
+    );
+  }
+
+  // Save the PDF
+  doc.save(`Issue_Report_${report.id}.pdf`);
+};

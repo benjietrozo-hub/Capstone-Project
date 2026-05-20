@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import NavHeader from "@/components/NavHeader";
 import NotificationProfile from "@/components/NotificationProfile";
+import { exportToCSV, generateRequestPDF } from "../../utils/exportUtils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -118,6 +119,85 @@ export default function TeacherReportsPage() {
   const currentUser = (() => {
     try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
   })();
+
+  const handleDownloadSinglePDF = (item: any) => {
+    if (activeTab === "borrows") {
+      generateRequestPDF({
+        id: item.id,
+        request_code: `REQ-${item.id}`,
+        teacher_name: currentUser?.full_name || 'N/A',
+        category_name: item.item_name || item.category_name || 'N/A',
+        quantity: item.quantity,
+        status: item.status,
+        date_requested: item.created_at,
+        expected_return: item.return_date,
+        purpose: 'N/A',
+        admin_notes: 'N/A'
+      });
+    } else if (activeTab === "distributions") {
+      generateRequestPDF({
+        id: item.id,
+        request_code: `DIST-${item.id}`,
+        teacher_name: currentUser?.full_name || 'N/A',
+        category_name: item.item?.item_name || 'N/A',
+        quantity: item.quantity_distributed,
+        status: item.status,
+        date_requested: item.distribution_date || item.created_at,
+        expected_return: 'N/A',
+        purpose: 'N/A',
+        admin_notes: item.condition_on_distribution || 'N/A'
+      });
+    } else {
+      generateRequestPDF({
+        id: item.id,
+        request_code: `REQ-DIST-${item.id}`,
+        teacher_name: currentUser?.full_name || 'N/A',
+        category_name: item.category?.category_name || 'N/A',
+        quantity: item.quantity_requested,
+        status: item.status,
+        date_requested: item.created_at,
+        expected_return: 'N/A',
+        purpose: item.reason || 'N/A',
+        admin_notes: 'N/A'
+      });
+    }
+    toast.success("PDF Slip downloaded successfully");
+  };
+
+  const handleDownloadSingleCSV = (item: any) => {
+    let recordData = {};
+    let filename = "";
+    if (activeTab === "borrows") {
+      recordData = {
+        'Ref ID': `#${String(item.id).padStart(4, "0")}`,
+        'Item Name': item.item_name || item.category_name || "General Item",
+        'Quantity': item.quantity,
+        'Status': item.status,
+        'Date': fmtDate(item.created_at),
+      };
+      filename = `borrow_${item.id}`;
+    } else if (activeTab === "distributions") {
+      recordData = {
+        'Ref ID': `#${String(item.id).padStart(4, "0")}`,
+        'Item Name': item.item?.item_name || "—",
+        'Quantity': item.quantity_distributed,
+        'Status': item.status,
+        'Date': fmtDate(item.created_at),
+      };
+      filename = `distribution_${item.id}`;
+    } else {
+      recordData = {
+        'Ref ID': `#${String(item.id).padStart(4, "0")}`,
+        'Item Name': item.category?.category_name || "—",
+        'Quantity': item.quantity_requested,
+        'Status': item.status,
+        'Date': fmtDate(item.created_at),
+      };
+      filename = `dist_request_${item.id}`;
+    }
+    exportToCSV([recordData], filename);
+    toast.success("CSV exported successfully");
+  };
 
   // ── Data Fetching ──────────────────────────────────────────────────────────
 
@@ -268,7 +348,7 @@ export default function TeacherReportsPage() {
   function renderTable(items: any[]) {
     if (items.length === 0) return (
       <tr>
-        <td colSpan={5} className="py-20 text-center">
+        <td colSpan={6} className="py-20 text-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 bg-slate-50 rounded-[24px] flex items-center justify-center border border-slate-100">
               <FileText className="w-8 h-8 text-slate-200" />
@@ -282,7 +362,7 @@ export default function TeacherReportsPage() {
     const grouped = groupByYear(items);
     return Object.keys(grouped).sort((a, b) => +b - +a).map(year => (
       <tr key={year}>
-        <td colSpan={5} className="p-0">
+        <td colSpan={6} className="p-0">
           <YearSection year={year} count={grouped[year].length}>
             <table className="w-full">
               <tbody className="divide-y divide-slate-50">
@@ -311,6 +391,24 @@ export default function TeacherReportsPage() {
                     </td>
                     <td className="px-8 py-4"><StatusBadge status={item.status} /></td>
                     <td className="px-8 py-4 text-sm font-bold text-slate-400">{fmtDate(item.created_at)}</td>
+                    <td className="px-8 py-4 text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          onClick={() => handleDownloadSinglePDF(item)}
+                          title="Download PDF Slip"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-all border border-transparent hover:border-red-100"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDownloadSingleCSV(item)}
+                          title="Export CSV"
+                          className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-all border border-transparent hover:border-green-100"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -444,6 +542,7 @@ export default function TeacherReportsPage() {
                   <th className="px-8 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Qty</th>
                   <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                   <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                  <th className="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
                 </tr>
               </thead>
               <tbody>

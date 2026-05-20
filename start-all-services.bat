@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Starting Online IMS Services
+echo Starting Online PIMS Services
 echo ========================================
 echo.
 

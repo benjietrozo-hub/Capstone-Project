@@ -10,7 +10,8 @@ import { formatDate } from '../../utils/formatters.js';
 import { toast } from '@/hooks/use-toast';
 import NavHeader from '@/components/NavHeader';
 import NotificationProfile from '@/components/NotificationProfile';
-import { History, AlertCircle, Search, Filter, Download, Calendar, User, Package, Eye, FileText } from 'lucide-react';
+import { History, AlertCircle, Search, Filter, Download, Calendar, User, Package, Eye, FileText, Printer } from 'lucide-react';
+import { exportToCSV, generateRequestPDF, generateIssueReportPDF } from '../../utils/exportUtils';
 
 interface Report {
   id: number;
@@ -24,6 +25,7 @@ interface Report {
   description: string;
   status: string;
   admin_response?: string;
+  resolution?: string;
   date_reported: string;
   created_at: string;
 }
@@ -80,7 +82,8 @@ export function ReportsPage() {
         status: status || undefined,
         per_page: 50,
       });
-      setReports(response.data.data);
+      const rData = response.data.data;
+      setReports(Array.isArray(rData) ? rData : (rData?.data || []));
     } catch (error) {
       toast({
         title: 'Error',
@@ -174,6 +177,134 @@ export function ReportsPage() {
     }
   };
 
+  const handleDownloadSingleBorrowPDF = (item: any) => {
+    generateRequestPDF({
+      id: item.id,
+      request_code: item.request_code,
+      teacher_name: item.teacher?.full_name,
+      category_name: item.category?.category_name,
+      quantity: item.inventory_items?.length || 0,
+      status: item.status,
+      date_requested: item.date_needed || item.created_at,
+      expected_return: item.expected_return_date,
+      purpose: item.purpose,
+      admin_notes: item.admin_notes
+    });
+    toast({
+      title: 'PDF Downloaded',
+      description: `Manifest for request ${item.request_code} has been downloaded.`,
+    });
+  };
+
+  const handleDownloadSingleBorrowCSV = (item: any) => {
+    const recordData = [{
+      'Transaction Code': item.request_code || `REQ-${item.id}`,
+      'Teacher Name': item.teacher?.full_name || 'N/A',
+      'Department': item.teacher?.department || 'N/A',
+      'Equipment Category': item.category?.category_name || 'N/A',
+      'Units Count': item.inventory_items?.length || 0,
+      'Date Needed': item.date_needed ? formatDate(item.date_needed) : 'N/A',
+      'Expected Return Date': item.expected_return_date ? formatDate(item.expected_return_date) : 'N/A',
+      'Status': item.status,
+      'Purpose': item.purpose || 'N/A',
+    }];
+    exportToCSV(recordData, `Borrow_Transaction_${item.request_code || item.id}`);
+    toast({
+      title: 'CSV Exported',
+      description: `CSV for transaction ${item.request_code || item.id} has been exported.`,
+    });
+  };
+
+  const handleDownloadSingleIssuePDF = (report: any) => {
+    generateIssueReportPDF(report);
+    toast({
+      title: 'PDF Downloaded',
+      description: `Issue report #${report.id} has been downloaded as PDF.`,
+    });
+  };
+
+  const handleDownloadSingleIssueCSV = (report: any) => {
+    const recordData = [{
+      'Report ID': report.id,
+      'Reported By': report.teacher?.full_name || 'N/A',
+      'Equipment Affected': report.item?.item_name || 'N/A',
+      'Report Type': report.report_type || 'N/A',
+      'Description': report.description || 'N/A',
+      'Status': report.status,
+      'Admin Notes': report.admin_response || report.resolution || 'N/A',
+      'Date Reported': report.date_reported ? formatDate(report.date_reported) : formatDate(report.created_at),
+    }];
+    exportToCSV(recordData, `Issue_Report_${report.id}`);
+    toast({
+      title: 'CSV Exported',
+      description: `Issue report #${report.id} has been exported to CSV.`,
+    });
+  };
+
+  const handleExportView = () => {
+    if (activeTab === 'borrow') {
+      const allData: any[] = [];
+      availableYears.forEach(year => {
+        if (historyByYear[year]) {
+          allData.push(...historyByYear[year]);
+        }
+      });
+
+      if (allData.length === 0) {
+        toast({
+          title: 'Export Failed',
+          description: 'No borrow history data loaded. Please expand a year to load records first.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const formattedData = allData.map(item => ({
+        'Transaction Code': item.request_code || `REQ-${item.id}`,
+        'Teacher Name': item.teacher?.full_name || 'N/A',
+        'Department': item.teacher?.department || 'N/A',
+        'Equipment Category': item.category?.category_name || 'N/A',
+        'Units Count': item.inventory_items?.length || 0,
+        'Date Needed': item.date_needed ? formatDate(item.date_needed) : 'N/A',
+        'Expected Return Date': item.expected_return_date ? formatDate(item.expected_return_date) : 'N/A',
+        'Status': item.status,
+        'Purpose': item.purpose || 'N/A',
+      }));
+
+      exportToCSV(formattedData, `Borrow_History_Export_${new Date().toISOString().split('T')[0]}`);
+      toast({
+        title: 'Export Success',
+        description: 'Borrow history exported successfully',
+      });
+    } else {
+      if (reports.length === 0) {
+        toast({
+          title: 'Export Failed',
+          description: 'No issue reports available to export.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const formattedData = reports.map(report => ({
+        'Report ID': report.id,
+        'Reported By': report.teacher?.full_name || 'N/A',
+        'Equipment Affected': report.item?.item_name || 'N/A',
+        'Report Type': report.report_type || 'N/A',
+        'Description': report.description || 'N/A',
+        'Status': report.status,
+        'Admin Notes': report.admin_response || report.resolution || 'N/A',
+        'Date Reported': formatDate(report.date_reported || report.created_at),
+      }));
+
+      exportToCSV(formattedData, `Issue_Reports_Export_${new Date().toISOString().split('T')[0]}`);
+      toast({
+        title: 'Export Success',
+        description: 'Issue reports exported successfully',
+      });
+    }
+  };
+
   const columns = [
     { key: 'id', label: 'Report ID' },
     { key: 'teacher.full_name', label: 'Reported By', render: (_: any, row: Report) => row.teacher?.full_name },
@@ -189,13 +320,13 @@ export function ReportsPage() {
       key: 'actions',
       label: 'Actions',
       render: (_: any, row: Report) => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => {
               setSelectedReport(row);
               setShowDetailModal(true);
             }}
-            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 font-bold animate-all"
           >
             View
           </button>
@@ -205,11 +336,25 @@ export function ReportsPage() {
                 setSelectedReport(row);
                 setShowResolutionModal(true);
               }}
-              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 font-bold animate-all"
             >
               Resolve
             </button>
           )}
+          <button
+            onClick={() => handleDownloadSingleIssuePDF(row)}
+            title="Download PDF Report"
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all border border-transparent hover:border-red-100"
+          >
+            <FileText className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleDownloadSingleIssueCSV(row)}
+            title="Export CSV"
+            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-all border border-transparent hover:border-green-100"
+          >
+            <Download className="w-4 h-4" />
+          </button>
         </div>
       ),
     },
@@ -276,6 +421,13 @@ export function ReportsPage() {
                 </>
               )}
             </select>
+            <button
+              onClick={handleExportView}
+              className="px-4 py-2 bg-slate-900 text-white rounded-sm text-sm font-bold hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap"
+              title="Export Current View to CSV"
+            >
+              <Download className="w-4 h-4" /> Export CSV
+            </button>
           </div>
         </div>
 
@@ -372,12 +524,29 @@ export function ReportsPage() {
                                   <StatusBadge label={item.status} status={item.status} />
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                  <button 
-                                    onClick={() => { setSelectedHistory(item); setShowHistoryModal(true); }}
-                                    className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-sm transition-all shadow-sm border border-transparent hover:border-blue-100"
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                  </button>
+                                  <div className="flex justify-end gap-1.5">
+                                    <button 
+                                      onClick={() => { setSelectedHistory(item); setShowHistoryModal(true); }}
+                                      title="View Details"
+                                      className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-sm transition-all shadow-sm border border-transparent hover:border-blue-100"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDownloadSingleBorrowPDF(item)}
+                                      title="Download PDF Manifest"
+                                      className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-sm transition-all shadow-sm border border-transparent hover:border-red-100"
+                                    >
+                                      <FileText className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDownloadSingleBorrowCSV(item)}
+                                      title="Export to CSV"
+                                      className="p-2.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-sm transition-all shadow-sm border border-transparent hover:border-green-100"
+                                    >
+                                      <Download className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             ))
