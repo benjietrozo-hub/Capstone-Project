@@ -48,6 +48,13 @@ interface RejectionForm {
   admin_notes: string;
 }
 
+interface ReturnForm {
+  actual_return_date: string;
+  condition_on_return: string;
+  penalty_amount: number;
+  admin_notes: string;
+}
+
 export function ReservationsPage() {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
@@ -64,6 +71,14 @@ export function ReservationsPage() {
     admin_notes: '',
   });
   const [rejectionForm, setRejectionForm] = useState<RejectionForm>({
+    admin_notes: '',
+  });
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returning, setReturning] = useState(false);
+  const [returnForm, setReturnForm] = useState<ReturnForm>({
+    actual_return_date: new Date().toISOString().split('T')[0],
+    condition_on_return: 'good',
+    penalty_amount: 0,
     admin_notes: '',
   });
 
@@ -249,22 +264,39 @@ export function ReservationsPage() {
     });
   };
 
-  const handleReturn = async (id: number) => {
-    if (!confirm('Mark this item as returned?')) return;
-    
+  const handleReturnClick = (req: BorrowRequest) => {
+    setSelectedRequest(req);
+    setReturnForm({
+      actual_return_date: new Date().toISOString().split('T')[0],
+      condition_on_return: 'good',
+      penalty_amount: 0,
+      admin_notes: '',
+    });
+    setShowReturnModal(true);
+  };
+
+  const handleReturnSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRequest) return;
+
     try {
-      await adminAPI.returnBorrowRequest(id, {});
+      setReturning(true);
+      await adminAPI.returnBorrowRequest(selectedRequest.id, returnForm);
       toast({
         title: 'Success',
-        description: 'Item returned successfully',
+        description: 'Return processed successfully',
       });
+      setShowReturnModal(false);
       queryClient.invalidateQueries({ queryKey: ['borrowed-items'] });
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Failed to process return',
+        description: error.response?.data?.message || 'Failed to process return',
         variant: 'destructive',
       });
+    } finally {
+      setReturning(false);
     }
   };
 
@@ -496,7 +528,7 @@ export function ReservationsPage() {
                                 <Eye className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => handleReturn(item.id)}
+                                onClick={() => handleReturnClick(item)}
                                 className="px-4 py-2 bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest rounded-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 active:scale-95"
                               >
                                 Return
@@ -781,6 +813,99 @@ export function ReservationsPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Return Modal */}
+        <Dialog open={showReturnModal} onOpenChange={setShowReturnModal}>
+          <DialogContent className="sm:max-w-[450px] rounded-sm p-0 overflow-hidden border-0 shadow-2xl">
+             <div className="bg-emerald-600 px-6 py-6 text-white relative overflow-hidden">
+              <div className="absolute -right-4 -bottom-4 opacity-10">
+                <CheckCircle className="w-32 h-32" />
+              </div>
+              <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-2">
+                Process Return
+              </DialogTitle>
+              <DialogDescription className="text-emerald-100 font-medium mt-1">
+                Record item condition and process penalty if necessary.
+              </DialogDescription>
+            </div>
+
+            <form onSubmit={handleReturnSubmit} className="p-6 space-y-6 bg-white">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-3">
+                  <Label htmlFor="actual-return-date" className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Actual Return Date</Label>
+                  <Input
+                    id="actual-return-date"
+                    type="date"
+                    className="rounded-sm border-gray-200 h-12 font-bold focus:ring-emerald-500/20"
+                    value={returnForm.actual_return_date}
+                    onChange={(e) => setReturnForm({...returnForm, actual_return_date: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor="condition-on-return" className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Condition on Return</Label>
+                  <select
+                    id="condition-on-return"
+                    className="w-full h-12 bg-white border border-gray-200 rounded-sm px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+                    value={returnForm.condition_on_return}
+                    onChange={(e) => setReturnForm({...returnForm, condition_on_return: e.target.value})}
+                  >
+                    <option value="good">🟢 Good / Functional</option>
+                    <option value="damaged">🟡 Damaged</option>
+                    <option value="lost">🔴 Lost / Missing</option>
+                  </select>
+                </div>
+
+                {(returnForm.condition_on_return === 'damaged' || returnForm.condition_on_return === 'lost') && (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <Label htmlFor="penalty-amount" className="text-[10px] font-black text-red-600 uppercase tracking-widest ml-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> Penalty Amount (₱)
+                    </Label>
+                    <Input
+                      id="penalty-amount"
+                      type="number"
+                      className="rounded-sm border-red-200 bg-red-50 text-red-700 h-12 font-black focus:ring-red-500/20"
+                      value={returnForm.penalty_amount}
+                      onChange={(e) => setReturnForm({...returnForm, penalty_amount: parseFloat(e.target.value) || 0})}
+                      placeholder="0.00"
+                      min="0"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <Label htmlFor="return-admin-notes" className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Admin Remarks</Label>
+                  <Textarea
+                    id="return-admin-notes"
+                    className="rounded-sm border-gray-200 font-medium focus:ring-emerald-500/20"
+                    value={returnForm.admin_notes}
+                    onChange={(e) => setReturnForm({ ...returnForm, admin_notes: e.target.value })}
+                    rows={2}
+                    placeholder="Any additional comments..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowReturnModal(false)}
+                  className="flex-1 rounded-sm font-bold text-gray-500"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={returning}
+                  className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest rounded-sm h-12 shadow-lg shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {returning ? 'Processing...' : 'Complete Return'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
         {/* View Modal Upgrade */}
         <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
           <DialogContent className="sm:max-w-[550px] rounded-sm p-0 overflow-hidden border-0 shadow-2xl">

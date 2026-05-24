@@ -44,15 +44,7 @@ export function MasterInventoryListPage() {
   const [dateTo, setDateTo] = useState('');
   const [perPage, setPerPage] = useState(25);
   const [showExportPreview, setShowExportPreview] = useState(false);
-  const [editingRow, setEditingRow] = useState<MasterInventoryRow | null>(null);
-  const [editForm, setEditForm] = useState({
-    unit: '',
-    description: '',
-    date_acquired: '',
-    unit_price: '',
-    source_of_fund: '',
-    remarks: '',
-  });
+
   const currentUser = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem('user') || 'null');
@@ -93,18 +85,7 @@ export function MasterInventoryListPage() {
     return Array.from(new Set(sources)).sort();
   }, [rows]);
 
-  const updateMutation = useMutation({
-    mutationFn: (payload: any) => adminAPI.updateInventoryMasterListGroup(payload),
-    onSuccess: (response: any) => {
-      toast.success(response.data?.message || 'Master inventory row updated');
-      setEditingRow(null);
-      queryClient.invalidateQueries({ queryKey: ['inventory-master-list'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update master inventory row');
-    },
-  });
+
 
   const formatMoney = (value: string | number | null) => {
     if (value === null || value === undefined || value === '') return 'N/A';
@@ -134,12 +115,13 @@ export function MasterInventoryListPage() {
     row.description || row.item_name,
     row.date_acquired || 'N/A',
     row.unit_price || 'N/A',
+    row.unit_price ? (Number(row.unit_price) * row.quantity).toFixed(2) : 'N/A',
     row.source_of_fund || 'N/A',
     row.remarks || 'N/A',
   ]);
 
   const downloadCsv = () => {
-    const headers = ['No.', 'Quantity', 'Unit', 'Description', 'Date Acquired', 'Unit Price', 'Source of Fund', 'Remarks'];
+    const headers = ['No.', 'Quantity', 'Unit', 'Description', 'Date Acquired', 'Unit Price', 'Total Price', 'Source of Fund', 'Remarks'];
 
     const csv = [headers, ...csvPreviewRows]
       .map((line) => line.map(escapeCsv).join(','))
@@ -166,38 +148,7 @@ export function MasterInventoryListPage() {
     setPage(1);
   };
 
-  const openEditModal = (row: MasterInventoryRow) => {
-    setEditingRow(row);
-    setEditForm({
-      unit: row.unit || 'unit',
-      description: row.description || row.item_name || '',
-      date_acquired: row.date_acquired ? row.date_acquired.split('T')[0] : '',
-      unit_price: row.unit_price ? String(row.unit_price) : '',
-      source_of_fund: row.source_of_fund || '',
-      remarks: row.remarks || '',
-    });
-  };
 
-  const handleSaveEdit = () => {
-    if (!editingRow) return;
-
-    updateMutation.mutate({
-      category_id: editingRow.category_id,
-      item_name: editingRow.item_name,
-      current_unit: editingRow.unit,
-      current_description: editingRow.description,
-      current_date_acquired: editingRow.date_acquired ? editingRow.date_acquired.split('T')[0] : null,
-      current_unit_price: editingRow.unit_price,
-      current_source_of_fund: editingRow.source_of_fund,
-      current_remarks: editingRow.remarks,
-      unit: editForm.unit,
-      description: editForm.description,
-      date_acquired: editForm.date_acquired,
-      unit_price: editForm.unit_price,
-      source_of_fund: editForm.source_of_fund,
-      remarks: editForm.remarks,
-    });
-  };
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen pb-10">
@@ -280,25 +231,33 @@ export function MasterInventoryListPage() {
                 ))}
               </select>
 
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => {
-                  setDateFrom(e.target.value);
-                  setPage(1);
-                }}
-                title="Date acquired from"
-              />
+              <div className="flex items-center gap-2 bg-white rounded border border-slate-200 px-3 h-10">
+                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">From</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => {
+                    setDateFrom(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-full text-sm text-slate-700 outline-none bg-transparent"
+                  title="Date acquired from"
+                />
+              </div>
 
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => {
-                  setDateTo(e.target.value);
-                  setPage(1);
-                }}
-                title="Date acquired to"
-              />
+              <div className="flex items-center gap-2 bg-white rounded border border-slate-200 px-3 h-10">
+                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">To</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => {
+                    setDateTo(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-full text-sm text-slate-700 outline-none bg-transparent"
+                  title="Date acquired to"
+                />
+              </div>
 
               <select
                 value={perPage}
@@ -321,61 +280,74 @@ export function MasterInventoryListPage() {
           </CardContent>
         </Card>
 
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500 mb-2 mt-4">
+          <span>
+            Showing <strong className="text-slate-900">{rows.length}</strong> of <strong className="text-slate-900">{total}</strong> grouped records
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+              Previous
+            </Button>
+            <span className="px-3 py-1 font-bold text-slate-700">
+              Page {page} of {lastPage}
+            </span>
+            <Button variant="outline" size="sm" disabled={page >= lastPage} onClick={() => setPage((p) => Math.min(lastPage, p + 1))}>
+              Next
+            </Button>
+          </div>
+        </div>
+
         <div className="bg-white border border-slate-100 rounded shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-100 text-xs uppercase text-slate-500">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-50 border-b border-slate-100 text-[10px] uppercase text-slate-500 tracking-wider">
                 <tr>
-                  <th className="px-4 py-3 font-black whitespace-nowrap">No.</th>
-                  <th className="px-4 py-3 font-black whitespace-nowrap">Quantity</th>
-                  <th className="px-4 py-3 font-black whitespace-nowrap">Unit</th>
-                  <th className="px-4 py-3 font-black min-w-[280px]">Description</th>
-                  <th className="px-4 py-3 font-black whitespace-nowrap">Date Acquired</th>
-                  <th className="px-4 py-3 font-black whitespace-nowrap">Unit Price</th>
-                  <th className="px-4 py-3 font-black whitespace-nowrap">Source of Fund</th>
-                  <th className="px-4 py-3 font-black min-w-[220px]">Remarks</th>
-                  <th className="px-4 py-3 font-black whitespace-nowrap text-right">Actions</th>
+                  <th className="px-2 py-2 font-black whitespace-nowrap">No.</th>
+                  <th className="px-2 py-2 font-black whitespace-nowrap">Qty</th>
+                  <th className="px-2 py-2 font-black whitespace-nowrap">Unit</th>
+                  <th className="px-2 py-2 font-black max-w-[200px]">Description</th>
+                  <th className="px-2 py-2 font-black whitespace-nowrap">Acquired</th>
+                  <th className="px-2 py-2 font-black whitespace-nowrap">Unit Price</th>
+                  <th className="px-2 py-2 font-black whitespace-nowrap">Total Price</th>
+                  <th className="px-2 py-2 font-black whitespace-nowrap">Fund Source</th>
+                  <th className="px-2 py-2 font-black max-w-[150px]">Remarks</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-16 text-center text-slate-500 font-medium">
+                    <td colSpan={9} className="px-2 py-8 text-center text-slate-500 font-medium">
                       Loading master inventory records...
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-16 text-center text-slate-500 font-medium">
+                    <td colSpan={9} className="px-2 py-8 text-center text-slate-500 font-medium">
                       No master inventory records found.
                     </td>
                   </tr>
                 ) : (
                   rows.map((row, index) => (
                     <tr key={`${row.first_item_id}-${index}`} className="hover:bg-blue-50/30">
-                      <td className="px-4 py-3 font-bold text-slate-700">{from + index}</td>
-                      <td className="px-4 py-3 font-black text-blue-600">{row.quantity}</td>
-                      <td className="px-4 py-3">{row.unit || 'unit'}</td>
-                      <td className="px-4 py-3">
-                        <div className="font-bold text-slate-900">{row.description || row.item_name}</div>
-                        <div className="text-xs text-slate-400 mt-1">
+                      <td className="px-2 py-2 font-bold text-slate-700 whitespace-nowrap">{from + index}</td>
+                      <td className="px-2 py-2 font-black text-blue-600 whitespace-nowrap">{row.quantity}</td>
+                      <td className="px-2 py-2 whitespace-nowrap">{row.unit || 'unit'}</td>
+                      <td className="px-2 py-2 max-w-[200px] truncate" title={row.description || row.item_name}>
+                        <div className="font-bold text-slate-900 truncate">{row.description || row.item_name}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5 truncate">
                           {[row.parent_category || 'Uncategorized', row.category_name, row.item_name].filter(Boolean).join(' / ')}
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatDate(row.date_acquired)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-medium">{formatMoney(row.unit_price)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{row.source_of_fund || 'N/A'}</td>
-                      <td className="px-4 py-3 text-slate-600">{row.remarks || 'N/A'}</td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditModal(row)}
-                          className="gap-2"
-                        >
-                          <Edit className="w-4 h-4" />
-                          Edit
-                        </Button>
+                      <td className="px-2 py-2 whitespace-nowrap">{formatDate(row.date_acquired)}</td>
+                      <td className="px-2 py-2 whitespace-nowrap font-medium">{formatMoney(row.unit_price)}</td>
+                      <td className="px-2 py-2 whitespace-nowrap font-bold text-slate-800">
+                        {row.unit_price ? formatMoney(Number(row.unit_price) * row.quantity) : 'N/A'}
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap max-w-[100px] truncate" title={row.source_of_fund || 'N/A'}>
+                        {row.source_of_fund || 'N/A'}
+                      </td>
+                      <td className="px-2 py-2 text-slate-600 max-w-[150px] line-clamp-2 text-[11px]" title={row.remarks || 'N/A'}>
+                        {row.remarks || 'N/A'}
                       </td>
                     </tr>
                   ))
@@ -385,102 +357,9 @@ export function MasterInventoryListPage() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
-          <span>
-            Showing <strong className="text-slate-900">{rows.length}</strong> of <strong className="text-slate-900">{total}</strong> grouped records
-          </span>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-              Previous
-            </Button>
-            <span className="px-3 py-2 font-bold text-slate-700">
-              Page {page} of {lastPage}
-            </span>
-            <Button variant="outline" disabled={page >= lastPage} onClick={() => setPage((p) => Math.min(lastPage, p + 1))}>
-              Next
-            </Button>
-          </div>
-        </div>
       </div>
 
-      <Dialog open={!!editingRow} onOpenChange={(open) => !open && setEditingRow(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Master Inventory Row</DialogTitle>
-            <DialogDescription>
-              This updates the shared master-list fields for {editingRow?.quantity || 0} serialized unit(s) in this grouped row.
-            </DialogDescription>
-          </DialogHeader>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="unit">Unit</Label>
-              <Input
-                id="unit"
-                value={editForm.unit}
-                onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })}
-                placeholder="pc, set, box"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="date_acquired">Date Acquired</Label>
-              <Input
-                id="date_acquired"
-                type="date"
-                value={editForm.date_acquired}
-                onChange={(e) => setEditForm({ ...editForm, date_acquired: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="unit_price">Unit Price</Label>
-              <Input
-                id="unit_price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={editForm.unit_price}
-                onChange={(e) => setEditForm({ ...editForm, unit_price: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="source_of_fund">Source of Fund</Label>
-              <Input
-                id="source_of_fund"
-                value={editForm.source_of_fund}
-                onChange={(e) => setEditForm({ ...editForm, source_of_fund: e.target.value })}
-                placeholder="MOOE, Donation, Office"
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={editForm.description}
-                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="remarks">Remarks</Label>
-              <Textarea
-                id="remarks"
-                value={editForm.remarks}
-                onChange={(e) => setEditForm({ ...editForm, remarks: e.target.value })}
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingRow(null)} disabled={updateMutation.isPending}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveEdit} disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={showExportPreview} onOpenChange={setShowExportPreview}>
         <DialogContent className="max-w-5xl">
@@ -495,7 +374,7 @@ export function MasterInventoryListPage() {
             <table className="w-full text-xs text-left">
               <thead className="sticky top-0 bg-white border-b border-slate-200">
                 <tr>
-                  {['No.', 'Quantity', 'Unit', 'Description', 'Date Acquired', 'Unit Price', 'Source of Fund', 'Remarks'].map((header) => (
+                  {['No.', 'Quantity', 'Unit', 'Description', 'Date Acquired', 'Unit Price', 'Total Price', 'Source of Fund', 'Remarks'].map((header) => (
                     <th key={header} className="px-3 py-2 font-black uppercase text-slate-500 whitespace-nowrap">
                       {header}
                     </th>

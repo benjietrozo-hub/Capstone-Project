@@ -26,6 +26,8 @@ interface ItemCategory {
   category_image: string | null;
   total_items: number;
   available_items: number;
+  borrowed_items: number;
+  distributed_items: number;
   custom_fields: CustomField[];
 }
 
@@ -97,6 +99,7 @@ export function InventoryPage() {
   const [itemsPage, setItemsPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [itemSearch, setItemSearch] = useState('');
+  const [itemStatus, setItemStatus] = useState('');
 
   // --- API Queries ---
   const { data: parentData, isLoading: loadingParents } = useQuery({
@@ -121,12 +124,13 @@ export function InventoryPage() {
     : categories;
 
   const { data: itemsResponse, isLoading: loadingItems } = useQuery({
-    queryKey: ['inventory-items', selectedCategory?.id, itemsPage, itemsPerPage, itemSearch],
+    queryKey: ['inventory-items', selectedCategory?.id, itemsPage, itemsPerPage, itemSearch, itemStatus],
     queryFn: () => adminAPI.getInventoryItems({ 
       category_id: selectedCategory?.id, 
       page: itemsPage, 
       per_page: itemsPerPage, 
-      search: itemSearch 
+      search: itemSearch,
+      ...(itemStatus ? { status: itemStatus } : {})
     }),
     enabled: viewMode === 'items' && !!selectedCategory
   });
@@ -618,6 +622,7 @@ export function InventoryPage() {
                       setViewMode('items');
                       setItemsPage(1);
                       setItemSearch('');
+                      setItemStatus('');
                     }}
                     className="bg-white rounded overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col"
                   >
@@ -658,14 +663,22 @@ export function InventoryPage() {
                         {cat.description || 'No description provided.'}
                       </p>
                       
-                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
-                        <div className="flex flex-col">
-                          <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Available</span>
-                          <span className="text-lg font-bold text-green-600">{cat.available_items}</span>
+                      <div className="grid grid-cols-4 gap-1 mt-auto pt-4 border-t border-gray-100 text-center">
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Avail</span>
+                          <span className="text-sm font-black text-green-600">{cat.available_items}</span>
                         </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Total</span>
-                          <span className="text-lg font-bold text-gray-700">{cat.total_items}</span>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Borr</span>
+                          <span className="text-sm font-black text-orange-500">{cat.borrowed_items || 0}</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Dist</span>
+                          <span className="text-sm font-black text-blue-600">{cat.distributed_items || 0}</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Total</span>
+                          <span className="text-sm font-black text-gray-700">{cat.total_items}</span>
                         </div>
                       </div>
                     </div>
@@ -705,6 +718,14 @@ export function InventoryPage() {
                     <span className="block text-xs font-bold text-green-600 uppercase mb-1">Available Units</span>
                     <span className="text-2xl font-black text-green-700">{selectedCategory.available_items}</span>
                   </div>
+                  <div className="bg-orange-50 px-4 py-2 rounded border border-orange-100">
+                    <span className="block text-xs font-bold text-orange-600 uppercase mb-1">Borrowed Units</span>
+                    <span className="text-2xl font-black text-orange-700">{selectedCategory.borrowed_items || 0}</span>
+                  </div>
+                  <div className="bg-blue-50 px-4 py-2 rounded border border-blue-100">
+                    <span className="block text-xs font-bold text-blue-600 uppercase mb-1">Distributed Units</span>
+                    <span className="text-2xl font-black text-blue-700">{selectedCategory.distributed_items || 0}</span>
+                  </div>
                   <div className="bg-gray-50 px-4 py-2 rounded border border-gray-200">
                     <span className="block text-xs font-bold text-gray-500 uppercase mb-1">Total Units</span>
                     <span className="text-2xl font-black text-gray-700">{selectedCategory.total_items}</span>
@@ -738,6 +759,19 @@ export function InventoryPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                <select
+                  value={itemStatus}
+                  onChange={(e) => {
+                    setItemStatus(e.target.value);
+                    setItemsPage(1);
+                  }}
+                  className="w-full sm:w-auto px-3 py-2 text-sm border border-gray-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="available">Available</option>
+                  <option value="borrowed">Borrowed</option>
+                  <option value="distributed">Distributed</option>
+                </select>
                 <div className="relative w-full sm:w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
@@ -777,6 +811,101 @@ export function InventoryPage() {
                 </div>
               </div>
             </div>
+
+            {/* Pagination Controls for Items */}
+            {!loadingItems && totalItemsCount > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="text-sm text-gray-500 font-medium">
+                    Showing <span className="font-bold text-gray-900">{items.length}</span> of <span className="font-bold text-gray-900">{totalItemsCount}</span> units
+                  </div>
+                  <div className="w-40">
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(parseInt(e.target.value));
+                        setItemsPage(1);
+                      }}
+                      className="w-full px-3 py-2 text-xs font-bold border border-gray-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                    >
+                      <option value={5}>5 per page</option>
+                      <option value={10}>10 per page</option>
+                      <option value={20}>20 per page</option>
+                      <option value={50}>50 per page</option>
+                      <option value={100}>100 per page</option>
+                      <option value={totalItemsCount}>All ({totalItemsCount})</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === 1}
+                    onClick={() => setItemsPage(1)}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === 1}
+                    onClick={() => setItemsPage(prev => Math.max(1, prev - 1))}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, lastItemPage) }, (_, i) => {
+                      let pageNum;
+                      if (lastItemPage <= 5) {
+                        pageNum = i + 1;
+                      } else if (itemsPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (itemsPage >= lastItemPage - 2) {
+                        pageNum = lastItemPage - 4 + i;
+                      } else {
+                        pageNum = itemsPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={itemsPage === pageNum ? 'primary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setItemsPage(pageNum)}
+                          className={`h-9 w-9 p-0 text-xs font-bold ${itemsPage === pageNum ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === lastItemPage}
+                    onClick={() => setItemsPage(prev => Math.min(lastItemPage, prev + 1))}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={itemsPage === lastItemPage}
+                    onClick={() => setItemsPage(lastItemPage)}
+                    className="h-9 w-9 p-0 flex items-center justify-center"
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {loadingItems ? (
               <div className="py-20 text-center bg-white rounded-sm border border-gray-100">
@@ -880,7 +1009,7 @@ export function InventoryPage() {
                                 >
                                   Details
                                 </Button>
-                                {(item.status === 'damaged' || item.condition === 'damaged' || item.is_approaching_end_of_life) && item.status !== 'ready_for_disposal' && item.status !== 'disposed' && (
+                                {(item.status === 'damaged' || item.status === 'lost' || item.condition === 'damaged' || item.is_approaching_end_of_life) && item.status !== 'ready_for_disposal' && item.status !== 'disposed' && (
                                   <Button 
                                     className="flex-1 text-[10px] font-black uppercase tracking-widest py-2 bg-red-600 hover:bg-red-700 text-white shadow-sm"
                                     onClick={() => handleMarkForDisposal(item)}
@@ -926,7 +1055,7 @@ export function InventoryPage() {
                                   <td className="px-6 py-4 capitalize">{item.condition}</td>
                                   <td className="px-6 py-4"><StatusBadge label={item.status} status={item.status} /></td>
                                   <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                    {(item.status === 'damaged' || item.condition === 'damaged' || item.is_approaching_end_of_life) && item.status !== 'ready_for_disposal' && item.status !== 'disposed' && (
+                                    {(item.status === 'damaged' || item.status === 'lost' || item.condition === 'damaged' || item.is_approaching_end_of_life) && item.status !== 'ready_for_disposal' && item.status !== 'disposed' && (
                                       <button onClick={() => handleMarkForDisposal(item)} className="text-red-600 hover:text-red-800 font-bold text-xs uppercase tracking-tighter transition-colors">Dispose</button>
                                     )}
                                     <button onClick={() => handleOpenItemModal(item, true)} className="text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors">View</button>
@@ -943,100 +1072,7 @@ export function InventoryPage() {
               </div>
             )}
 
-            {/* Pagination Controls for Items */}
-            {!loadingItems && totalItemsCount > 0 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="text-sm text-gray-500 font-medium">
-                    Showing <span className="font-bold text-gray-900">{items.length}</span> of <span className="font-bold text-gray-900">{totalItemsCount}</span> units
-                  </div>
-                  <div className="w-40">
-                    <select
-                      value={itemsPerPage}
-                      onChange={(e) => {
-                        setItemsPerPage(parseInt(e.target.value));
-                        setItemsPage(1);
-                      }}
-                      className="w-full px-3 py-2 text-xs font-bold border border-gray-200 rounded-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                    >
-                      <option value={5}>5 per page</option>
-                      <option value={10}>10 per page</option>
-                      <option value={20}>20 per page</option>
-                      <option value={50}>50 per page</option>
-                      <option value={100}>100 per page</option>
-                      <option value={totalItemsCount}>All ({totalItemsCount})</option>
-                    </select>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={itemsPage === 1}
-                    onClick={() => setItemsPage(1)}
-                    className="h-9 w-9 p-0 flex items-center justify-center"
-                  >
-                    <ChevronsLeft className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={itemsPage === 1}
-                    onClick={() => setItemsPage(prev => Math.max(1, prev - 1))}
-                    className="h-9 w-9 p-0 flex items-center justify-center"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, lastItemPage) }, (_, i) => {
-                      let pageNum;
-                      if (lastItemPage <= 5) {
-                        pageNum = i + 1;
-                      } else if (itemsPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (itemsPage >= lastItemPage - 2) {
-                        pageNum = lastItemPage - 4 + i;
-                      } else {
-                        pageNum = itemsPage - 2 + i;
-                      }
-                      
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={itemsPage === pageNum ? 'primary' : 'ghost'}
-                          size="sm"
-                          onClick={() => setItemsPage(pageNum)}
-                          className={`h-9 w-9 p-0 text-xs font-bold ${itemsPage === pageNum ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={itemsPage === lastItemPage}
-                    onClick={() => setItemsPage(prev => Math.min(lastItemPage, prev + 1))}
-                    className="h-9 w-9 p-0 flex items-center justify-center"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={itemsPage === lastItemPage}
-                    onClick={() => setItemsPage(lastItemPage)}
-                    className="h-9 w-9 p-0 flex items-center justify-center"
-                  >
-                    <ChevronsRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -1236,7 +1272,8 @@ export function InventoryPage() {
                       { value: 'good', label: 'Good' },
                       { value: 'fair', label: 'Fair' },
                       { value: 'poor', label: 'Poor' },
-                      { value: 'damaged', label: 'Damaged' }
+                      { value: 'damaged', label: 'Damaged' },
+                      { value: 'lost', label: 'Lost' }
                     ]} />
                     <FormField label="Status" type="select" value={status} onChange={e => setStatus(e.target.value)} disabled={isViewOnly} options={[
                       { value: 'available', label: 'Available' },
@@ -1244,7 +1281,9 @@ export function InventoryPage() {
                       { value: 'distributed', label: 'Distributed' },
                       { value: 'maintenance', label: 'Maintenance' },
                       { value: 'archived', label: 'Archived' },
-                      { value: 'disposed', label: 'Disposed' }
+                      { value: 'disposed', label: 'Disposed' },
+                      { value: 'damaged', label: 'Damaged' },
+                      { value: 'lost', label: 'Lost' }
                     ]} />
                   </div>
 

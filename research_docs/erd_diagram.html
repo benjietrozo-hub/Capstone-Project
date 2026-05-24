@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ERD - Inventory System</title>
+<style>
+body { background:#f0f0f0; font-family: Arial, sans-serif; font-size:11px; margin:0; padding:20px; }
+h2 { text-align:center; color:#333; font-size:16px; margin-bottom:20px; }
+.erd-canvas { position:relative; width:2400px; min-height:1800px; }
+.table-box { position:absolute; border:1px solid #3d6080; background:#fff; min-width:170px; box-shadow:2px 2px 4px rgba(0,0,0,0.3); }
+.table-header { background:linear-gradient(180deg,#3d6080,#2a4a66); color:#fff; font-weight:bold; font-size:11px; padding:4px 6px; text-align:center; letter-spacing:0.5px; }
+.table-row { border-top:1px solid #dce4ec; padding:2px 6px; color:#222; background:#fff; white-space:nowrap; font-size:10.5px; display:flex; align-items:center; gap:4px;}
+.table-row:nth-child(even){ background:#f3f7fa; }
+.pk { color:#c9610a; font-weight:bold; font-size:9px; }
+.fk { color:#1a6b3c; font-weight:bold; font-size:9px; }
+svg.lines { position:absolute; top:0; left:0; width:2400px; height:1800px; pointer-events:none; }
+line { stroke:#3d6080; stroke-width:1.5; }
+circle { fill:#3d6080; }
+</style>
+</head>
+<body>
+<h2>Figure 8. Entity Relationship Diagram — Web-Based Property Inventory Management System (inventory_system)</h2>
+<div class="erd-canvas" id="canvas">
+
+<!-- ADMINS -->
+<div class="table-box" style="left:20px;top:20px;" id="admins">
+  <div class="table-header">admins</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; username (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; email (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; first_name (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; last_name (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; admin_type (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; status (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; created_at (timestamp)</div>
+  <div class="table-row">&nbsp;&nbsp; deleted_at (timestamp)</div>
+</div>
+
+<!-- TEACHERS -->
+<div class="table-box" style="left:240px;top:20px;" id="teachers">
+  <div class="table-header">teachers</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; employee_id (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; first_name (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; last_name (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; email (varchar)</div>
+  <div class="table-row"><span class="fk">FK</span> department_id → departments</div>
+  <div class="table-row">&nbsp;&nbsp; role (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; status (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; deleted_at (timestamp)</div>
+</div>
+
+<!-- DEPARTMENTS -->
+<div class="table-box" style="left:480px;top:20px;" id="departments">
+  <div class="table-header">departments</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; name (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; code (varchar)</div>
+  <div class="table-row"><span class="fk">FK</span> head_teacher_id → teachers</div>
+  <div class="table-row">&nbsp;&nbsp; building (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; is_active (tinyint)</div>
+  <div class="table-row">&nbsp;&nbsp; deleted_at (timestamp)</div>
+</div>
+
+<!-- CLASSROOMS -->
+<div class="table-box" style="left:700px;top:20px;" id="classrooms">
+  <div class="table-header">classrooms</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; room_number (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; building (varchar)</div>
+  <div class="table-row"><span class="fk">FK</span> assigned_teacher_id → teachers</div>
+  <div class="table-row"><span class="fk">FK</span> department_id → departments</div>
+  <div class="table-row">&nbsp;&nbsp; room_type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; is_active (tinyint)</div>
+</div>
+
+<!-- CLUBS -->
+<div class="table-box" style="left:920px;top:20px;" id="clubs">
+  <div class="table-header">clubs</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; name (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; code (varchar)</div>
+  <div class="table-row"><span class="fk">FK</span> advisor_teacher_id → teachers</div>
+  <div class="table-row">&nbsp;&nbsp; category (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; is_active (tinyint)</div>
+</div>
+
+<!-- MASTER_CATEGORIES -->
+<div class="table-box" style="left:20px;top:260px;" id="master_categories">
+  <div class="table-header">master_categories</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; name (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; description (text)</div>
+  <div class="table-row">&nbsp;&nbsp; image (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; created_at (timestamp)</div>
+</div>
+
+<!-- ITEM_CATEGORIES -->
+<div class="table-box" style="left:240px;top:260px;" id="item_categories">
+  <div class="table-header">item_categories</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row"><span class="fk">FK</span> master_category_id → master_categories</div>
+  <div class="table-row">&nbsp;&nbsp; name (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; prefix (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; created_at (timestamp)</div>
+</div>
+
+<!-- CUSTOM_FIELDS -->
+<div class="table-box" style="left:480px;top:260px;" id="custom_fields">
+  <div class="table-header">custom_fields</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row"><span class="fk">FK</span> category_id → item_categories</div>
+  <div class="table-row">&nbsp;&nbsp; field_name (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; field_type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; is_required (tinyint)</div>
+</div>
+
+<!-- INVENTORY_ITEMS -->
+<div class="table-box" style="left:700px;top:260px;" id="inventory_items">
+  <div class="table-header">inventory_items</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; property_number (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; serial_number (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; name (varchar)</div>
+  <div class="table-row"><span class="fk">FK</span> category_id → item_categories</div>
+  <div class="table-row">&nbsp;&nbsp; quantity (int)</div>
+  <div class="table-row">&nbsp;&nbsp; condition (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; status (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; unit_price (decimal)</div>
+  <div class="table-row">&nbsp;&nbsp; source_of_fund (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; lifespan_years (int)</div>
+  <div class="table-row">&nbsp;&nbsp; disposal_date (date)</div>
+  <div class="table-row">&nbsp;&nbsp; deleted_at (timestamp)</div>
+</div>
+
+<!-- BORROW_REQUESTS -->
+<div class="table-box" style="left:20px;top:520px;" id="borrow_requests">
+  <div class="table-header">borrow_requests</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; request_code (varchar)</div>
+  <div class="table-row"><span class="fk">FK</span> teacher_id → teachers</div>
+  <div class="table-row"><span class="fk">FK</span> category_id → item_categories</div>
+  <div class="table-row"><span class="fk">FK</span> item_id → inventory_items</div>
+  <div class="table-row">&nbsp;&nbsp; quantity_requested (int)</div>
+  <div class="table-row">&nbsp;&nbsp; quantity_approved (int)</div>
+  <div class="table-row">&nbsp;&nbsp; status (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; expected_return_date (date)</div>
+  <div class="table-row">&nbsp;&nbsp; penalty_amount (decimal)</div>
+  <div class="table-row"><span class="fk">FK</span> approved_by → admins</div>
+  <div class="table-row">&nbsp;&nbsp; deleted_at (timestamp)</div>
+</div>
+
+<!-- BORROW_REQUEST_ITEMS -->
+<div class="table-box" style="left:240px;top:520px;" id="borrow_request_items">
+  <div class="table-header">borrow_request_items</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row"><span class="fk">FK</span> borrow_request_id → borrow_requests</div>
+  <div class="table-row"><span class="fk">FK</span> inventory_item_id → inventory_items</div>
+  <div class="table-row">&nbsp;&nbsp; status (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; condition_on_return (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; penalty_amount (decimal)</div>
+  <div class="table-row">&nbsp;&nbsp; returned_at (timestamp)</div>
+</div>
+
+<!-- ITEM_DISTRIBUTIONS -->
+<div class="table-box" style="left:480px;top:520px;" id="item_distributions">
+  <div class="table-header">item_distributions</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row"><span class="fk">FK</span> inventory_item_id → inventory_items</div>
+  <div class="table-row">&nbsp;&nbsp; assignable_type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; assignable_id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; quantity (int)</div>
+  <div class="table-row">&nbsp;&nbsp; status (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; distributed_at (timestamp)</div>
+  <div class="table-row">&nbsp;&nbsp; deleted_at (timestamp)</div>
+</div>
+
+<!-- ITEM_TRANSFERS -->
+<div class="table-box" style="left:700px;top:520px;" id="item_transfers">
+  <div class="table-header">item_transfers</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row"><span class="fk">FK</span> item_distribution_id → item_distributions</div>
+  <div class="table-row">&nbsp;&nbsp; from_assignable_type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; from_assignable_id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; to_assignable_type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; to_assignable_id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; status (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; notes (text)</div>
+</div>
+
+<!-- ITEM_CONDITION_LOGS -->
+<div class="table-box" style="left:920px;top:520px;" id="item_condition_logs">
+  <div class="table-header">item_condition_logs</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row"><span class="fk">FK</span> item_id → inventory_items</div>
+  <div class="table-row">&nbsp;&nbsp; log_type (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; condition_before (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; condition_after (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; description (text)</div>
+  <div class="table-row">&nbsp;&nbsp; reported_by (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; created_at (timestamp)</div>
+</div>
+
+<!-- DISTRIBUTION_GROUPS -->
+<div class="table-box" style="left:20px;top:840px;" id="distribution_groups">
+  <div class="table-header">distribution_groups</div>
+  <div class="table-row"><span class="pk">PK</span> id (int)</div>
+  <div class="table-row">&nbsp;&nbsp; group_name (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; group_type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; list_type (varchar)</div>
+  <div class="table-row"><span class="fk">FK</span> created_by → admins</div>
+  <div class="table-row">&nbsp;&nbsp; is_active (tinyint)</div>
+  <div class="table-row">&nbsp;&nbsp; deleted_at (timestamp)</div>
+</div>
+
+<!-- DISTRIBUTION_GROUP_MEMBERS -->
+<div class="table-box" style="left:240px;top:840px;" id="distribution_group_members">
+  <div class="table-header">distribution_group_members</div>
+  <div class="table-row"><span class="pk">PK</span> id (int)</div>
+  <div class="table-row"><span class="fk">FK</span> group_id → distribution_groups</div>
+  <div class="table-row"><span class="fk">FK</span> teacher_id → teachers</div>
+  <div class="table-row">&nbsp;&nbsp; created_at (timestamp)</div>
+  <div class="table-row">&nbsp;&nbsp; deleted_at (timestamp)</div>
+</div>
+
+<!-- BULK_DISTRIBUTIONS -->
+<div class="table-box" style="left:480px;top:840px;" id="bulk_distributions">
+  <div class="table-header">bulk_distributions</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row"><span class="fk">FK</span> group_id → distribution_groups</div>
+  <div class="table-row"><span class="fk">FK</span> item_id → inventory_items</div>
+  <div class="table-row"><span class="fk">FK</span> distributed_by → admins</div>
+  <div class="table-row">&nbsp;&nbsp; total_quantity (int)</div>
+  <div class="table-row">&nbsp;&nbsp; quantity_per_member (int)</div>
+  <div class="table-row">&nbsp;&nbsp; status (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; distribution_date (date)</div>
+</div>
+
+<!-- DISTRIBUTION_REQUESTS -->
+<div class="table-box" style="left:700px;top:840px;" id="distribution_requests">
+  <div class="table-header">distribution_requests</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row"><span class="fk">FK</span> teacher_id → teachers</div>
+  <div class="table-row"><span class="fk">FK</span> category_id → item_categories</div>
+  <div class="table-row"><span class="fk">FK</span> item_id → inventory_items</div>
+  <div class="table-row">&nbsp;&nbsp; quantity_requested (int)</div>
+  <div class="table-row">&nbsp;&nbsp; priority (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; status (enum)</div>
+  <div class="table-row"><span class="fk">FK</span> reviewed_by → admins</div>
+  <div class="table-row">&nbsp;&nbsp; deleted_at (timestamp)</div>
+</div>
+
+<!-- DISTRIBUTION_LOGS -->
+<div class="table-box" style="left:920px;top:840px;" id="distribution_logs">
+  <div class="table-header">distribution_logs</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; distributable_type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; distributable_id (bigint)</div>
+  <div class="table-row"><span class="fk">FK</span> teacher_id → teachers</div>
+  <div class="table-row"><span class="fk">FK</span> item_id → inventory_items</div>
+  <div class="table-row">&nbsp;&nbsp; quantity (int)</div>
+  <div class="table-row">&nbsp;&nbsp; action (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; performed_by (bigint)</div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div class="table-box" style="left:20px;top:1120px;" id="notifications">
+  <div class="table-header">notifications</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; user_id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; user_type (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; title (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; message (text)</div>
+  <div class="table-row">&nbsp;&nbsp; related_id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; is_read (tinyint)</div>
+  <div class="table-row">&nbsp;&nbsp; created_at (timestamp)</div>
+</div>
+
+<!-- REPORTS -->
+<div class="table-box" style="left:240px;top:1120px;" id="reports">
+  <div class="table-header">reports</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; report_code (varchar)</div>
+  <div class="table-row"><span class="fk">FK</span> teacher_id → teachers</div>
+  <div class="table-row"><span class="fk">FK</span> item_id → inventory_items</div>
+  <div class="table-row">&nbsp;&nbsp; issue_type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; status (enum)</div>
+  <div class="table-row">&nbsp;&nbsp; priority (enum)</div>
+  <div class="table-row"><span class="fk">FK</span> assigned_to → admins</div>
+  <div class="table-row">&nbsp;&nbsp; deleted_at (timestamp)</div>
+</div>
+
+<!-- SYSTEM_LOGS -->
+<div class="table-box" style="left:480px;top:1120px;" id="system_logs">
+  <div class="table-header">system_logs</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; log_type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; user_type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; user_id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; user_name (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; action (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; description (text)</div>
+  <div class="table-row">&nbsp;&nbsp; severity (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; ip_address (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; created_at (timestamp)</div>
+</div>
+
+<!-- SYSTEM_SETTINGS -->
+<div class="table-box" style="left:700px;top:1120px;" id="system_settings">
+  <div class="table-header">system_settings</div>
+  <div class="table-row"><span class="pk">PK</span> id (bigint)</div>
+  <div class="table-row">&nbsp;&nbsp; key (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; value (text)</div>
+  <div class="table-row">&nbsp;&nbsp; type (varchar)</div>
+  <div class="table-row">&nbsp;&nbsp; description (text)</div>
+  <div class="table-row">&nbsp;&nbsp; updated_at (timestamp)</div>
+</div>
+
+<!-- SVG CONNECTION LINES -->
+<svg class="lines">
+  <!-- teachers.department_id → departments.id -->
+  <line x1="420" y1="95" x2="480" y2="55"/>
+  <!-- classrooms.department_id → departments.id -->
+  <line x1="840" y1="85" x2="620" y2="55"/>
+  <!-- classrooms.assigned_teacher_id → teachers.id -->
+  <line x1="840" y1="65" x2="380" y2="45"/>
+  <!-- clubs.advisor_teacher_id → teachers.id -->
+  <line x1="1060" y1="65" x2="380" y2="45"/>
+  <!-- item_categories.master_category_id → master_categories.id -->
+  <line x1="420" y1="295" x2="170" y2="285"/>
+  <!-- custom_fields.category_id → item_categories.id -->
+  <line x1="480" y1="295" x2="410" y2="295"/>
+  <!-- inventory_items.category_id → item_categories.id -->
+  <line x1="700" y1="310" x2="410" y2="305"/>
+  <!-- borrow_requests.teacher_id → teachers.id -->
+  <line x1="170" y1="555" x2="300" y2="165"/>
+  <!-- borrow_requests.item_id → inventory_items.id -->
+  <line x1="170" y1="575" x2="700" y2="340"/>
+  <!-- borrow_requests.approved_by → admins.id -->
+  <line x1="20" y1="575" x2="100" y2="165"/>
+  <!-- borrow_request_items.borrow_request_id → borrow_requests.id -->
+  <line x1="240" y1="550" x2="195" y2="550"/>
+  <!-- borrow_request_items.inventory_item_id → inventory_items.id -->
+  <line x1="390" y1="565" x2="700" y2="330"/>
+  <!-- item_distributions.inventory_item_id → inventory_items.id -->
+  <line x1="620" y1="545" x2="750" y2="420"/>
+  <!-- item_transfers.item_distribution_id → item_distributions.id -->
+  <line x1="700" y1="555" x2="660" y2="555"/>
+  <!-- item_condition_logs.item_id → inventory_items.id -->
+  <line x1="1060" y1="545" x2="830" y2="415"/>
+  <!-- distribution_groups.created_by → admins.id -->
+  <line x1="170" y1="875" x2="100" y2="165"/>
+  <!-- distribution_group_members.group_id → distribution_groups.id -->
+  <line x1="240" y1="870" x2="195" y2="870"/>
+  <!-- distribution_group_members.teacher_id → teachers.id -->
+  <line x1="390" y1="880" x2="300" y2="165"/>
+  <!-- bulk_distributions.group_id → distribution_groups.id -->
+  <line x1="480" y1="870" x2="195" y2="870"/>
+  <!-- bulk_distributions.item_id → inventory_items.id -->
+  <line x1="620" y1="880" x2="750" y2="415"/>
+  <!-- bulk_distributions.distributed_by → admins.id -->
+  <line x1="480" y1="890" x2="100" y2="165"/>
+  <!-- distribution_requests.teacher_id → teachers.id -->
+  <line x1="840" y1="860" x2="300" y2="165"/>
+  <!-- distribution_requests.item_id → inventory_items.id -->
+  <line x1="860" y1="875" x2="750" y2="415"/>
+  <!-- distribution_requests.reviewed_by → admins.id -->
+  <line x1="840" y1="895" x2="100" y2="165"/>
+  <!-- distribution_logs.teacher_id → teachers.id -->
+  <line x1="1060" y1="870" x2="300" y2="165"/>
+  <!-- distribution_logs.item_id → inventory_items.id -->
+  <line x1="1060" y1="885" x2="750" y2="415"/>
+  <!-- reports.teacher_id → teachers.id -->
+  <line x1="390" y1="1150" x2="300" y2="165"/>
+  <!-- reports.item_id → inventory_items.id -->
+  <line x1="390" y1="1165" x2="750" y2="415"/>
+  <!-- reports.assigned_to → admins.id -->
+  <line x1="240" y1="1180" x2="100" y2="165"/>
+</svg>
+
+</div>
+</body>
+</html>

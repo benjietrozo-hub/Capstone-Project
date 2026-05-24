@@ -20,6 +20,12 @@ class ItemCategoryController extends Controller
             ->withCount(['inventoryItems as available_items' => function ($query) {
                 $query->where('status', 'available');
             }])
+            ->withCount(['inventoryItems as borrowed_items' => function ($query) {
+                $query->where('status', 'borrowed');
+            }])
+            ->withCount(['inventoryItems as distributed_items' => function ($query) {
+                $query->where('status', 'distributed');
+            }])
             ->get();
 
         if ($request->has('parent_category')) {
@@ -89,6 +95,12 @@ class ItemCategoryController extends Controller
             ->withCount('inventoryItems as total_items')
             ->withCount(['inventoryItems as available_items' => function ($query) {
                 $query->where('status', 'available');
+            }])
+            ->withCount(['inventoryItems as borrowed_items' => function ($query) {
+                $query->where('status', 'borrowed');
+            }])
+            ->withCount(['inventoryItems as distributed_items' => function ($query) {
+                $query->where('status', 'distributed');
             }])
             ->findOrFail($id);
 

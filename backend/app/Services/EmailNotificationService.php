@@ -19,6 +19,7 @@ class EmailNotificationService
         'borrow_request_approved', 
         'borrow_request_rejected',
         'item_returned',
+        'item_returned_issue',
         'distribution_request_created',
         'distribution_approved',
         'distribution_rejected',
@@ -176,14 +177,34 @@ class EmailNotificationService
     /**
      * Send email for item returned
      */
-    public static function notifyItemReturned($borrowRequest)
+    public static function notifyItemReturned($borrowRequest, $condition = 'good', $penalty = 0)
     {
+        $categoryName = $borrowRequest->category->category_name ?? ($borrowRequest->item->item_name ?? 'Equipment');
+        $qty = $borrowRequest->quantity_requested;
+
+        if ($condition === 'good') {
+            $title = 'Item Return Confirmed';
+            $message = "Your return of {$qty} unit(s) of {$categoryName} has been confirmed. Condition: Good.";
+        } elseif ($condition === 'damaged') {
+            $title = 'Item Returned — Marked as Damaged';
+            $message = "Your return of {$qty} unit(s) of {$categoryName} has been processed. The item(s) were marked as DAMAGED.";
+            if ($penalty > 0) {
+                $message .= " A penalty of ₱" . number_format($penalty, 2) . " has been applied.";
+            }
+        } else {
+            $title = 'Item Return — Marked as Lost';
+            $message = "Your return of {$qty} unit(s) of {$categoryName} has been processed. The item(s) were marked as LOST.";
+            if ($penalty > 0) {
+                $message .= " A penalty of ₱" . number_format($penalty, 2) . " has been applied.";
+            }
+        }
+
         self::sendEmailNotification(
             $borrowRequest->teacher_id,
             'teacher',
             'item_returned',
-            'Item Return Confirmed',
-            "Your return of {$borrowRequest->quantity_requested} unit(s) of {$borrowRequest->item->item_name} has been confirmed",
+            $title,
+            $message,
             $borrowRequest->id,
             'borrow_request'
         );

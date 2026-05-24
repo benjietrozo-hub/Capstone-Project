@@ -18,7 +18,7 @@ class ItemCategory extends Model
         'deleted_by',
     ];
 
-    protected $appends = ['available_items', 'total_items'];
+    protected $appends = ['available_items', 'total_items', 'borrowed_items', 'distributed_items'];
 
     public function customFields()
     {
@@ -38,5 +38,15 @@ class ItemCategory extends Model
     public function getTotalItemsAttribute(): int
     {
         return $this->inventoryItems()->count();
+    }
+
+    public function getBorrowedItemsAttribute(): int
+    {
+        return $this->inventoryItems()->where('status', 'borrowed')->count();
+    }
+
+    public function getDistributedItemsAttribute(): int
+    {
+        return $this->inventoryItems()->where('status', 'distributed')->count();
     }
 }

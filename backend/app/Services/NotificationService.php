@@ -142,17 +142,58 @@ class NotificationService
     /**
      * Notify about item return
      */
-    public static function notifyItemReturned($borrowRequest)
+    public static function notifyItemReturned($borrowRequest, $condition = 'good', $penalty = 0)
     {
+        $categoryName = $borrowRequest->category->category_name ?? 'Equipment';
+        $qty = $borrowRequest->quantity_requested;
+        $conditionLabel = ucfirst($condition);
+
+        // Build teacher notification message based on condition
+        if ($condition === 'good') {
+            $title = 'Item Return Confirmed';
+            $message = "Your return of {$qty} unit(s) of {$categoryName} has been confirmed. Condition: Good.";
+        } elseif ($condition === 'damaged') {
+            $title = 'Item Returned — Marked as Damaged';
+            $message = "Your return of {$qty} unit(s) of {$categoryName} has been processed. The item(s) were marked as DAMAGED.";
+            if ($penalty > 0) {
+                $message .= " A penalty of ₱" . number_format($penalty, 2) . " has been applied.";
+            }
+        } else { // lost
+            $title = 'Item Return — Marked as Lost';
+            $message = "Your return of {$qty} unit(s) of {$categoryName} has been processed. The item(s) were marked as LOST.";
+            if ($penalty > 0) {
+                $message .= " A penalty of ₱" . number_format($penalty, 2) . " has been applied.";
+            }
+        }
+
+        // Notify the teacher
         self::send(
             $borrowRequest->teacher_id,
             'teacher',
             'item_returned',
-            'Item Return Confirmed',
-            "Your return of {$borrowRequest->quantity_requested} unit(s) of " . ($borrowRequest->category->category_name ?? 'Equipment') . " has been confirmed",
+            $title,
+            $message,
             $borrowRequest->id,
             'borrow_request'
         );
+
+        // Notify admins when items are returned damaged or lost
+        if ($condition !== 'good') {
+            $teacherName = "{$borrowRequest->teacher->first_name} {$borrowRequest->teacher->last_name}";
+            $adminMessage = "{$teacherName} returned {$qty} unit(s) of {$categoryName} in {$conditionLabel} condition.";
+            if ($penalty > 0) {
+                $adminMessage .= " Penalty: ₱" . number_format($penalty, 2) . ".";
+            }
+
+            self::broadcast(
+                'admin',
+                'item_returned_issue',
+                "Return Alert — {$conditionLabel}",
+                $adminMessage,
+                $borrowRequest->id,
+                'borrow_request'
+            );
+        }
     }
 
     /**

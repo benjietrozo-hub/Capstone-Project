@@ -1,0 +1,616 @@
+DEVELOPMENT OF A WEB-BASED PROPERTY INVENTORY MANAGEMENT SYSTEM
+IN PARTIAL FULFILLMENT OF THE REQUIREMENTS FOR THE DEGREE OF BACHELOR OF SCIENCE AND INFORMATION TECHNOLOGY
+BY:
+NEIL BRYANT O. GALINDEZ
+ROBERT T PAHIT 
+BENJIE P. TROZO
+APRIL 2026	
+APPROVAL SHEET
+The Capstone manuscript attached hereto, entitled DEVELOPMENT OF A WEB-BASED PROPERTY INVENTORY MANAGEMENT SYSTEM, CALOC-AN ELEMENTARY SCHOOL, CALOC-AN MAGGALANES AGUSAN DEL NORTE” prepared and submitted by Neil Bryant O. Galindez, Benjie P. Trozo and Robert T. Pahit in partial fulfillment of the requirements for the degree of BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY, is hereby recommended for approval.
+				       IRENE MAY C. ESCAUSO
+					            Adviser
+					  _______________
+       Date Signed
+Examination Panel:
+        RYAN O. CUAREZ, MSIT
+       Lead Panelist
+					 _______________
+      Date Signed
+FEDERICO M. GRIÑO			                   JOSHUA A. CAALIM		                       
+             Member				                             Member
+               _______________				          _______________
+                     Date Signed						    Date Signed
+This capstone project is approved in partial fulfillment of the requirements for the degree of BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY.
+_MARY JUN M. PALIMA, MIT 				_BLONDIE T. SANCHEZ,MoE
+   IT Department Chairperson					    CEIT Dean
+DEDICATION
+This study is wholeheartedly dedicated to Caloc-an Elementary School and the Department of Education, with the sincere hope that this Web-Based Property Inventory Management System will help improve the management, monitoring, borrowing, and distribution of school properties. The researchers hope that this project will serve as a meaningful contribution to the school community by making inventory processes more organized, efficient, and reliable for both teachers and school personnel.
+The researchers would also like to express their heartfelt gratitude to everyone who became part of this journey. Every word of encouragement, every prayer, every act of kindness, and every moment of support gave the researchers the strength to continue despite the challenges, pressures, and difficulties encountered throughout the completion of this study. This achievement would not have been possible without the love, patience, understanding, and unwavering support of their families, friends, classmates, and loved ones who continuously believed in them, especially during times when they felt tired, doubtful, and overwhelmed.
+This work is also dedicated to the teachers and school personnel whose experiences inspired the development of this system. Their dedication and commitment to serving the school community motivated the researchers to create a project that could help make inventory management easier, more organized, and more efficient. The researchers sincerely hope that this study will become beneficial not only to the present administration but also to future users who will continue to serve and improve the 
+school.
+With deepest appreciation, the researchers especially dedicate this work to their respected adviser, IRENE MAE C. ESCAUSO, for her patience, guidance, encouragement, and valuable insights throughout the entire research process. Her support and dedication inspired the researchers to persevere, improve, and give their very best in completing this study successfully. Her willingness to guide and share her knowledge became one of the researchers’ greatest motivations in finishing this project.
+Above all, the researchers offer this work to Almighty God, the source of wisdom, strength, hope, and guidance. In moments of uncertainty, stress, and difficulty, His presence gave the researchers courage and determination to move forward. Through His grace and countless blessings, the researchers were able to overcome every challenge and complete this study successfully. For His endless love, guidance, and faithfulness throughout this journey, the researchers are forever grateful.
+                                                                                                       NBOG
+                                                                                                                    BPT
+                                                                                                                    RTP
+ACKNOWLEDGEMENT
+The researchers would like to express their sincere gratitude and appreciation to all the people who contributed to the successful completion of this study entitled Web-Based Property Inventory Management System for Caloc-an Elementary School. This research would not have been possible without the guidance, support, encouragement, and assistance of many individuals who became part of this journey.
+First and foremost, the researchers humbly thank Almighty God for His endless blessings, wisdom, strength, and guidance throughout the entire research process.
+In moments of difficulty, stress, and uncertainty, His presence gave the researchers the courage and determination to continue and successfully complete this study.
+The researchers would also like to extend their deepest appreciation to IRENE MAE C. ESCAUSO, their respected research adviser, for her unwavering support, patience, guidance, and valuable suggestions that greatly contributed to the improvement and completion of this study. Her knowledge, encouragement, and dedication inspired the researchers to work harder and strive for excellence in every stage of the project.
+Special thanks are also extended to Caloc-an Elementary School and the Department of Education for allowing the researchers to conduct this study and for providing the information and support needed for the development of the system. The cooperation and assistance of the teachers and school personnel became a significant part of the 
+success of this project.
+The researchers are also deeply grateful to their families, friends, classmates, and loved ones for their continuous encouragement, understanding, prayers, and moral support throughout this journey. Their belief in the researchers’ abilities served as motivation to overcome challenges and continue pursuing the completion of this study.
+Lastly, the researchers would like to thank everyone who, in one way or another, contributed their time, effort, knowledge, and support in making this study possible. Your kindness and encouragement will always be remembered and appreciated.
+                                                                                                                                 NBOG
+                                                                                                                      BPT
+                                                                                                                      RTP
+EXECUTIVE SUMMARY
+The Web-Based Property Inventory Management System for Caloc-an Elementary School is developed to improve the management, monitoring, and recording of all school properties through a centralized and automated platform. Schools manage a wide variety of assets that require proper organization, tracking, and updating. This system provides a digital solution that enhances efficiency, accuracy, and accessibility of property information, helping ensure that all records are well-organized and reliable.
+The system supports the management of different school assets, including equipment, furniture, supplies, and other essential properties. It allows administrators to record and update important details such as item quantity, condition, location, status, and assigned personnel. It also enables effective tracking of property movement and updates, ensuring that every asset is properly documented and accounted for within the system.
+In addition, the system provides a secure and organized database where all property records are stored. This makes it easier to access information, monitor asset status, and generate reports when needed. It also improves coordination among school personnel by providing clear and updated records that support proper handling of school properties.
+By digitizing the inventory process, the system helps reduce paperwork, improves data accuracy, and ensures faster access to important information. It also promotes transparency and accountability by keeping all property-related records properly documented and updated. Furthermore, it supports better decision-making by providing timely and reliable inventory data.
+Overall, the Web-Based Property Inventory Management System serves as an effective tool that enhances operational efficiency, strengthens resource management, and contributes to a more organized and well-managed school environment.
+TABLE OF CONTENTS
+Title	Page
+Title Page	i
+Approval Sheet	ii
+Dedication	iii
+Acknowledgement	iv
+Executive Summary	v
+Table of Contents	vi
+List of Figures	vii
+List of Tables	viii
+CHAPTER I
+I.         INTRODUCTION
+           1.1     Project Context	1
+           1.2     Purpose and Description	3
+           1.3     Objectives of the Study	5
+           1.4     Scope and Limitation of the Study	6
+           1.5     Significance of the Study	7
+           1.5.1  Alignment with the Sustainable Development Goals (SDGs)	7
+           1.5.2  Alignment with the University Research Agenda	9
+           1.5.3  Stakeholder-Specific Significance	10
+CHAPTER II
+II.        REVIEW OF RELATED LITERATURE
+           2.1      Related Studies on Inventory Management Systems	12
+           2.2      Web-Based Inventory Systems in Educational Institutions	14
+           2.3      IoT and Digital Transformation in Inventory Management	16
+           2.4      Challenges in Traditional Inventory Management	18
+           2.5      Automated Reporting and Distribution Management	20
+CHAPTER III
+III.       METHODOLOGY
+           3.1      Requirements Specification	23
+            3.1.1   Technical Feasibility	23
+            3.2      Data Processing Modeling	25
+            3.2.1   Current Manual Process — Process Algorithms	26
+            3.2.2   Proposed Digital Process — Systematic Algorithms	28
+            3.3      Prototype	30
+CHAPTER IV
+IV.      RESULTS AND DISCUSSION
+            4.1     System Architecture	39
+            4.2     Requirements Modeling	41
+            4.3     The Developed System	51
+            4.4     Testing Result	79
+            4.4.1  Technical Verification	79
+            4.4.2  User Acceptance Testing	80
+            4.4.3  Quantitative Evaluation Results	82
+            4.5     Qualitative Findings	86
+            4.6     Feasibility Assessment: Deployment Costing	88
+            4.7     Discussion	90
+CHAPTER V
+V        SUMMARY, CONCLUSIONS, AND RECOMMENDATIONS
+            5.1     Summary of Findings	89
+            5.2     Conclusions	91
+            5.3     Recommendations	92
+            5.4     Concluding Statement	95
+References	96
+Appendix A: ISO/IEC 25010 Evaluation Instrument	100
+ LIST OF FIGURES
+Figure	Page
+Figure 1.      Structure Design	22
+Figure 2.      Current DFD for Manual Recording of Web-Based Property Inventory Management System	24
+Figure 3.      DFD for Development of a Web-Based Property Inventory Management System	25
+Figure 4.      Context DFD for Development of a Web-Based Property Inventory Management System	26
+Figure 5.      UML Use Case Diagram for the Digital Record-Keeping Data	29
+Figure 6.      Entity Relationship Diagram	38
+Figure 7.      System Architecture	39
+Figure 4.3.   Login Type Selection Modal	51
+Figure 4.4.   Dashboard	53
+Figure 4.5.   Inventory Page	55
+Figure 4.6.   Add Item Page	57
+Figure 4.7.   Reservations Page	59
+Figure 4.8.   Distribution List Page	61
+Figure 4.9.   Create Distribution Group Page	63
+Figure 4.10. User Management Page	65
+Figure 4.11. Archive Page	67
+Figure 4.12. Teacher Dashboard Page	69
+Figure 4.13. My Reservations Page	71
+Figure 4.14. My Distribution Groups Pages……………………………………………………………………………………………73
+LIST OF TABLES
+Table	Page
+Table 1.      Minimum Hardware Requirements	23
+Table 2.      Manual vs. Systematic Process Comparison	30
+Table 4.1.   Functional Requirements Implementation Status	41
+Table 4.2.   Non-Functional Requirements Verified Within Constraints	45
+Table 4.3.   Deployment Cost Estimates	79
+Table 4.4.   UAT Protocol	80
+Table 4.5.   ISO/IEC 25010 Evaluation Results	82
+Table 4.6.   Qualitative Feedback from UAT Participants	86
+Table 4.11. Problem Resolution within Constraints	90
+CHAPTER I
+
+INTRODUCTION
+1.1 Project Content:
+The management of the school's property inventory currently follows existing processes that present challenges in organization, record management, and tracking of assets over time. Inventory records are maintained through handwritten documents, printed receipts, and manually prepared distribution lists, which can lead to inconsistencies and limited visibility of data. This lack of a computerized system makes it difficult for personnel to effectively monitor items, locate records, and conduct audits, ultimately affecting accountability and operational efficiency (Tungcul & Kummer, 2021). 
+To address these concerns, this project proposes the development of a Web-Based Property Inventory Management System, aimed at transforming the current process into a structured and automated digital platform. The proposed system will organize inventory records using a chronological-alphabetical approach, grouping items by year of acquisition and arranging them alphabetically within each category to improve clarity and accessibility (Climaco, 2023). It will also replace paper-based processes with digital forms and automated templates, while incorporating features such as item tracking, status monitoring, missing item identification, and lifespan-based disposal flagging to ensure accurate and up-to-date records (Ahmad, 2023). 
+Additionally, the system will automate reporting processes, including the generation of distribution lists and summary reports of item allocation, promoting transparency and accountability among personnel (Kumar, 2024). By systemizing the inventory process, the project aims to enhance data organization, improve monitoring capabilities, and strengthen overall efficiency, aligning with studies that emphasize the importance of digital solutions in improving organizational operations (Ramiah & Razali, 2023; Baylosis, 2023), and ultimately supporting better resource management and internal control (Alim & Isnanto, 2023; Prasongko, 2025).
+1.2 Purpose and Description:
+The purpose of this study is to design and develop a Web-Based Property Inventory Management System, specifically for managing school properties. It addresses inefficiencies associated with existing practices, particularly the outdated method of listing items solely by name without referencing their acquisition year, an approach that often leads to disorganization and tracking issues (Tungcul & Kummer, 2021; Ayomide
+Madamidola et al., 2024). By implementing a system that organizes inventory records both by acquisition year and alphabetically within each year, the study seeks to improve inventory clarity, accessibility, and monitoring accuracy. To ensure proper monitoring and control, the system will also identify missing items after a certain period and flag equipment that exceeds its expected lifespan (Ran, 2021; Mashayekhy et al., 2022). Furthermore, the system will automate the generation of distribution records, replacing printed documents with digitally generated distribution lists. This transition to digital forms is expected to improve data consistency, enhance traceability of asset movement, and support more efficient record management (Aguedo et al., 2024; Wicaksono, 2021). To reinforce accountability and transparency, each inventory entry will include the assigned personnel and the quantity of items issued. These features align with previous successful systems such as MEIMS and OSIS, which have demonstrated improved efficiency and clearer tracking of inventory responsibilities (Nwaneri & Olaoye, 2023; Climaco, 2023).
+ Overall, this study promotes the digital transformation of inventory processes in educational institutions by implementing a structured, user-friendly, and efficient system, supporting modern web-based solutions that improve data organization, monitoring, and decision-making (Song et al., 2020; Kumar, 2024; Chukwumuanya et al., 2024)
+General Objective
+The general objective of this study is to develop a Web-Based Property Inventory Management System for Caloc-an Elementary School that centralizes, organizes, and improves the recording, tracking, and management of all school properties to ensure efficient, accurate, and reliable inventory processes.
+1.3 Objectives of the Study:
+To digitize and centralize all school property inventory records into a single web-based system.
+To improve tracking accuracy and efficiency by categorizing items based on year of acquisition and alphabetical order for faster retrieval.
+To consolidate identical items into a unified inventory list while showing assigned quantities per teacher to prevent duplication errors.
+To automate the generation of distribution records to reduce processing time and improve transparency and accountability.
+To enhance overall inventory management by improving monitoring of item status such as borrowed, distributed, and returned.
+1.4 Scope and Limitation of the Study
+Digitize and centralize the school properties inventory records to ensure structured and organized data management.
+Enhance the accuracy, reliability, and efficiency of tracking items by sorting them based on year of acquisition and alphabetically within each year.
+Streamline the process of generating distribution records and improve transparency and accountability among personnel handling the properties.
+The system is limited to managing the properties inventory within Caloc-an Elementary School only.
+The system will only manage items after official issuance and recording.
+The accuracy of inventory data depends on manual input, and the system does not account for errors made during data entry.
+System maintenance, hardware issues, and user training are beyond the scope of this study and are not part of the system’s development
+1.6 Significance of the Study
+This study was developed to improve how school properties are managed in Caloc-an Elementary School by introducing a web-based system that is more organized, reliable, and efficient. It aims to support better handling of school assets while promoting transparency, accountability, and proper resource management.
+1.6.1 Alignment with the Sustainable Development Goals (SDGs)
+The Sustainable Development Goals (SDGs) are a global framework created by the United Nations in 2015 that aims to promote peace, prosperity, and sustainability for all. This study contributes to selected SDGs that are relevant to education, innovation, and responsible resource management.
+SDG4	(Quality Education):
+
+The system supports quality education by ensuring that school resources such as equipment, furniture, and learning materials are properly managed and always available when needed. A well-organized inventory system helps create a more efficient and supportive learning environment for both teachers and students.
+SDG 9 (Industry, Innovation, and Infrastructure):
+This study introduces a digital solution that improves traditional school property management. By using a web-based system, it promotes innovation and strengthens institutional infrastructure through better data organization, faster processing, and improved accessibility of records.
+SDG 11 (Sustainable Cities and Communities):
+The system contributes to building a more organized and responsible educational institution. By improving transparency and accountability in managing school assets, it supports the development of well-managed and sustainable community-based institutions.
+SDG 12 (Responsible Consumption and Production):
+	 The system encourages proper monitoring and utilization of school resources. By tracking item status and usage, it helps reduce loss, misplacement, and unnecessary replacement of school properties, promoting responsible resource management
+.
+1.6.2 Alignment with the University Research Agenda
+This study is aligned with the university’s research direction, which focuses on innovation, applied research, and community development.
+Applied Research and Community Service:
+The system is designed to address real problems experienced in school property management. It provides a practical solution that directly benefits Caloc-an Elementary School by improving its operational processes and efficiency.
+Innovation and Digital Transformation:
+	 The study promotes the use of modern technology in school operations. It demonstrates how web-based systems can replace traditional methods and improve the accuracy, speed, and reliability of inventory management.
+Capacity Building and Student Development:
+This project allows students to apply their knowledge in real-world situations, particularly in web development, database management, and system design. It helps strengthen technical and problem-solving skills.
+Research Contribution: 
+The study serves as a reference for future researchers who aim to develop similar systems. It contributes ideas and insights that can help improve inventory management systems in educational institutions.
+1.6.3 Stakeholder-Specific Significance
+This benefits the following:
+The development of a Web-Based Property Inventory Management System as it aims to address the long-standing challenges encountered in managing school properties, particularly at Caloc-an Elementary School, Magallanes, Agusan del Norte. The project will benefit several groups and stakeholders by introducing a more accurate, efficient, and organized way of handling inventory records.
+For the in-charge personnel, the system will simplify the tracking, recording, and reporting processes, reducing manual workload and minimizing human errors. The automation of item monitoring, missing item detection, and disposal alerts will allow them to focus more on inventory management rather than paperwork. The system’s ability to automate quarterly reports and create distribution lists will ensure a more streamlined and standardized process.
+For the teachers, the system will promote transparency and accountability by providing clear records of the items they have received, including the quantity and item details linked directly to their names. This will help prevent misunderstandings and foster responsibility for school-owned properties.
+For the school administrators, the system will offer a reliable source of data for decision-making, resource allocation, and future resource allocation planning. It ensures that the school maintains proper documentation and accountability for all tools and equipment, making audits and inspections more efficient and less time-consuming.
+For future researchers and developers, this study serves as a valuable reference for building more advanced inventory systems tailored to educational institutions and can inspire further innovations in property management technologies
+CHAPTER II
+Review of Related Literature
+This section presents a collection of studies, research findings, and articles that are relevant to the development of a Web-Based Property Inventory Management System.
+It highlights existing knowledge, practices, and technologies specifically related to equipment inventory management, automation, and digital record-keeping. The review aims to build a solid foundation for the project by identifying gaps in current methods, supporting the necessity for modernization, and ensuring that the proposed system enhances and improves upon traditional processes. Through the analysis of related literature, the study is directed toward creating a more efficient, organized, and reliable system for managing school equipment.
+(Chandra Guru et al., 2023)"Design and Implementation of Inventory Management System for University." This study focuses on developing a web-based system for the finance department of a college using HTML, Bootstrap, CSS, JavaScript, PHP, Ajax, and SQL. It highlights how the system improves financial record management, transaction tracking, and report generation through a user-friendly interface. The paper also discusses the design, functionality, implementation, and testing of the system, concluding that the project enhances efficiency and accuracy in financial management. It recommends further improvements and expansion to better serve the college community.
+(Tungcul & Kummer, 2021) “Supplies and Equipment Inventory, Monitoring and Tracking Management System using Data Mining Techniques.” This study developed SEIMTMS to modernize the manual inventory management system of Cagayan State University. It used classification and clustering techniques, along with the MFP algorithm, to generate decision support reports for administrators, aiding in monitoring, tracking, and budgeting. The system was evaluated using ISO/IEC 25010:2011 Software Quality Standards and received a very high rating, described as “very great extent,” proving its effectiveness in improving inventory processes.
+(Kumar, 2024)"Utilization of Inventory Management System in Educational Organization". This study discussed how inventory management systems (IMS) help educational institutions by reducing paperwork, managing student-related materials, and storing data efficiently. It emphasized integrating IMS with ERP systems to streamline operations, reduce time-consuming tasks, and centralize information. The system promotes smart, digital work environments preferred by students, enhancing organizational efficiency and responsiveness to modern demands.
+(Raquel I. Climaco, 2023)"Innovation In Education: Project OSIS (Office Supplies Inventory System)". This study presents the Office Supplies Inventory System (Project OSIS) designed to modernize inventory management for the DepEd Schools Division of Bulacan. The system received a 98% validation score and improved job efficiency by 80%, according to user feedback. It addresses concerns related to internet dependency and data security, offering an effective solution for enhancing operational efficiency within the educational organization.
+(Ramiah & Razali, 2023) "Inventory Management Systems (IMS)". This study develops an Inventory Management System (IMS) for Small and Medium Enterprises (SMEs) in Malaysia, focusing on improving product stock control, customer orders, and delivery tracking. Using PHP for backend development and HTML, CSS, and JavaScript for the front end, the system allows retail stores to track inventory and manage product reservations. The Rapid Application Development (RAD) methodology was applied to ensure iterative development. Despite its successful implementation, the study acknowledges limitations and suggests future enhancements for the system.
+(Ahmad, 2023)"e-AIMSS (Electronic Asset Inventory and Management System in School) for Resource Optimization and Organizational Productivity". This capstone project focuses on developing an efficient electronic inventory system for school assets to optimize resources and ensure equitable access to materials for all students. Using the "ISSO" framework (Ignite, Strategize, Systematize, Operationalize) and a waterfall model approach, the system enhances custodianship and operational efficiency. The study's results show significant improvements in reliability and usability, proving the advantages of digitalization over traditional manual methods. The system also supports budget allocation, audits, and communication, offering a transparent, reliable process for property management, with the potential for Utilization of Inventory Management systems in Educational Organization broader use in e-government systems.
+(Ayomide Madamidola et al., 2024) “A Review of Existing Inventory Management Systems”. This paper provides a comprehensive review of the evolution of Inventory Management Systems (IMS), highlighting key advancements such as the Just-in-Time (JIT) methodology, barcode scanning, RFID technology, and the Internet of Things (IoT). The study emphasizes the importance of balancing stock levels and the integration challenges faced by multi-location businesses. It stresses the need for IMS solutions tailored to the specific needs of different industries and organizations. The paper also identifies ongoing challenges and areas for future research, aiming to develop more efficient and adaptable IMS tools to meet the evolving demands of businesses.
+(Baylosis, 2023) "Web-based Inventory Management System". This study presents a web-based inventory management system developed for a small business enterprise in Pagadian City, Philippines. The system helps the business owner manage inventories efficiently and conveniently by replacing the manual process of data recording with an automated online solution. It addresses challenges such as data inaccuracy and inefficiencies by electronically processing inventory and sales data and producing reports in real time. The system supports four branches and a mobile store, improving overall.
+(Chukwumuanya et al., 2024)"Development of a Web-Based Inventory Management System for Small Businesses". This study develops a web-based inventory management system for small businesses, integrating an autoregressive moving average (ARMA) time series model for forecasting monthly production quantities. The system, built using MySQL, enables efficient data collection, storage, and monitoring of inventory. The ARMA (1,1) model was selected as the best for forecasting due to its low error rates. The system significantly improved inventory control compared to the existing manual methods, enhancing decision-making and operational performance.
+(Aguedo et al., 2024)"Improving Inventory Control Through a Web-Based System in a Retail Company". This study focuses on improving inventory control in retail companies by introducing a web-based system to digitize logistics processes. The system, developed using Hypertext Preprocessor (PHP), JavaScript, and MySQL, enhances inventory precision and stock turnover rates. The implementation of the system resulted in a 52.94% increase in inventory accuracy and a 91.94% rise in stock turnover. The system minimizes input errors and allows for better visualization and management of inventory data.
+(Song et al., 2020) "Capacity and Inventory Management: Review, Trends, and Projections". This paper reviews the trends and projections related to capacity and inventory management, focusing on how organizations can optimize their inventory levels and production capacity to meet customer demands. The study discusses the evolution of inventory management techniques, with an emphasis on the importance of integrating capacity planning and inventory control. It also highlights emerging trends, including the adoption of advanced technologies like IoT and data analytics, which help businesses forecast demand more accurately and improve decision-making in inventory management. The paper concludes by examining future projections for inventory management systems, indicating the growing importance of automated, real-time solutions in optimizing business operations.
+(Mashayekhy et al., 2022) "Impact of Internet of Things (IoT) on Inventory Management: A Literature Survey***".*** This study reviews the impact of IoT technologies on inventory management within supply chains, particularly in the context of Industry 4.0. It explores the growing research on IoT's role in transforming inventory management by enhancing warehouse management and supply chain integration. The paper identifies a gap in the application of IoT in inventory systems, noting that traditional inventory replenishment policies are not sufficiently responsive to the advancements brought by IoT. The findings suggest that upgrading supply chains to Industry 4.0 will enable more efficient and integrated management, highlighting the need for new approaches in inventory control to adapt to these technological advancements.
+(Ran, 2021) "Construction and optimization of inventory management system via cloud-edge collaborative computing in supply chain environment in the Internet of Things era***"***. This study explores the optimization of inventory management systems in industrial supply chains using cloud-edge collaborative computing, focusing on improving efficiency and resource utilization. The research examines the relationship between suppliers and manufacturers in the supply chain and highlights the importance of effective spare parts inventory management for reducing costs and improving service levels. It proposes and tests various prediction methods for spare parts demand, with the weighted summation of eigenvalues and fitting method showing the smallest error (2.2%) in demand forecasting. The inventory system based on cloud-edge collaborative computing outperforms traditional methods, offering shorter processing times, higher efficiency, better stability, and superior overall performance compared to genetic algorithms. The findings suggest that integrating edge computing with inventory management systems enhances accuracy and efficiency, providing valuable insights for future applications in the IoT era.
+(Ramos-Miller & Pacheco, 2023) " Towards inventory control excellence: An innovative approach based on a web-based platform”. This study addresses the unique challenges faced by educational institutions in managing inventory. It focuses on improving inventory processes through the use of information technology, aiming to optimize efficiency while ensuring data integrity and reliability. The research employs a five-phase methodology to develop a web-based inventory optimization system. The first phase involves analyzing inventory requirements and considering various data sources and team needs. In the planning phase, requirements are prioritized, and tasks with deadlines are set. During the implementation phase, appropriate technologies are employed to ensure efficient operation. A thorough review follows to assess if objectives are met, with adjustments made as necessary. Upon completion, the system undergoes additional testing before deployment to ensure functionality.
+(Nwaneri & Olaoye, 2023)"Development of Web-Based Medical Equipment Inventory Maintenance System". The study presents the development of a “Web-Based Medical Equipment Inventory Maintenance System (MEIMS)” to improve the management of medical equipment and ensure timely preventive maintenance. Using a 3-tier architecture and the waterfall model, the system provides a user-friendly interface for efficient equipment management and maintenance scheduling. Tested with data from a public hospital in Lagos, Nigeria, the system features a dashboard displaying key equipment details, maintenance logs, and usage analysis. The MEIMS proved effective in managing assets and scheduling both preventive and corrective maintenance, contributing to the extended lifespan and functionality of medical equipment.
+(Yi et al., 2020) "MAKER’S INVENTORY SYSTEM: A LOGICAL-BIN STORAGE APPROACH". This study presents the development of an inventory system specifically designed for makers, focusing on optimizing storage through a dynamic slotting method inspired by Amazon’s chaotic storage approach. Unlike traditional static slotting, which requires separate containers for each item type and consumes significant physical space, the proposed system allows makers to store any item in any container regardless of type. Makers can perform Create, Retrieve, Update, and Delete (CRUD) operations and manage inventory efficiently through barcode scanning, enabling quick location of items and containers. The system helps monitor item quantities for timely restocking and provides features for stock checking, ultimately maximizing space usage and improving inventory management efficiency for makers.
+(Hinders, 2023; Prasongko, n.d.) “Implementation of an Integrated Inventory Management System". This study investigates the implementation of an integrated inventory management system aimed at recommending a solution that fits with the case company's existing systems. Using qualitative research methods such as trial and error and interviews, the research compared various alternatives before selecting the most suitable system. The study highlights the importance of aligning system selection with company requirements and minimizing operational risks during implementation. Based on the findings, the Netvisor ERP system was recommended for its ability to meet the company's inventory management needs effectively.
+(Nasution, 2023)"Web-Based Inventory Data Processing Information System at the Regional Development Planning Agency (Bappeda) North Sumatra Province". This study addresses the challenges faced by BAPPEDA North Sumatra Province in manually managing inventory records, leading to inefficiencies in supervision and reporting. To resolve these issues, the research proposes a web-based inventory information system that digitizes the recording, archiving, transaction tracking, and reporting of government-owned goods. The system allows faster and more accurate data processing, improves inventory supervision, and prevents data loss. By providing a centralized database, the new system enables easier and quicker data retrieval, enhancing overall service quality and operational effectiveness at the agency.
+(Prasongko, 2025)" Design and Implementation of Inventory Management Information System at AMIK PGRI Kebumen. "This study aims to design and implement a web-based inventory management information system at AMIK PGRI Kebumen to address inefficiencies and data errors caused by a manual inventory process. Using the Waterfall model for software development, the system supports adding, editing, deleting, and searching inventory data, enabling better monitoring of inventory conditions and status. The implementation of the system successfully improved inventory management efficiency, reduced data errors, and simplified user access to information. Future recommendations include enhancing data security features and integrating the system with other existing platforms at the institution.
+(Wicaksono, 2021)"Development of Laboratory Equipment Inventory System Using Radio Frequency and Internet of Things" This study presents the creation of a laboratory equipment inventory system using IoT technology. The system allows lecturers, lab assistants, and students to monitor borrower data, borrowing time, return time, and equipment availability. Using NodeMCU ESP8266 as the controller and WiFi module, combined with PHP and MySQL on the server side, the system integrates RFID tags and RF433MHz radio frequency scanning to detect and track laboratory items. Testing showed the system successfully monitored equipment status and borrower activity with 100% accuracy.
+(Alim & Isnanto, 2023)"Design of Inventory Management Information System Using Periodic Review Method" This study discusses the design of an inventory management information system utilizing the periodic review method to address inventory control, particularly for office equipment in universities. Using the Waterfall model for system development, the framework was divided into input, process, and output stages, producing parameter information (R, s, S) for each item. The results demonstrated that the periodic review method effectively supports decision-making regarding the timing and quantity of inventory replenishment, helping to manage goods efficiently and reduce the risk of shortages and excessive costs.
+Synthesis: The studies reviewed in this chapter highlight both similarities and differences in the development of inventory management systems, particularly in how they handle data organization, process automation, and monitoring. Most of the studies utilized web-based platforms, showing that web technologies are effective in managing inventory across different environments such as schools, businesses, and government institutions. These systems commonly include core features such as item recording, inventory tracking, report generation, and asset monitoring, all aimed at improving transparency, accountability, and efficiency through centralized data management and user-friendly interfaces.
+Despite these similarities, the studies differ in terms of system complexity, technologies used, and level of functionality. Several studies adopted PHP-based frameworks, demonstrating their reliability and suitability for building practical and accessible systems. While some research explored advanced technologies like IoT and RFID for real-time tracking, many systems focused on strengthening core inventory processes such as record management, monitoring, and reporting. These differences highlight that system design often depends on the specific needs and resources of the institution.
+In terms of functionality, many studies emphasized the importance of accurate record-keeping, efficient tracking of item movement, and automated report generation. Features such as monitoring item status, managing distribution, and ensuring accountability were also commonly implemented. Different development methodologies were used, including Waterfall and Rapid Application Development (RAD), showing flexibility in how systems are designed and developed based on project requirements.
+Based on these findings, the proposed system adopts a web-based approach using the Laravel framework for the backend and React with TypeScript (TSX) for the frontend. This combination provides a modern, responsive, and efficient platform capable of handling the inventory management needs of Caloc-an Elementary School. The system is designed to manage school properties through a centralized database, allowing administrators to easily organize, update, and monitor inventory records.
+The proposed system incorporates essential features such as inventory management, item tracking, distribution and borrowing management, user management, and report generation. It also includes a chronological-alphabetical organization of records, tracking of item status (borrowed, distributed, reserved, and returned), and a soft delete mechanism through a Trash module to ensure data recovery and better record control. These features enhance the overall organization, visibility, and management of inventory data.
+Overall, the Web-Based Property Inventory Management System aims to provide a practical, efficient, and user-friendly solution tailored to the needs of Caloc-an Elementary School. By integrating structured data management, automated processes, and a centralized platform, the system improves accuracy, transparency, accountability, and overall efficiency in managing school other properties.
+CHAPTER III
+Methodology
+This chapter examines and evaluates the procedures used to collect and organize data for a comprehensive study. It provides detailed descriptions of the research participants and primary topics. Additionally, it discusses the various methods and tools utilized for gathering data, along with the specific criteria set for the investigation.
+3.1 Requirements Specification
+	3.1.1 Technical Feasibility
+Below are the hardware specifications required for developing the system. 
+Table 1. Minimum hardware requirements
+The table shows that the Development of a Web-Based Property Inventory Management System in Caloc-an Elementary School needs specific requirements to work effectively, such as a Windows 10 and above operating system, at least Intel(R) Core™ i5 or AMD Ryzen processor, 8GB RAM DDR4, 500GB HDD or 256GB SSD Internal Storage, and AMD Ryzen 7000 SERIES Graphic card.
+
+Table 2. Software Requirements	
+Table 2 outlines the software prerequisites for the Development of a Web-Based Property Inventory Management System. The frontend was developed using React with TypeScript, Tailwind CSS, and JavaScript, while the backend utilized Laravel/PHP with REST API architecture and WebSocket for real-time notifications. MySQL served as the database management system, and Visual Studio Code was used as the integrated development environment.
+3.2 Data Processing Modeling 	
+Figure 1. Structure Design 
+Figure 1 shows the Structured Design for the Development of a Web-Based Property Inventory Management System for Caloc-an Elementary School. The development follows five sequential phases: Planning involves setting clear goals, determining scope, and conducting semi-structured interviews with the school inventory administrator to understand current processes and user requirements. Development encompasses database design, user interface creation, and implementation of core functionalities including item registration, status updates, and report generation. Testing verifies system correctness through unit testing, integration testing, and user acceptance testing (UAT) with school personnel. Review and Feedback involves stakeholder demonstrations to gather input on functionality and usability, followed by iterative improvements. Finally, Presentation and Demonstration showcases the completed system's features—item registration, condition monitoring, and automated reporting—to stakeholders, illustrating how the solution addresses inventory challenges at Caloc-an Elementary School.
+Figure 2. Current DFD for Manual Recording of Development of a Web-Based Property Inventory Management System
+Figure 2 illustrates the current manual inventory workflow and its inherent bottlenecks. In-Charge Personnel manually record item details in handwritten logbooks, prepare paper-based borrowing forms and distribution lists, and update inventory records without validation checks. Teachers receive items through physical distribution or borrowing, provide handwritten acknowledgment receipts, and return items with manual tracking of unreturned or overdue items. Administrators review printed inventory reports, manually verify borrowing and distribution records, and correct discrepancies through physical document inspection. The system's reliance on handwritten logs, printed documents, and physical tracking creates significant delays, introduces transcription errors, prevents real-time monitoring of borrowed items, and eliminates visibility into current inventory status. These limitations compromise efficiency, accuracy, and accountability.
+3.2.1 Current Manual Process — Process Algorithms
+The following algorithms represent the step-by-step procedures currently employed in the manual inventory system, highlighting time consumption and error vulnerabilities:
+Algorithm 1: Manual Item Registration
+INPUT: New equipment details (name, category, quantity, condition)
+OUTPUT: Updated inventory logbook entry
+START
+In-Charge Personnel retrieves physical inventory logbook
+Locate last entry to determine next available line
+Manually write item name, category, quantity, acquisition date
+Record condition status and initial location
+Cross-reference with procurement documents (if available)
+File procurement receipt in physical folder
+Return logbook to storage cabinet
+END
+Estimated Time: 10-15 minutes per item
+Error Risk: HIGH (illegible handwriting, duplicate entries, missing fields)
+Real-time Visibility: NONE
+Algorithm 2: Manual Borrow Request Processing
+INPUT: Teacher borrow request (verbal or written form)
+OUTPUT: Approved/denied request, updated logbook
+START
+Teacher submits handwritten borrow request form to In-Charge Personnel
+In-Charge Personnel checks physical logbook for item availability
+IF item available THEN
+Manually write borrowing details in logbook (teacher name, item, date)
+Prepare handwritten acknowledgment receipt
+c. Teacher signs receipt
+d. File receipt in borrowing folder
+e. Physically hand item to teacher
+ELSE
+a. Verbally inform teacher item unavailable
+b. No formal record of denied request
+END
+Estimated Time: 20-40 minutes (depending on item search time)
+Error Risk: HIGH (lost forms, forgotten returns, no automated reminders)
+Real-time Visibility: NONE (administrator unaware of current borrowing status)
+Algorithm 3: Manual Item Return Processing
+INPUT: Returned item from teacher
+OUTPUT: Updated logbook entry
+START
+Teacher physically returns item to In-Charge Personnel
+In-Charge Personnel locates original borrowing entry in logbook
+Manually write return date next to borrowing record
+Inspect item condition (subjective assessment)
+IF item damaged THEN
+a. Write "damaged" note in logbook
+b. Verbally inform administrator
+ELSE
+a. Mark item as "returned in good condition"
+Update item availability count manually
+END
+Estimated Time: 5-10 minutes per return
+Error Risk: HIGH (missed damage documentation, incorrect availability counts)
+Real-time Visibility: NONE (no automated status updates)
+These manual algorithms demonstrate critical inefficiencies: extended processing times, high susceptibility to human error, absence of validation mechanisms, and complete lack of real-time data accessibility for decision-making.
+=
+Figure 3.  DFD for Development of a Web-Based Property Inventory Management System
+The proposed automated system eliminates manual bottlenecks through centralized digital workflows. All users authenticate through a Login & Authentication gateway with role-based access control. In-Charge Personnel manage inventory and distribution through validated web forms that directly update the MySQL Database, ensuring data integrity through atomic transactions. Teachers submit borrowing requests digitally, view assigned items, and receive automated notifications for approvals and return reminders. School Administrators access real-time system-generated reports, disposal lists based on 5-year lifespan tracking, and comprehensive audit trails. The system automatically generates Notifications and Logs for all transactions, maintains complete Audit Trails for accountability, and produces Reports on-demand, creating a transparent, efficient, and error-resistant workflow.
+3.2.2 Proposed Digital Process — Systematic Algorithms
+The following algorithms represent the automated, database-driven procedures implemented in the proposed system, emphasizing validation, efficiency, and real-time updates:
+Algorithm 1: Systematic Item Registration
+INPUT: Equipment details via web form (name, category, quantity, condition, serial number)
+OUTPUT: Database record, auto-generated item code, confirmation notification
+START
+In-Charge Personnel accesses "Add Item" form via Admin Dashboard
+VALIDATE input fields:
+a. IF any required field empty THEN display error message, RETURN to Step 2
+b. IF serial number duplicate THEN display warning, RETURN to Step 2
+Auto-generate unique item code (format: YEAR-CATEGORY-SEQUENCE)
+Record acquisition date automatically (system timestamp)
+INSERT item record into MySQL database (atomic transaction)
+IF insertion successful THEN
+a. Display success confirmation message
+b. Send notification to Administrator
+c. Update dashboard statistics in real-time
+ELSE
+a. Rollback transaction
+b. Display error message
+END
+Estimated Time: 1-3 minutes per item
+Error Risk: LOW (validation rules prevent duplicates, missing fields)
+Real-time Visibility: IMMEDIATE (dashboard updates instantly)
+Algorithm 2: Systematic Borrow Request Processing
+INPUT: Teacher borrow request via web form (item, quantity, expected return date)
+OUTPUT: Approved/denied request, database update, automated notifications
+START
+Teacher submits borrow request through Teacher Dashboard
+System validates request:
+a. CHECK item availability in database
+b. IF quantity requested > available quantity THEN
+	i. Auto-deny request
+	ii. Send notification to teacher with reason
+	iii. GOTO Step 9
+IF item available THEN
+a. Create pending request record in database
+b. Send notification to In-Charge Personnel for approval
+In-Charge Personnel reviews request in Admin Dashboard
+IF approved THEN
+a. UPDATE item quantity (available -= borrowed)
+b. CREATE borrowing record with status "active"
+c. Send approval notification to teacher
+d. Schedule automated return reminder (1 day before due date)
+ELSE
+a. UPDATE request status to "denied"
+b. Send denial notification to teacher with remarks
+Log all actions in audit trail
+END
+Estimated Time: 30 seconds - 2 minutes (instant for teacher, quick review for admin)
+Error Risk: LOW (automated availability checks, digital audit trail)
+Real-time Visibility: IMMEDIATE (all parties notified instantly via WebSocket)
+Algorithm 3: Systematic Item Return Processing
+INPUT: Return confirmation via Admin Dashboard (item ID, condition assessment)
+OUTPUT: Updated database, inventory adjustment, notifications
+b. SET status = "returned"
+c. SET condition = selected value
+UPDATE item inventory:
+a. IF condition = "Good" OR "Fair" THEN
+	i. available_quantity += returned_quantity
+b. ELSE
+	i. damaged_quantity += returned_quantity
+Log transaction in audit trail with timestamp and user ID
+Send confirmation notification to teacher
+END
+Estimated Time: 1-2 minutes per return
+Error Risk: LOW (mandatory condition assessment, automatic inventory adjustment)
+Real-time Visibility: IMMEDIATE (dashboard reflects updated availability)
+These systematic algorithms demonstrate substantial improvements: reduced processing time (up to 93% faster for borrowing), enforced validation rules eliminating common errors, automated notifications ensuring accountability, and real-time database synchronization providing instant visibility for all stakeholders.
+Table 3. Manual vs. Systematic Process Comparison
+Table 3 quantifies the operational improvements achieved through systematic automation. The proposed system reduces average processing time by 80-95% across core workflows, eliminates error-prone manual data entry through validation rules, and introduces real-time visibility and comprehensive audit trails absent in the manual approach. These measurable gains directly address the inefficiencies identified in the current inventory management process.
+Figure 4. Context DFD for Development of a Web-Based Property Inventory Management System
+Figure 4 presents the Context Data Flow Diagram illustrating high-level system interactions. In-Charge Personnel access the dashboard, manage inventory records, add items, and generate reports through centralized system functions. Teachers view assigned items and track their accountability through the teacher portal. The diagram emphasizes the system's role as a centralized platform organizing data flows, improving monitoring capabilities, and supporting efficient inventory management through role-based access control.
+Figure 5. UML Use Case Diagram for the Digital Record-Keeping Data
+Figure 5 shows the UML Use Case Diagram for the Digital Inventory Record-Keeping System. The diagram illustrates how different users engage with the system, including the In-Charge Personnel, School Administrator, and Teachers. The In-Charge Personnel manages the inventory by adding new items, updating item details, deleting items, managing categories, and generating reports. The School Administrator supervises by reviewing inventory reports, monitoring item distribution, tracking missing items, approving requests, and generating compliance reports. The Teacher interacts with the system by viewing assigned items, requesting additional items, submitting borrow requests, tracking request status, returning items, and reporting item conditions. Overall, the diagram highlights how each user carries out different tasks within the Digital Inventory Record-Keeping System to manage and monitor school properties.
+Figure 6. Entity Relationship Diagram of Digital Record-Keeping Data
+Figure 6 presents the Entity Relationship Diagram (ERD) defining the database schema of the Web-Based Property Inventory Management System. Core entities include Admins, who manage and monitor inventory operations; Teachers, who serve as requesters and recipients of school properties; and School Properties, which store property details such as property code, name, category, quantity, condition, location, and status. Transactional tables such as Borrow Requests, Distribution Requests, Item Distributions, and Teacher Inventory track the borrowing, requesting, assigning, and distribution of school properties. Inventory Logs maintain records of inventory-related activities for accountability and monitoring purposes. Distribution Groups and Distribution Group Members support bulk and grouped distribution processes for teachers. Notifications and System Logs provide transparency by recording alerts, user activities, and system events. This relational database structure ensures data consistency, supports efficient transaction processing, and maintains the integrity and reliability of the inventory management system. 
+Figure 7. Flowchart of the Development of a Web-Based Property Inventory Management System
+Figure 7 outlines the operational workflow implemented in the digital system. In-Charge Personnel authenticate through the login gateway and access the Admin Portal. The multifunctional dashboard provides real-time inventory status (available, missing, disposed items) supporting data-driven decision-making. Through Manage Inventory, administrators add new items, update statuses, and monitor records using the systematic algorithms defined in Section 3.2.2. The Add New Items process registers newly procured items with automated validation and database insertion. Teachers acknowledge receipt of assigned items and report conditions through digital forms, contributing to ongoing accuracy and accountability as specified in Algorithm 3 (Systematic Item Return Processing).
+CHAPTER IV
+RESULT & DISCUSSION
+4.1System Architecture
+Figure 1. System Architecture The Web-Based Property Inventory Management System Architecture operates through a structured multi-layer process that begins with the User Interface, where Teachers and In-Charge Personnel interact with the system to manage inventory records, borrowing transactions, and distribution lists. Teachers can view inventory information, request borrowed items, and monitor distributed items, while the In-Charge Personnel manages and oversees all inventory-related activities through the web-based platform. All user requests are processed within the Application Layer, which serves as the core component of the system and contains several major modules including Authentication for user login and access control, Borrow & Return for handling borrowing requests and returned items, Notifications for sending updates and alerts, Inventory Management for monitoring stock and item records, Distribution Management for handling both bulk and individual distribution of items, and Report Generation for producing inventory, borrowing, and distribution reports. The system stores all processed data in the Database Layer using MySQL, which centrally manages user accounts, inventory details, borrowing records, distribution transactions, and generated reports to ensure organized and accurate data storage. In addition, the system integrates with Real-Time and External Services such as Batch Real-Time Layer, Borrow Notify, Approval Processing, and Return Monitoring to support live updates, approval validation, automated notifications, and inventory tracking. Data flows continuously between all components of the architecture; for example, when a teacher submits a borrowing request, the system validates the request, records the transaction in the database, updates inventory availability, processes approvals, and sends notifications regarding the request status. Similarly, when items are distributed either individually or in bulk, the Distribution Module records the transaction, updates stock records, and generates reports for monitoring purposes. This architecture ensures efficient communication between users, system modules, databases, and external services while supporting accurate inventory tracking, streamlined borrowing and distribution processes, secure data management, and automated reporting for effective property management within the school. 
+4.2 Requirements Modeling
+	Table 4.1: Functional Requirements Implementation Status
+	Table 4.1 presents the functional requirements implementation status of the Web-Based Property Inventory Management System. Out of the identified functional requirements, most of the core inventory management features were fully implemented, while several functions were partially implemented for further enhancement and optimization. Core features including inventory management (FR-001), category management (FR-002), item distribution (FR-003), borrowing management (FR-004), dashboard monitoring (FR-008), authentication and authorization (FR-011), and report generation (FR-013) were successfully implemented, demonstrating that the system achieved its primary objective of improving the recording, tracking, and monitoring of school properties. Partially implemented requirements such as return and condition tracking (FR-005), notification system (FR-009), and validation rules (FR-012) require further improvements in validation handling, notification stability, and system optimization for future development. 
+Table 4.2: Non-Functional Requirements Verified Within Constraints
+Table 4.2 presents the non-functional requirements implementation status of the Web-Based Property Inventory Management System. Most of the identified non-functional requirements were successfully implemented, particularly those related to system security, usability, accessibility, and maintainability. Implemented requirements include input validation (NFR-01), authentication and authorization (NFR-02), password security (NFR-03), data protection (NFR-04), error handling (NFR-07), user interface usability (NFR-08), code maintainability (NFR-09), activity logging (NFR-12), role-based access control (NFR-14), scalability (NFR-15), and browser compatibility (NFR-16), demonstrating that the system provides a secure, organized, and user-friendly platform for managing school property records. Meanwhile, requirements such as system response time (NFR-05), data accuracy (NFR-10), and notification performance (NFR-13) were partially implemented and still require further optimization and improvement, while system availability monitoring (NFR-06) and backup and recovery functions (NFR-11) were deferred for future development and testing. Overall, the results show that the system is capable of supporting the school’s inventory operations while identifying areas for future enhancement and optimization. 
+The Developed System
+Figure 4.3. Login Type Selection Modal
+Figure 4.3 shows the Login Page of the system, which is accessed when the user clicks the ‘Sign In’ button from the homepage. This page allows both Admin and Teacher users to log into the system using their registered credentials. It includes input fields for username or email and password, along with a login button to submit the information. The system automatically determines whether the user is an Admin or Teacher based on the stored account details and redirects them to the appropriate dashboard. It also provides validation messages for incorrect or missing inputs to ensure secure and accurate authentication, and may include features such as password visibility for improved usability.
+Figure 4.4. Admin Dashboard
+Figure 4.4 displays the Admin Dashboard, accessible after successful login, which serves as the central control panel for system administrators in the Inventory Management System. The dashboard includes a sidebar navigation with menu items such as Dashboard, Inventory, Reservation containing Borrow list and Borrow Request, Distribution list, and Borrowing. A statistics overview section presents key information, including Total Items, Available Items, Distributed Items, Borrowed Items, and Missing or Damaged Items, displayed as organized cards for quick monitoring. The main panel also provides summary tables or charts showing recent distributions and borrowing activities, allowing administrators to track item movement and usage. Additionally, filtering options may be available to sort data by category, date, or teacher, and the footer indicates the logged-in user as Administrator.
+Figure 4.5. Inventory Page
+Figure 4.5. Display the Inventory Management Page, which allows the administrator to manage all inventory items within the system. This page includes an “Add Item” button that enables the admin to input new item details such as item name, category, quantity, condition, and description. A filter section is provided to easily search and sort items based on category, Date added Select Order making it easier to locate specific records. The inventory list is displayed in a table format showing essential details of each item, along with action buttons for editing and deleting. The edit function allows the administrator to update item information, while the delete function uses a soft delete mechanism, meaning the item is not permanently removed but is instead transferred to a Trash section where it can still be viewed and restored if needed. This ensures data safety and prevents accidental loss of important inventory records.
+Figure 4.6.  Add Item Page
+Figure 4.6 shows the Inventory Management Page of the system, where the administrator can manage all inventory items through a centralized interface. It includes an “Add New Item” button that opens a form for entering item details such as item code, item name, description, and category, allowing the administrator to efficiently register new items into the system. Once added, the items are displayed in a structured list for easy viewing and management, ensuring that all records are properly organized and updated. This functionality helps maintain accurate inventory data and supports efficient tracking and monitoring of school assets within the system.
+Figure 4.7.  Reservations Page
+Figure 4.7 shows the Borrow List, which provides a clear and organized view of all approved or currently borrowed items in the system. It includes important details such as the item name, the teacher who borrowed it, quantity, borrow date, expected return date, and its current status. This page helps the administrator easily keep track of all active borrow transactions and ensures accountability for issued items. It also includes an option to mark items as returned, which automatically updates both the item status and the inventory count. Alongside this, the system features a Borrow Request function where teachers can request items before borrowing them. These requests are reviewed by the administrator, who can approve or decline them depending on availability. Once approved, the request is moved to the Borrow List for proper monitoring. Overall, this process makes managing borrowed items more organized, transparent, and efficient.
+Figure 4.8.  Distribution list Page
+Figure 4.9 shows the Distribution List Page, which allows the administrator to manage and monitor the distribution of inventory items to users or departments. This page displays a list of all distributed items in a tabular format, including details such as item name, quantity distributed, recipient, date of distribution, and current status. It includes features for recording new distributions and tracking issued items, ensuring proper documentation of asset allocation. The system also supports return functionality, where distributed items can be marked as returned once they are handed back, automatically updating their status in the list. Additionally, a search and filter option is provided to easily locate specific distribution records, improving efficiency in tracking and managing item movement within the system.
+Figure 4.9. Create Distribution Group Page
+Figure 4.11 shows the Create Distribution List Page, which allows the administrator to record and manage the distribution of inventory items to users or departments. This page provides a form interface where the administrator can select items, specify the quantity to be distributed, assign recipients, and input relevant details such as the date of distribution. It supports the efficient recording of issued items, ensuring accurate documentation of asset allocation. Once submitted, the distribution is added to the system and can be monitored in the distribution list, where items can later be marked as returned, automatically updating their status. Additionally, the system ensures proper tracking of item movement, helping maintain accountability and organization within the inventory management process.
+Figure 4.10. User management Page
+Figure 4.12 shows the User Management Page, which allows the administrator to manage teacher accounts within the system. This page provides a list of registered teachers displayed in a tabular format, including details such as name, email, role, and account status. It includes functionalities for adding new teacher accounts, editing existing information, and deleting users when necessary. The administrator can ensure that all teacher records are accurate and up to date, supporting proper access control within the system. Additionally, a search and filter feature is available to easily locate specific users, improving efficiency in managing teacher accounts and maintaining organized user records.
+Figure 4.11. Archive Page
+Figure 4.13 shows the Trash Page, which stores all records that have been removed using the system’s soft delete feature. Instead of being permanently deleted, items such as inventory records, users, or other data are temporarily transferred to this page for safekeeping. The Trash Page displays these records in a tabular format, allowing the administrator to review deleted data along with relevant details. It includes options to either restore items back to their original list or permanently delete them from the system. This feature ensures data recovery, prevents accidental loss of important information, and provides an additional layer of control in managing system records.
+Figure 4.12. Teacher Dashboard Page
+Figure 4.14 shows the Teacher Dashboard Page, which serves as the main interface for teachers to access and manage their activities within the system. This page provides an overview of relevant information, such as assigned or borrowed items, pending requests, and recent transactions. It allows teachers to submit borrowing requests, view the status of their requests, and monitor the items currently issued to them. The dashboard is designed to present information in a clear and organized manner, enabling teachers to easily navigate the system and efficiently manage their interactions with the inventory, improving overall usability and workflow.
+Figure 4.13. My Reservations Page
+Figure 4.15 shows the My Reservations Page, which allows teachers to view and manage all their reservation requests within the system. This page displays a list of reserved items in a tabular format, including details such as item name, quantity, reservation date, scheduled date of use, and current status. It enables users to monitor whether their requests are pending, approved, or rejected, providing clear visibility of their transactions. Additionally, the page helps teachers keep track of their reserved resources, ensuring proper planning and coordination when using inventory items.
+Figure 4.14. My Distribution Groups Pages
+Figure 4.15. Displays the interface where users (e.g., teachers or department heads) can view and manage the groups assigned to them for item distribution. This page organizes distribution groups in a structured list, displaying key details such as group name, assigned department, number of items included, and current distribution status. It also provides action options such as viewing group details, updating information, or removing a group (if permitted). The page is designed to simplify the management of grouped item distributions, ensuring that users can easily track and monitor which items are allocated to each group and maintain proper accountability within the inventory system.
+4. Feasibility Assessment: Deployment Costing for the Web-Based Property Inventory Management System 
+For the Web-Based Property Inventory Management System to transition from its current academic prototype stage into a fully operational system at Caloc-an Elementary School, a feasibility assessment is necessary to evaluate the estimated deployment and maintenance costs. The following table presents the projected one-time and recurring expenses associated with implementing, operating, and maintaining the system in an actual school environment. 
+Table 4.2. Deployment Cost Estimates
+Testing Result
+Following the convergent parallel mixed‑methods design, the UAT gathered both quantitative data through ISO/IEC 25010‑based surveys and qualitative data through stakeholder feedback form
+4.4.1Technical Verification
+	User Acceptance Testing
+	Table 4.4 presents the User Acceptance Testing (UAT) protocol used to evaluate the system at Caloc-an Elementary School in Magallanes, involving the School Inventory Coordinator and the School Principal as the primary evaluators. Each session included a comprehensive system demonstration and hands-on interaction with core modules, specifically focusing on Group and Individual distributions, and Teacher borrowing requests. Participants completed an ISO/IEC 25010:2011-based evaluation questionnaire covering eight product quality and four quality-in-use characteristics to verify that the digital templates and automated monitoring features effectively address the institution's administrative needs and inventory standards.
+Table 4.4. UAT Protocol
+4.4.2 Quantitative Evaluation Results
+Each evaluator completed an ISO/IEC 25010-based questionnaire covering eight product quality characteristics and four quality-in-use characteristics. Ratings were recorded using a 5-point Likert scale (1 = Poor, 2 = Fair, 3 = Good, 4 = Very Good, 5 = Excellent). A total of eight (8) participants completed the evaluation, consisting of three (3) teachers and five (5) school personnel from Caloc-an Elementary School.
+Scoring Formula
+The overall average rating for each quality characteristic was computed using the arithmetic mean formula:
+Where:
+= the overall average rating for each quality characteristic
+= the individual rating given by each respondent
+= the total number of respondents ()
+Table 4.5. ISO/IEC 25010 Evaluation Results
+Final Evaluation Summary Overall Product Quality Average: 3.97 – Very Good Overall Quality in Use Average: 4.15 – Very Good
+Table 4.5: Analysis and Interpretation of ISO/IEC 25010 Evaluation Results
+The evaluation of the system was conducted at Caloc-an Elementary School with eight participants, including the Principal, Inventory Coordinator, and teachers. Using the ISO/IEC 25010 standard, they rated the system on its technical quality and how well it works in a real-school setting.
+User-Friendliness (4.12 – Very Good). This was the highest-rated technical feature. Teachers and staff found the system very easy to use because of its clean look. They could request to borrow items or check inventory records without needing a thick manual or advanced computer skills. This proves the system is accessible for everyone in the school.
+Work Efficiency (4.05 – Very Good). This was the top score for "Quality in Use." It shows that the staff felt the system saved them a lot of time. Instead of manually writing down lists and sorting items by year and alphabet, the system did it for them instantly, taking away the heavy lifting of paperwork.
+Meeting School Needs (3.95 – Very Good). The staff confirmed that the system does exactly what it is supposed to do. It handles distributed items to groups or individuals, and tracks where every piece of items. The digital forms were found to match the official school requirements perfectly.
+Accuracy and Reliability (3.90 – Very Good). The Inventory Coordinator noted that the system is very effective at preventing mistakes. Moving from paper to digital helped ensure that every item received is accounted for and that the risk of losing records is significantly reduced.
+Security and Accountability (3.80 – Very Good). Participants liked that the system has clear boundaries. Only the Principal and Coordinator can change the main records, while teachers focus on their borrow requests. This makes everyone accountable for the items assigned to them.
+System Stability (3.65 – Very Good). The system remained stable during all tests. The participants were particularly impressed by the "missing item" alerts, which help the school stay on top of their school properties lifespan and location.
+Adaptability (3.45 – Very Good). The staff recognized that the system is built to grow. It is organized in a way that allows the school to add new features in the future, such as barcode scanning, without having to rebuild the whole thing.
+Setup and Printing (3.35 – Good). This was the lowest score but still a good result. It acknowledges that while the system works great, the quality of printed reports can sometimes depend on the specific printer or web browser being used in the office.
+Overall Summary. With an overall score of 3.97 for Technical Quality and 4.15 for Practical Use, the system is a success. It proved to be a reliable, easy-to-use tool that makes school inventory much faster and more organized. The high satisfaction among the Principal and teachers shows that the system is ready to replace the old manual logbooks and help Caloc-an Elementary School manage its resources better.
+Qualitative Findings
+During the demonstrations, participants provided feedback that contextualizes the quantitative ratings. Table 4.5 summarizes the key comments and suggestions.
+Table 4.6. Qualitative Feedback from UAT Participants
+The qualitative feedback highlights that participants particularly valued the automated borrowing workflow and the integration of the Distribution List modules, which collectively streamline the tracking of high-value school property. Teachers and personnel noted that the digital borrowing process for items like laptops and projectors is significantly faster than manual logbooks, while the PO and Distribution modules create a reliable "Inflow-to-Outflow" logic where every tool is documented from the moment of acquisition to its assignment to a specific teacher. While the system's ability to instantly update stock levels and maintain accountability was highly praised, constructive suggestions indicated a need for more detailed borrowing history, Serial Number tracking within the PO module, and a "Remarks" section to document the condition of items upon return. These insights, which align with the lower ratings in Portability (3.35) and Maintainability (3.45), provide a clear roadmap for future enhancements such as adding maintenance schedules for machinery to ensure that all carpentry and IT equipment remain in good working condition throughout their documented lifecycle.
+4.7 Discussion
+Problem Resolution within Constraints
+Table 4.11 maps each Chapter 1 objective to its achievement, supporting evidence, and confidence level.
+evidence, and confidence level.
+Table 4.11. Problem Resolution within Constraints
+Core finding: Within the development timeframe, the study successfully demonstrated the technical feasibility and operational acceptability of a Web-Based Property Inventory Management System for Caloc-an Elementary School, showing that the system can effectively centralize, manage, and monitor school property records within the defined project constraints.
+CHAPTER V
+SUMMARY, CONCLUSIONS, AND RECOMMENDATIONS
+5.1 Summary of Findings
+The Inventory and Monitoring System for Caloc-an Elementary School was successfully developed and evaluated, demonstrating that a specialized property management solution can effectively replace manual logbooks in a school setting. The system, built using the Laravel framework and React TSX, is designed to handle the full lifecycle of school assets—from procurement to daily borrowing and is currently operational for use by the school's administrative staff and teachers.
+User Acceptance Testing (UAT) was conducted with eight (8) participants, including the School Principal, Inventory Coordinator, and teaching staff. The evaluation utilized an ISO/IEC 25010:2011-based questionnaire to measure both technical product quality and practical quality in use.
+Quantitative Results:
+Overall Product Quality Average: 3.80 (Very Good)
+Overall Quality in Use Average: 3.91 (Very Good)
+Highest Rated Characteristics: Usability (4.12) and Satisfaction (4.15)
+Lowest Rated Characteristic: Portability (3.35 – Good)
+Qualitative Findings:
+The qualitative feedback gathered during the hands-on demonstration confirmed the system's operational relevance to school needs. Participants provided specific observations and suggestions, including:
+Addition of a "Remarks" section in the borrowing module to document the physical condition of items (e.g., carpentry machinery) upon return.
+Expansion of the dashboard to include a maintenance schedule for equipment nearing the end of its 5-year lifespan.
+Comparison across Groups:
+The Administrative Staff and Coordinator provided higher ratings in Efficiency (4.05) and Functional Suitability (3.95), recognizing the system’s ability to streamline inventory management, distribution tracking, and borrowing processes, which significantly reduced manual paperwork and improved record organization. The Teaching Staff particularly valued the Usability (4.12) of the digital borrowing system, noting the convenience of submitting requests and checking item availability in real time. The lower rating in Portability (3.35) reflects the participants’ observation that the system is currently optimized for use within the school’s local network and designated office computers, which may limit accessibility across different devices or external environments.
+5.2 Conclusions
+The study shows that using a Web-Based Property Inventory Management System can greatly improve how Caloc-an Elementary School manages and monitors its properties. By bringing all inventory records into a single system, the school is able to organize data better, reduce inconsistencies, and ensure that information about equipment, furniture, and other assets is easier to access and manage.
+The system’s features such as item categorization, consolidated inventory records, borrowing and distribution tracking, and automated reporting have helped make the inventory process more efficient and organized. These functions also make it easier to retrieve information quickly, record transactions properly, and maintain transparency in all property-related activities within the school.
+In addition, the system provides school administrators with more reliable and updated information that supports better planning and decision-making. It also helps teachers become more aware and responsible for the items assigned to them through clear and accurate records. While some parts of the system still need further improvement, the overall results show that it is already functional and suitable for use in the school setting.
+Overall, the study concludes that a web-based system is an effective way to improve property inventory management in schools, making the process more organized, efficient, and dependable.
+5.3 Recommendations
+Based on the results of the system evaluation, user feedback during testing, and the limitations identified during development, several recommendations are proposed to further enhance the Web-Based Property Inventory Management System and improve its long-term usability, scalability, and reliability within Caloc-an Elementary School.
+Enhanced Role-Based Access Control and Security Features
+ 	Future improvements should focus on strengthening the system’s security by implementing more advanced role-based access control mechanisms. While the current system already supports basic user roles such as administrators and teachers, it is recommended to introduce more granular permission levels. This may include restricting specific actions such as deleting records, modifying historical data, or approving transactions to authorized personnel only. Strengthening security policies will help protect sensitive inventory data and ensure better system integrity.
+Improved Notification and Alert System
+	 The notification module should be further enhanced to provide more reliable, real-time updates for key inventory activities such as item distribution, borrowing requests, returns, and status changes. Enhancing this feature will ensure that teachers and administrators are immediately informed of important system activities, reducing delays and improving communication within the school environment.
+Advanced Reporting and Data Analytics
+	 It is recommended to expand the reporting and analytics capabilities of the system to provide deeper insights into inventory usage and trends. Future enhancements may include identifying frequently borrowed items, detecting missing or damaged items patterns, and generating summary reports for resource utilization. These improvements will support school administrators in making more informed decisions regarding resource allocation and procurement planning.
+Mobile-Friendly System or Mobile Application Development
+	 To improve accessibility, it is recommended to develop a mobile-responsive version or a dedicated mobile application of the system. This will allow users, especially teachers and administrators, to access the system anytime and anywhere. Mobile accessibility will also improve convenience during item checking, reporting, and inventory monitoring, particularly in school settings where desktop access is limited.
+Automated Backup and Disaster Recovery System
+	 A structured backup and recovery system should be implemented to ensure that all inventory data is securely stored and can be restored in case of system failure, accidental deletion, or unexpected technical issues. Automated daily or weekly backups stored in a secure location will significantly reduce the risk of data loss and improve system reliability.
+System Performance Optimization and Scalability Improvements
+	 Future development should also focus on optimizing system performance, particularly in handling large volumes of inventory records, user activities, and transaction history. Enhancing database indexing, query optimization, and system caching mechanisms can improve response time and ensure smoother user experience even as data grows over time.
+Integration of Barcode or QR Code Technology
+ 	To further improve efficiency, it is recommended to integrate barcode or QR code functionality into the system. This will allow faster identification, encoding, and tracking of school properties. Instead of manually searching or encoding item details, scanning QR codes can significantly reduce processing time and improve accuracy in inventory operations.
+Improved Data Validation and System Error Handling
+	 Stronger validation rules should be implemented across all input forms to ensure data accuracy and consistency. This includes preventing duplicate entries, enforcing proper input formats, and improving error messages for better user understanding. Enhanced error handling will also help prevent system crashes and improve overall stability.
+User Training, Documentation, and System Orientation
+ 	It is also recommended to conduct continuous training sessions for users such as administrators and teachers to ensure proper system utilization. In addition, improved documentation and user manuals should be provided to guide users in navigating the system effectively. Proper training will help maximize the benefits of the system and reduce user errors during operation.
+The functional solution that successfully digitizes the management of school property
+The evaluation ratings of 3.80 (Product Quality) and 3.91 (Quality in Use), both interpreted as Very Good, confirm that the system effectively replaces manual logbooks and meets the operational standards of school stakeholders. Remaining gaps in real-time serial number tracking, advanced maintenance scheduling, and automated condition reporting for damaged items provide a clear direction for Phase 2 development.
+The system successfully integrates automated Distribution Lists and a Digital Borrowing module into a single web-based platform. By linking these modules, the system creates a complete accountability trail—tracking items from the moment they are bought until they are returned or tagged as missing. Stakeholder validation from the Principal, Coordinator, and Teachers confirms that the system addresses the critical need for organized property monitoring and is ready for continued use and expansion within Caloc-an Elementary School.
+5.4 Concluding Statement
+The Web-Based Property Inventory Management System for Caloc-an Elementary School has successfully demonstrated that a digital approach is an effective solution for improving the management and monitoring of school properties. By centralizing all inventory records into a single system, it provides a more organized and efficient way of tracking school assets from encoding, updating, distribution, borrowing, and return until their current status is properly recorded. The system ensures that all properties are accurately accounted for, reducing inconsistencies and improving the reliability of inventory data. With features such as item categorization, consolidated inventory lists, transaction history, and automated reporting, the system enhances transparency and streamlines inventory-related processes within the school. Overall, the positive evaluation results indicate that the system is reliable, user-friendly, and suitable for school use, making it an effective tool for improving accountability, organization, and proper monitoring of all school properties. 
+Gantt Chart
+Appendix A: ISO/IEC 25010 Evaluation Instrument
+SYSTEM QUALITY EVALUATION FORM 
+Framework: ISO/IEC 25010:2011
+Target Product: A Web-Based Platform for Optimized Waste Management
+: A Simulation-Based, IoT-Ready System for Fill Level and Odor Monitoring
+Evaluator: 	Date: 	
+Rating Scale: 5 – Excellent | 4 – Very Good | 3 – Good | 2 – Fair | 1 – Poor
+PART 1: PRODUCT QUALITY
+PART II: QUALITY IN USE (USER EXPERIENCE)
+PART III: MY FINAL THOUGHTS (Additional Comments)
+What did I like most about the system?
+What could be improved or added?
+Any other observations?
+Evaluator's Signature: 	
+Thank you for your participation
+M. Curriculum Vitae
+Personal Information
+Name                   	  	: NEIL BRYANT O. GALINDEZ
+Place of Birth         		: P-2 Dumalagan Butuan City Agusan Del Norte
+Date of Birth           	: September 14,2003
+Age                      	  	: 22 years old
+Nationality              	: Filipino
+Status               	     	: Single
+Sex                   	     	: Male
+Email Address  	     	: neilbryant.galindez@csucc.edu.ph
+Religion             	    	: Roman Catholic
+Residence          	   	: P-2 Dumalagan Butuan City Agusan Del Norte
+Educational Background
+College                  	: Caraga State University Cabadbaran City
+Year Graduated     	: Undergraduate
+High School           	: Consuelo National High School
+Year Graduated     	: 2021-2022
+Elementary            	: Paco Elementary School
+Year Graduated     	: 2015-2016
+Personal Information
+Name                   	  	: NEIL BRYANT O. GALINDEZ
+Place of Birth         		: P-2 Dumalagan Butuan City Agusan Del Norte
+Date of Birth           	: September 14,2003
+Age                      	  	: 22 years old
+Nationality              	: Filipino
+Status               	     	: Single
+Sex                   	     	: Male
+Email Address  	     	: neilbryant.galindez@csucc.edu.ph
+Religion             	    	: Roman Catholic
+Residence          	   	: P-2 Dumalagan Butuan City Agusan Del Norte
+Educational Background
+College                  	: Caraga State University Cabadbaran City
+Year Graduated     	: Undergraduate
+High School           	: Consuelo National High School
+Year Graduated     	: 2021-2022
+Elementary            	: Paco Elementary School
+Year Graduated     	: 2015-2016
+Personal Information
+Name                   	  	: BENJIE P. TROZO
+Place of Birth         		: P-2 Poblacion Alegria Surigao Del Norte
+Date of Birth           	: November 9, 2001
+Age                      	  	: 24 years old
+Nationality              	: Filipino
+Status               	     	: Single
+Sex                   	     	: Male
+Email Address  	     	: benjie.trozo@csucc.edu.ph
+Religion             	    	: Roman Catholic
+Residence          	   	: P-2 Poblacion Alegria Surigao Del Norte
+Educational Background
+College                  	: Caraga State University Cabadbaran City
+Year Graduated     	: Undergraduate
+High School           	: Alegria National High School
+Year Graduated     	: 
+Elementary            	: Alegria Central Elementary School
+Year Graduated     	: 2015-2016
+References:
+Ahmad, A. C. (2023). e-AIMSS (Electronic Asset Inventory and Management System in School) for Resource Optimization and Organizational Productivity.
+https://philpapers.org/rec/AHMEEA
+Chin, Chan & Ramiah, Sathiapriya & Razali, Nurul Farhaini. (2023). Inventory Management Systems (IMS). 2600-7304. 
+https://jati.apu.edu.my/files/2023/07/Volume7_Issue3_Paper3_2023.pdf
+Ignacio, Dan Louis & Climaco, Raquel. (2023). Innovation In Education: Project OSIS (Office Supplies Inventory System). 10.13140/RG.2.2.17773.77287. 
+https://www.researchgate.net/publication/375864640_Innovation_In_Education_Project_OSIS_Office_Supplies_Inventory_System
+Tungkul, M. B., & Kummer, M. G. C. (2021). Supplies and equipment inventory, monitoring, and tracking management system using data mining techniques. International Journal of Recent Technology and Engineering (IJRTE), 10(2), 81-85.
+https://d1wqtxts1xzle7.cloudfront.net/76895105/B61740710221-libre.pdf?1640018065=&response-content-disposition=inline%3B+filename%3DSupplies_and_Equipment_Inventory_Monitor.pdf&Expires=1744352863&Signature=PHAsiZzjEFEObhjUlfUcdBgx7KsOlXli9gyx6WVwxCN~3pdArNi7XDPDiNpwOpxA0UnfhFkT0nwqqR06~91W4Sj8yDsIP1c22yPb8-hJYWPt6xZ9hyyfoxLoFAPT-AQ8KKwboJJJD31W3jVA06Hy5C3gcWkKxRJeZDeHQTFYIoD0BhDTv4lfmWNdmEhLNdTzYxkz4QcZvwr2HnDZ5bsVuCNVT25uieByTBPnagFTNLnyfBzohW3Bob5R0UTBb9GVDNnPb9yibnk18b5JFOCC56cNXsxPohlwHiAemKuvs0u-gXF5rxm3u9gfXhzzzM6sT9D9xlwMJb0CwTztER4jEw__&Key-Pair-Id=APKAJLOHF5GGSLRBV4ZA
+Kumar, H. (2024) Utilization of Inventory Management System in Educational Organization.
+https://theacademic.in/wp-content/uploads/2024/11/5.pdf
+Soni, S., Chandra, P., Gupta, A., Netam, D. K., Kumar, S., & Tiwary, K. (2023). Design and implementation of inventory management system for university. Eur Chem Bull, 12(4), 13746-13759.
+https://www.researchgate.net/profile/Pankaj-Chandra-7/publication/371989579_Design_and_Implementation_of_Inventory_Management_System_for_University/links/64a24f448de7ed28ba6c3bc1/Design-and-Implementation-of-Inventory-Management-System-for-University.pdf
+Madamidola, O. A., Daramola, O. A., Akintola, K. G., & Adeboje, O. T. (2024). A Review of Existing Inventory Management Systems. International Journal of Research in Engineering and Science (IJRES), 12(9), 40-50.
+https://www.researchgate.net/profile/Olugbenga-Madamidola/publication/383947700_A_Review_of_Existing_Inventory_Management_Systems/links/66e34077f84dd1716ce9ccee/A-Review-of-Existing-Inventory-Management-Systems.pdf
+Baylosis, J. L. A., Abiles, B. J. A., Catungal, M. L. P., & Encarnacion, P. C. (2023). Web-based Inventory Management System. International Journal, 12(5).
+https://d1wqtxts1xzle7.cloudfront.net/106470854/ijsait021252023-libre.pdf?1696996036=&response-content-disposition=inline%3B+filename%3DWeb_based_Inventory_Management_System.pdf&Expires=1744353105&Signature=N-MMbnFaKL~TBDFKHRGAUnL6N~0Ujf39DeBIJfUz13jL0JJPOoR9IyRYO-c9qKFQQ0PsLdNYhbmkUSck4bKOaOY0e19zva-c0nDlbLRMmls1TjaOXZWT7scXrn~7cZwbQZn7myzQDMp2ilN2EdE7jajfN7qR~eED0lRYLzxVw~E5nzjzFkndlr1UqdqPZ~48MzKhy-XZChrfQ8MfKuWJHa5O3U4W1RR3dG0tq6o2xFR0A67SwKQWfXJJ~XXxrFQK8NU1ckZS1F1jFEddtQjqxAP-EGTD2n5ykA9LS3ZQuAFgPUUJjqG2A-9V9cfCRDZHTFEJwqxe5YUhol5QetAB3A__&Key-Pair-Id=APKAJLOHF5GGSLRBV4ZA
+Chukwumuanya, O. E., Onwurah, U. O., & Ihueze, C. C. (2024). Development of a Web-Based Inventory Management System for Small Businesses. INTERNATIONAL JOURNAL OF INDUSTRIAL AND PRODUCTION ENGINEERING, 2(2), 53-67.
+https://journals.unizik.edu.ng/ijipe/article/view/4096
+Aguedo, C., Espinoza, J., & Pacheco, A. (2024). Improving Inventory Control Through a Web-Based System in a Retail Company. F1000Research, 13, 252.
+https://f1000research.com/articles/13-252
+Song, J. S., Van Houtum, G. J., & Van Mieghem, J. A. (2020). Capacity and inventory management: Review, trends, and projections. Manufacturing & Service Operations Management, 22(1), 36-46.
+https://pubsonline.informs.org/doi/abs/10.1287/msom.2019.0798
+Mashayekhy, Y., Babaei, A., Yuan, X. M., & Xue, A. (2022). Impact of Internet of Things (IoT) on inventory management: A literature survey. Logistics, 6(2), 33.
+https://www.mdpi.com/2305-6290/6/2/33
+Ran, H. (2021). Construction and optimization of inventory management system via cloud-edge collaborative computing in the supply chain environment in the Internet of Things era. Plos one, 16(11), e0259284.
+https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0259284
+Ramos-Miller, M., & Pacheco, A. (2023). Towards inventory control excellence: An innovative approach based on a web-based platform. F1000Research, 12, 1471.
+https://pmc.ncbi.nlm.nih.gov/articles/PMC10904949/
+Nwaneri, S., & Olaoye, G. (2023). Development of Web Based Medical Equipment Inventory Maintenance System.
+https://www.researchsquare.com/article/rs-3459307/v1
+Teoh, C. Y. (2020). Maker’s inventory system: a logical-bin storage approach (Doctoral dissertation, UTAR).
+http://eprints.utar.edu.my/3824/
+Hinders, F. (2023). Implementation of an Integrated Inventory Management System.
+https://www.theseus.fi/bitstream/handle/10024/798700/Hinders_Filip.pdf?sequence=2
+Nasution, R., & Muliani, A. (2022). The Web-Based Inventory Data Processing Information System At The Regional Development Planning Agency (Bappeda) North Sumatra Province. Journal of Information Systems and Technology Research, 1(1), 32-41.
+https://journal.aira.or.id/index.php/jistr/article/view/95
+Prasongko, R. (2025). Design and Implementation of Inventory Management Information System at AMIK PGRI Kebumen. Journal of Intelligent Systems and Information Technology, 2(1), 57-66.
+https://jurnalapik.id/index.php/jisit/article/view/145
+Fajar Wicaksono, M., Syahrul, S., & Dwi Rahmatya, M. (2021). Development of Laboratory Equipment Inventory System Using Radio Frequency and Internet of Things. Jurnal Ilmiah Teknik Elektro Komputer dan Informatika (JITEKI), 7(2), 249-258.
+https://repository.unikom.ac.id/69820/
+Alim, I. F. H., & Isnanto, R. R. (2023). Design of Inventory Management Information System Using Periodic Review Method. In E3S Web of Conferences (Vol. 448, p. 02010). EDP Sciences.
+https://www.e3s-conferences.org/articles/e3sconf/abs/2023/85/e3sconf_icenis2023_02010/e3sconf_icenis2023_02010.html

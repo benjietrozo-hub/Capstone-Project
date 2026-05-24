@@ -155,7 +155,7 @@ const NotificationProfile: React.FC<NotificationProfileProps> = ({
   return (
     <div className="flex items-center gap-3">
       {/* ── Notification Bell ── */}
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="icon" className="relative">
             <Bell className="w-4 h-4 text-black" />
@@ -255,7 +255,7 @@ const NotificationProfile: React.FC<NotificationProfileProps> = ({
       </DropdownMenu>
 
       {/* ── Profile Menu ── */}
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden">

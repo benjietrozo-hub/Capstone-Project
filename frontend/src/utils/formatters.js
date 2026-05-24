@@ -59,6 +59,7 @@ export const getStatusBadgeColor = (status) => {
     archived: 'bg-amber-100 text-amber-800',
     maintenance: 'bg-blue-100 text-blue-800',
     damaged: 'bg-red-500 text-white',
+    lost: 'bg-red-800 text-white',
     closed: 'bg-gray-100 text-gray-800',
   };
   return colors[status] || 'bg-gray-100 text-gray-800';
@@ -81,6 +82,7 @@ export const getConditionBadgeColor = (condition) => {
     fair: 'bg-yellow-100 text-yellow-800',
     poor: 'bg-orange-100 text-orange-800',
     damaged: 'bg-red-100 text-red-800',
+    lost: 'bg-red-800 text-white',
   };
   return colors[condition] || 'bg-gray-100 text-gray-800';
 };

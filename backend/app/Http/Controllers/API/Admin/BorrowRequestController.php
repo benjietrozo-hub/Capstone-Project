@@ -244,7 +244,7 @@ class BorrowRequestController extends Controller
             $condition === 'good' ? 'info' : 'warning'
         );
         
-        NotificationService::notifyItemReturned($br);
+        NotificationService::notifyItemReturned($br, $condition, $penalty);
         
         return response()->json([
             'success' => true,
