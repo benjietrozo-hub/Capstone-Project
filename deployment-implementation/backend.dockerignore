@@ -1,0 +1,38 @@
+# ============================================================
+# backend/.dockerignore
+# ============================================================
+
+.env
+.env.*
+!.env.example
+
+node_modules/
+npm-debug.log
+
+.git/
+.gitignore
+.vscode/
+
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+
+bootstrap/cache/*.php
+
+tests/
+phpunit.xml
+
+*.bat
+*.ps1
+create-root-admin.php
+create-test-teacher.php
+reset-admin-password.php
+manage-admin-accounts.php
+update_admin_role.php
+
+docker/
+README.md
+DEPLOYMENT_CHECKLIST.md
+PRODUCTION_DEPLOYMENT_GUIDE.md
+QUICK_START_GUIDE.md
